@@ -2,13 +2,12 @@ import type { LucideIcon } from 'lucide-react';
 import {
   CalendarDays,
   ClipboardCheck,
+  Clock3,
+  FileClock,
   Home,
   Settings,
   UserCircle,
   UsersRound,
-  Waves,
-  FileClock,
-  ClipboardList,
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -34,6 +33,30 @@ export const menuItems: MenuItem[] = [
     icon: CalendarDays,
   },
   {
+    key: 'attendance',
+    label: '打卡',
+    path: '/attendance',
+    icon: Clock3,
+  },
+  {
+    key: 'leave',
+    label: '请假&休假',
+    path: '/leave',
+    icon: FileClock,
+  },
+  {
+    key: 'profile',
+    label: '个人资料',
+    path: '/profile',
+    icon: UserCircle,
+  },
+  {
+    key: 'settings',
+    label: '设置',
+    path: '/settings',
+    icon: Settings,
+  },
+  {
     key: 'staff',
     label: '工作人员',
     path: '/staff',
@@ -45,7 +68,7 @@ export const menuItems: MenuItem[] = [
     key: 'registration-review',
     label: '注册审核',
     path: '/hr/registration-reviews',
-    icon: ClipboardList,
+    icon: ClipboardCheck,
     section: '工作工具',
     group: '人事部',
   },
@@ -65,37 +88,9 @@ export const menuItems: MenuItem[] = [
     section: '工作工具',
     group: '人事部',
   },
-  {
-    key: 'attendance',
-    label: '考勤',
-    path: '/attendance',
-    icon: ClipboardCheck,
-  },
-  {
-    key: 'leave',
-    label: '请假',
-    path: '/leave',
-    icon: FileClock,
-  },
-  {
-    key: 'rest-planning',
-    label: '休息规划',
-    path: '/rest-planning',
-    icon: Waves,
-  },
-  {
-    key: 'profile',
-    label: '个人资料',
-    path: '/profile',
-    icon: UserCircle,
-  },
-  {
-    key: 'settings',
-    label: '设置',
-    path: '/settings',
-    icon: Settings,
-  },
 ];
+
+export const futureToolGroups = ['星探部', '经纪部', '运营部', '财务部'];
 
 export function getMenuPath(key: MenuItem['key']) {
   const item = menuItems.find((menuItem) => menuItem.key === key);

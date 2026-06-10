@@ -1,27 +1,73 @@
 import { supabase } from '../lib/supabase';
-import type { AttendanceRecord, Employee, LeaveRequest, Region } from '../types/database';
+import type { AttendanceRecord, Employee, EmploymentType, JobTitle, LeaveRequest, Region } from '../types/database';
 
-export type AttendanceEmployee = Pick<Employee, 'id' | 'full_name' | 'employee_code' | 'region_id'> & {
+export type AttendanceEmployee = Pick<
+  Employee,
+  | 'id'
+  | 'full_name'
+  | 'employee_code'
+  | 'region_id'
+  | 'profile_id'
+  | 'start_work_time'
+  | 'end_work_time'
+  | 'require_attendance'
+> & {
   region: Pick<Region, 'id' | 'code' | 'name'> | null;
+  employment_type: Pick<EmploymentType, 'id' | 'name'> | null;
+  job_title: Pick<JobTitle, 'id' | 'name'> | null;
 };
 
-export type AttendanceMonthData = {
+export type AttendancePeriodData = {
   employees: AttendanceEmployee[];
   attendanceRecords: AttendanceRecord[];
   leaveRequests: LeaveRequest[];
   regions: Region[];
+  range: AttendancePeriodRange;
 };
 
-type EmployeeRowWithRegion = Pick<Employee, 'id' | 'full_name' | 'employee_code' | 'region_id'> & {
+export type AttendancePeriodRange = {
+  startIso: string;
+  endIso: string;
+  startDate: string;
+  endDate: string;
+};
+
+type EmployeeRowWithRelations = Pick<
+  Employee,
+  | 'id'
+  | 'full_name'
+  | 'employee_code'
+  | 'region_id'
+  | 'profile_id'
+  | 'start_work_time'
+  | 'end_work_time'
+  | 'require_attendance'
+> & {
   regions: Pick<Region, 'id' | 'code' | 'name'> | null;
+  employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
+  job_titles: Pick<JobTitle, 'id' | 'name'> | null;
 };
 
 export const attendanceManagementService = {
-  async getMonthData(month: string, regionId: string): Promise<AttendanceMonthData> {
-    const range = getMonthRange(month);
+  async getPeriodData(month: string, regionId: string): Promise<AttendancePeriodData> {
+    const range = getAttendancePeriodRange(month);
     const employeesQuery = supabase
       .from('employees')
-      .select('id, full_name, employee_code, region_id, regions:region_id(id, code, name)')
+      .select(
+        `
+        id,
+        full_name,
+        employee_code,
+        profile_id,
+        region_id,
+        start_work_time,
+        end_work_time,
+        require_attendance,
+        regions:region_id(id, code, name),
+        employment_types:employment_type_id(id, name),
+        job_titles:job_title_id(id, name)
+      `,
+      )
       .is('deleted_at', null)
       .order('full_name', { ascending: true });
 
@@ -61,33 +107,44 @@ export const attendanceManagementService = {
     }
 
     return {
-      employees: ((employeesResult.data ?? []) as unknown as EmployeeRowWithRegion[]).map((employee) => ({
-        id: employee.id,
-        full_name: employee.full_name,
-        employee_code: employee.employee_code,
-        region_id: employee.region_id,
-        region: employee.regions,
-      })),
+      employees: ((employeesResult.data ?? []) as unknown as EmployeeRowWithRelations[]).map(mapEmployeeRow),
       attendanceRecords: attendanceResult.data ?? [],
       leaveRequests: leaveResult.data ?? [],
       regions: regionsResult.data ?? [],
+      range,
     };
   },
 };
 
-function getMonthRange(month: string) {
+export function getAttendancePeriodRange(month: string): AttendancePeriodRange {
   const [yearText, monthText] = month.split('-');
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
-  const start = new Date(year, monthIndex, 1);
-  const end = new Date(year, monthIndex + 1, 1);
-  const lastDay = new Date(year, monthIndex + 1, 0);
+  const start = new Date(year, monthIndex - 1, 26);
+  const end = new Date(year, monthIndex, 26);
+  const lastDay = new Date(year, monthIndex, 25);
 
   return {
     startIso: start.toISOString(),
     endIso: end.toISOString(),
     startDate: toDateKey(start),
     endDate: toDateKey(lastDay),
+  };
+}
+
+function mapEmployeeRow(row: EmployeeRowWithRelations): AttendanceEmployee {
+  return {
+    id: row.id,
+    full_name: row.full_name,
+    employee_code: row.employee_code,
+    profile_id: row.profile_id,
+    region_id: row.region_id,
+    start_work_time: row.start_work_time,
+    end_work_time: row.end_work_time,
+    require_attendance: row.require_attendance,
+    region: row.regions,
+    employment_type: row.employment_types,
+    job_title: row.job_titles,
   };
 }
 

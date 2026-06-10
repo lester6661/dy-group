@@ -19,6 +19,9 @@ const emptyForm: EmployeeFormValues = {
   job_title_id: '',
   status: 'active',
   hire_date: '',
+  start_work_time: '09:00',
+  end_work_time: '18:00',
+  require_attendance: true,
 };
 
 const statusLabels: Record<EmployeeStatus, string> = {
@@ -30,6 +33,7 @@ const statusLabels: Record<EmployeeStatus, string> = {
 export function StaffPage() {
   const { profile } = useAuth();
   const isSuperAdmin = profile?.role === 'super_admin';
+  const canManageStaff = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'hr';
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [options, setOptions] = useState<StaffOptions>({
     regions: [],
@@ -126,6 +130,9 @@ export function StaffPage() {
       job_title_id: employee.job_title_id ?? '',
       status: employee.status,
       hire_date: employee.hire_date ?? '',
+      start_work_time: employee.start_work_time ?? '',
+      end_work_time: employee.end_work_time ?? '',
+      require_attendance: employee.require_attendance,
     });
   }
 
@@ -164,7 +171,7 @@ export function StaffPage() {
         <div className="page-heading">
           <span>工作人员管理</span>
           <h2>工作人员</h2>
-          <p>维护员工基础资料、职位、区域与状态。</p>
+          <p>维护员工基础资料、职位、区域、工作时间与考勤规则。</p>
         </div>
 
         <button className="secondary-action" type="button" onClick={loadStaffData} disabled={loading}>
@@ -174,6 +181,7 @@ export function StaffPage() {
       </div>
 
       <div className="staff-grid">
+        {canManageStaff ? (
         <form className="staff-form-panel" onSubmit={handleSubmit}>
           <div className="panel-title-row">
             <div>
@@ -289,6 +297,39 @@ export function StaffPage() {
                 onChange={(event) => setFormValues({ ...formValues, hire_date: event.target.value })}
               />
             </label>
+
+            <label className="form-field">
+              <span>上班时间</span>
+              <input
+                type="time"
+                value={formValues.start_work_time}
+                onChange={(event) => setFormValues({ ...formValues, start_work_time: event.target.value })}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>下班时间</span>
+              <input
+                type="time"
+                value={formValues.end_work_time}
+                onChange={(event) => setFormValues({ ...formValues, end_work_time: event.target.value })}
+              />
+            </label>
+
+            <label className="form-field checkbox-field">
+              <span>是否需要考勤</span>
+              <label className="inline-check">
+                <input
+                  type="checkbox"
+                  checked={formValues.require_attendance}
+                  disabled={!isSuperAdmin}
+                  onChange={(event) =>
+                    setFormValues({ ...formValues, require_attendance: event.target.checked })
+                  }
+                />
+                <strong>{formValues.require_attendance ? '需要考勤' : '不需要考勤'}</strong>
+              </label>
+            </label>
           </div>
 
           {error ? <p className="form-alert">{error}</p> : null}
@@ -299,6 +340,17 @@ export function StaffPage() {
             <span>{saving ? '保存中' : editingEmployee ? '保存修改' : '新增员工'}</span>
           </button>
         </form>
+        ) : (
+          <div className="staff-form-panel">
+            <div className="panel-title-row">
+              <div>
+                <span>个人资料</span>
+                <h3>仅可查看</h3>
+              </div>
+            </div>
+            <p className="form-helper">区域、职称、雇佣类型、入职日期、工作时间与考勤规则由公司管理。</p>
+          </div>
+        )}
 
         <div className="staff-list-panel">
           <div className="list-header">
@@ -330,8 +382,11 @@ export function StaffPage() {
                     <th>电话</th>
                     <th>职位</th>
                     <th>区域</th>
+                    <th>上班</th>
+                    <th>下班</th>
+                    <th>考勤</th>
                     <th>状态</th>
-                    <th>操作</th>
+                    {canManageStaff ? <th>操作</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -344,28 +399,33 @@ export function StaffPage() {
                       <td>{employee.phone || '-'}</td>
                       <td>{employee.job_title?.name || '-'}</td>
                       <td>{employee.region?.code || '-'}</td>
+                      <td>{employee.start_work_time ? employee.start_work_time.slice(0, 5) : '-'}</td>
+                      <td>{employee.end_work_time ? employee.end_work_time.slice(0, 5) : '-'}</td>
+                      <td>{employee.require_attendance ? '需要' : '不需要'}</td>
                       <td>
                         <span className={`status-pill status-${employee.status}`}>
                           {statusLabels[employee.status]}
                         </span>
                       </td>
-                      <td>
-                        <div className="row-actions">
-                          <button className="icon-button" type="button" onClick={() => handleEdit(employee)} aria-label="编辑">
-                            <Edit3 size={16} />
-                          </button>
-                          {isSuperAdmin ? (
-                            <button
-                              className="icon-button danger-button"
-                              type="button"
-                              onClick={() => handleDelete(employee)}
-                              aria-label="删除"
-                            >
-                              <Trash2 size={16} />
+                      {canManageStaff ? (
+                        <td>
+                          <div className="row-actions">
+                            <button className="icon-button" type="button" onClick={() => handleEdit(employee)} aria-label="编辑">
+                              <Edit3 size={16} />
                             </button>
-                          ) : null}
-                        </div>
-                      </td>
+                            {isSuperAdmin ? (
+                              <button
+                                className="icon-button danger-button"
+                                type="button"
+                                onClick={() => handleDelete(employee)}
+                                aria-label="删除"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>

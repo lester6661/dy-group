@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Camera, Clock, LogIn, LogOut, MapPin, RefreshCw, Wifi } from 'lucide-react';
+import { Camera, Coffee, Clock, LogIn, LogOut, MapPin, RefreshCw, Wifi } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
   AttendanceRecordItem,
@@ -11,6 +11,8 @@ import type { AttendancePunchType } from '../types/database';
 
 const punchTypeLabels: Record<AttendancePunchType, string> = {
   clock_in: '上班打卡',
+  break_start: '开始休息',
+  break_end: '结束休息',
   clock_out: '下班打卡',
 };
 
@@ -249,6 +251,14 @@ export function AttendancePage() {
             <button className="primary-button" type="button" onClick={() => handlePunch('clock_in')} disabled={Boolean(submitting)}>
               <LogIn size={18} />
               <span>{submitting === 'clock_in' ? '打卡中' : '上班打卡'}</span>
+            </button>
+            <button className="secondary-button" type="button" onClick={() => handlePunch('break_start')} disabled={Boolean(submitting)}>
+              <Coffee size={18} />
+              <span>{submitting === 'break_start' ? '记录中' : '开始休息'}</span>
+            </button>
+            <button className="secondary-button" type="button" onClick={() => handlePunch('break_end')} disabled={Boolean(submitting)}>
+              <Coffee size={18} />
+              <span>{submitting === 'break_end' ? '记录中' : '结束休息'}</span>
             </button>
             <button className="secondary-button" type="button" onClick={() => handlePunch('clock_out')} disabled={Boolean(submitting)}>
               <LogOut size={18} />

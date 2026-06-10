@@ -11,6 +11,9 @@ export type EmployeeFormValues = {
   job_title_id: string;
   status: EmployeeStatus;
   hire_date: string;
+  start_work_time: string;
+  end_work_time: string;
+  require_attendance: boolean;
 };
 
 export type EmployeeListItem = {
@@ -24,6 +27,9 @@ export type EmployeeListItem = {
   job_title_id: string | null;
   status: EmployeeStatus;
   hire_date: string | null;
+  start_work_time: string | null;
+  end_work_time: string | null;
+  require_attendance: boolean;
   region: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_type: Pick<EmploymentType, 'id' | 'name'> | null;
   job_title: Pick<JobTitle, 'id' | 'name'> | null;
@@ -46,6 +52,9 @@ type EmployeeRowWithRelations = {
   job_title_id: string | null;
   status: EmployeeStatus;
   hire_date: string | null;
+  start_work_time: string | null;
+  end_work_time: string | null;
+  require_attendance: boolean;
   regions: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
   job_titles: Pick<JobTitle, 'id' | 'name'> | null;
@@ -67,6 +76,9 @@ export const staffService = {
         job_title_id,
         status,
         hire_date,
+        start_work_time,
+        end_work_time,
+        require_attendance,
         regions:region_id(id, code, name),
         employment_types:employment_type_id(id, name),
         job_titles:job_title_id(id, name)
@@ -145,6 +157,9 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
     job_title_id: row.job_title_id,
     status: row.status,
     hire_date: row.hire_date,
+    start_work_time: row.start_work_time,
+    end_work_time: row.end_work_time,
+    require_attendance: row.require_attendance,
     region: row.regions,
     employment_type: row.employment_types,
     job_title: row.job_titles,
@@ -162,5 +177,8 @@ function normalizeEmployeePayload(values: EmployeeFormValues) {
     job_title_id: values.job_title_id || null,
     status: values.status,
     hire_date: values.hire_date || null,
+    start_work_time: values.start_work_time || null,
+    end_work_time: values.end_work_time || null,
+    require_attendance: values.require_attendance,
   };
 }

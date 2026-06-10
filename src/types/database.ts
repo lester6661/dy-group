@@ -5,7 +5,7 @@ export type EmployeeStatus = 'active' | 'inactive' | 'left';
 export type AppRole = 'super_admin' | 'admin' | 'hr' | 'manager' | 'staff';
 export type LeaveType = 'annual' | 'medical' | 'unpaid' | 'replacement';
 export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected';
-export type AttendancePunchType = 'clock_in' | 'clock_out';
+export type AttendancePunchType = 'clock_in' | 'break_start' | 'break_end' | 'clock_out';
 
 export type Profile = {
   id: string;
@@ -18,6 +18,8 @@ export type Profile = {
   review_note: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  region_id: string | null;
+  can_view_all_regions: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -62,6 +64,9 @@ export type Employee = {
   job_title_id: string | null;
   status: EmployeeStatus;
   hire_date: string | null;
+  start_work_time: string | null;
+  end_work_time: string | null;
+  require_attendance: boolean;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -96,6 +101,10 @@ export type AttendanceRecord = {
   accuracy: number | null;
   ip_address: string | null;
   device_info: string;
+  break_minutes: number | null;
+  overtime_minutes: number | null;
+  is_abnormal: boolean;
+  abnormal_types: string[];
   created_at: string;
 };
 
@@ -110,6 +119,8 @@ export type Database = {
           review_note?: string | null;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          region_id?: string | null;
+          can_view_all_regions?: boolean;
           created_at?: string;
           updated_at?: string;
           role?: AppRole;
@@ -144,6 +155,9 @@ export type Database = {
         Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'email' | 'phone' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'deleted_at' | 'created_at' | 'updated_at'>> &
           Pick<Employee, 'full_name'> & {
             profile_id?: string | null;
+            start_work_time?: string | null;
+            end_work_time?: string | null;
+            require_attendance?: boolean;
           };
         Update: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at'>>;
         Relationships: [
@@ -195,7 +209,7 @@ export type Database = {
       attendance_records: {
         Row: AttendanceRecord;
         Insert: Pick<AttendanceRecord, 'profile_id' | 'punch_type' | 'photo_path' | 'latitude' | 'longitude' | 'device_info'> &
-          Partial<Pick<AttendanceRecord, 'id' | 'employee_id' | 'punched_at' | 'accuracy' | 'ip_address' | 'created_at'>>;
+          Partial<Pick<AttendanceRecord, 'id' | 'employee_id' | 'punched_at' | 'accuracy' | 'ip_address' | 'break_minutes' | 'overtime_minutes' | 'is_abnormal' | 'abnormal_types' | 'created_at'>>;
         Update: Partial<Omit<AttendanceRecord, 'id' | 'created_at'>>;
         Relationships: [
           {
@@ -226,6 +240,18 @@ export type Database = {
       approve_registration: {
         Args: {
           profile_id: string;
+        };
+        Returns: void;
+      };
+      approve_registration_with_employee: {
+        Args: {
+          profile_id: string;
+          region_id: string;
+          employment_type_id: string;
+          job_title_id: string;
+          hire_date: string;
+          start_work_time: string;
+          end_work_time: string;
         };
         Returns: void;
       };

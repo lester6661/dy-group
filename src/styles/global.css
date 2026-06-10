@@ -100,6 +100,48 @@ a {
   margin-top: 12px;
 }
 
+.nav-section-body,
+.nav-group-body {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-toggle,
+.nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  color: rgba(255, 255, 255, 0.72);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-toggle {
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
+.nav-group-toggle {
+  padding: 0 14px 0 20px;
+}
+
+.nav-group-toggle.muted {
+  color: rgba(255, 255, 255, 0.38);
+  cursor: default;
+}
+
+.nav-link.nested {
+  padding-left: 32px;
+}
+
 .nav-section-title,
 .nav-group-title {
   display: block;
@@ -549,6 +591,12 @@ a {
   border: 1px solid var(--border);
   color: var(--text);
   background: var(--panel);
+}
+
+.compact-button {
+  min-height: 36px;
+  margin-top: 0;
+  padding: 0 12px;
 }
 
 .secondary-action {
@@ -1148,6 +1196,80 @@ a {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.form-helper {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.checkbox-field {
+  justify-content: end;
+}
+
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.inline-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.approval-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.abnormal-banner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 8px;
+  color: var(--text);
+  background: linear-gradient(135deg, rgba(31, 122, 140, 0.1), rgba(242, 165, 65, 0.12));
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.abnormal-banner svg {
+  color: var(--primary);
+}
+
+.abnormal-banner span {
+  font-weight: 800;
+}
+
+.abnormal-banner strong {
+  color: var(--primary);
+}
+
+.attendance-detail-panel {
+  margin-top: 18px;
+}
+
+.device-cell {
+  max-width: 260px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .attendance-status-present {

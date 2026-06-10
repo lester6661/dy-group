@@ -1,63 +1,70 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, CalendarDays, RefreshCw } from 'lucide-react';
+import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import {
   AttendanceEmployee,
   attendanceManagementService,
+  getAttendancePeriodRange,
 } from '../services/attendanceManagement.service';
-import type { AttendanceRecord, LeaveRequest, LeaveRequestStatus, Region } from '../types/database';
+import type { AttendanceRecord, LeaveRequest, LeaveType, Region } from '../types/database';
 
-type AttendanceRow = {
-  key: string;
-  employee: AttendanceEmployee;
+type DailyRecord = {
   date: string;
   clockIn: AttendanceRecord | null;
+  breakStart: AttendanceRecord | null;
+  breakEnd: AttendanceRecord | null;
   clockOut: AttendanceRecord | null;
-  leaveStatus: string;
-  attendanceStatus: 'present' | 'leave' | 'absent' | 'partial' | 'future';
+  workHours: number | null;
+  breakMinutes: number;
+  status: string;
 };
 
-type AttendanceStats = {
-  presentDays: number;
-  leaveDays: number;
-  absentDays: number;
-  punchCount: number;
+type EmployeeAttendanceSummary = {
+  employee: AttendanceEmployee;
+  lateCount: number;
+  earlyLeaveCount: number;
+  absentCount: number;
+  overtimeBreakCount: number;
+  abnormalPunchCount: number;
+  leaveCounts: Record<LeaveType, number>;
+  dailyRecords: DailyRecord[];
+  abnormalRecords: AbnormalRecord[];
 };
 
-const attendanceStatusLabels = {
-  present: '出勤',
-  leave: '请假',
-  absent: '缺勤',
-  partial: '打卡不完整',
-  future: '未到日期',
+type AbnormalRecord = {
+  id: string;
+  employee: AttendanceEmployee;
+  type: string;
+  punchedAt: string;
+  gps: string;
+  ip: string;
+  deviceInfo: string;
+  photoPath: string;
 };
 
-const leaveStatusLabels: Record<LeaveRequestStatus, string> = {
-  pending: '审核中',
-  approved: '已请假',
-  rejected: '已拒绝',
+const leaveTypeLabels: Record<LeaveType, string> = {
+  annual: '年假',
+  medical: '病假',
+  unpaid: '无薪假',
+  replacement: '换休假',
 };
 
 export function AttendanceManagementPage() {
+  const { profile } = useAuth();
   const [month, setMonth] = useState(getCurrentMonth());
   const [regionId, setRegionId] = useState('');
   const [regions, setRegions] = useState<Region[]>([]);
-  const [rows, setRows] = useState<AttendanceRow[]>([]);
-  const [stats, setStats] = useState<AttendanceStats>({
-    presentDays: 0,
-    leaveDays: 0,
-    absentDays: 0,
-    punchCount: 0,
-  });
+  const [summaries, setSummaries] = useState<EmployeeAttendanceSummary[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [showAbnormalCenter, setShowAbnormalCenter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const selectedRegionName = useMemo(() => {
-    if (!regionId) {
-      return '全部区域';
-    }
-
-    return regions.find((region) => region.id === regionId)?.code ?? '指定区域';
-  }, [regionId, regions]);
+  const canViewAllRegions = profile?.role === 'super_admin' || Boolean(profile?.can_view_all_regions);
+  const range = useMemo(() => getAttendancePeriodRange(month), [month]);
+  const selectedSummary = summaries.find((summary) => summary.employee.id === selectedEmployeeId) ?? null;
+  const abnormalRecords = summaries.flatMap((summary) => summary.abnormalRecords);
+  const abnormalEmployeeCount = summaries.filter((summary) => summary.abnormalPunchCount > 0).length;
 
   useEffect(() => {
     loadAttendanceData();
@@ -68,11 +75,11 @@ export function AttendanceManagementPage() {
     setError('');
 
     try {
-      const data = await attendanceManagementService.getMonthData(month, regionId);
-      const builtRows = buildAttendanceRows(data.employees, data.attendanceRecords, data.leaveRequests, month);
+      const data = await attendanceManagementService.getPeriodData(month, regionId);
       setRegions(data.regions);
-      setRows(builtRows);
-      setStats(calculateStats(builtRows));
+      setSummaries(buildSummaries(data.employees, data.attendanceRecords, data.leaveRequests, data.range.startDate, data.range.endDate));
+      setSelectedEmployeeId('');
+      setShowAbnormalCenter(false);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '读取考勤数据失败。');
     } finally {
@@ -86,7 +93,7 @@ export function AttendanceManagementPage() {
         <div className="page-heading">
           <span>工作工具 / 人事部</span>
           <h2>考勤</h2>
-          <p>按月份与区域查看员工出勤、请假、缺勤和打卡次数。</p>
+          <p>{range.startDate} 至 {range.endDate}，按公司考勤周期统计迟到、早退、旷工与异常打卡。</p>
         </div>
 
         <button className="secondary-action" type="button" onClick={loadAttendanceData} disabled={loading}>
@@ -95,16 +102,26 @@ export function AttendanceManagementPage() {
         </button>
       </div>
 
+      <button className="abnormal-banner" type="button" onClick={() => setShowAbnormalCenter(true)}>
+        <AlertTriangle size={20} />
+        <span>异常打卡提醒</span>
+        <strong>{abnormalEmployeeCount} 位员工</strong>
+      </button>
+
       <div className="attendance-filters">
         <label className="form-field">
-          <span>月份</span>
+          <span>考勤月份</span>
           <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
         </label>
 
         <label className="form-field">
           <span>区域</span>
-          <select value={regionId} onChange={(event) => setRegionId(event.target.value)}>
-            <option value="">全部区域</option>
+          <select
+            value={regionId}
+            disabled={!canViewAllRegions}
+            onChange={(event) => setRegionId(event.target.value)}
+          >
+            <option value="">全部可查看区域</option>
             {regions.map((region) => (
               <option key={region.id} value={region.id}>
                 {region.code}
@@ -114,18 +131,11 @@ export function AttendanceManagementPage() {
         </label>
       </div>
 
-      <div className="leave-stats-grid">
-        <StatCard label="出勤天数" value={stats.presentDays} />
-        <StatCard label="请假天数" value={stats.leaveDays} />
-        <StatCard label="缺勤天数" value={stats.absentDays} />
-        <StatCard label="打卡次数" value={stats.punchCount} />
-      </div>
-
       <div className="staff-list-panel">
         <div className="list-header">
           <div>
-            <span>{selectedRegionName}</span>
-            <h3>{month} 考勤列表</h3>
+            <span>考勤主表</span>
+            <h3>{summaries.length} 位员工</h3>
           </div>
         </div>
 
@@ -133,7 +143,7 @@ export function AttendanceManagementPage() {
 
         {loading ? (
           <div className="table-state">正在读取考勤数据...</div>
-        ) : rows.length === 0 ? (
+        ) : summaries.length === 0 ? (
           <div className="table-state">暂无考勤数据。</div>
         ) : (
           <div className="staff-table-wrap">
@@ -141,30 +151,35 @@ export function AttendanceManagementPage() {
               <thead>
                 <tr>
                   <th>员工姓名</th>
-                  <th>区域</th>
-                  <th>日期</th>
-                  <th>上班时间</th>
-                  <th>下班时间</th>
-                  <th>请假状态</th>
-                  <th>考勤状态</th>
+                  <th>迟到次数</th>
+                  <th>早退次数</th>
+                  <th>旷工次数</th>
+                  <th>超时休息次数</th>
+                  <th>异常打卡次数</th>
+                  <th>查看详情</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.key}>
+                {summaries.map((summary) => (
+                  <tr key={summary.employee.id}>
+                    <td><strong>{summary.employee.full_name}</strong></td>
+                    <td>{summary.lateCount}</td>
+                    <td>{summary.earlyLeaveCount}</td>
+                    <td>{summary.absentCount}</td>
+                    <td>{summary.overtimeBreakCount}</td>
+                    <td>{summary.abnormalPunchCount}</td>
                     <td>
-                      <strong>{row.employee.full_name}</strong>
-                      {row.employee.employee_code ? <span>{row.employee.employee_code}</span> : null}
-                    </td>
-                    <td>{row.employee.region?.code ?? '-'}</td>
-                    <td>{row.date}</td>
-                    <td>{row.clockIn ? formatTime(row.clockIn.punched_at) : '-'}</td>
-                    <td>{row.clockOut ? formatTime(row.clockOut.punched_at) : '-'}</td>
-                    <td>{row.leaveStatus}</td>
-                    <td>
-                      <span className={`status-pill attendance-status-${row.attendanceStatus}`}>
-                        {attendanceStatusLabels[row.attendanceStatus]}
-                      </span>
+                      <button
+                        className="secondary-button compact-button"
+                        type="button"
+                        onClick={() => {
+                          setSelectedEmployeeId(summary.employee.id);
+                          setShowAbnormalCenter(false);
+                        }}
+                      >
+                        <Eye size={16} />
+                        <span>查看详情</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -173,7 +188,120 @@ export function AttendanceManagementPage() {
           </div>
         )}
       </div>
+
+      {showAbnormalCenter ? <AbnormalCenter records={abnormalRecords} /> : null}
+      {selectedSummary ? <EmployeeDetail summary={selectedSummary} /> : null}
     </section>
+  );
+}
+
+function EmployeeDetail({ summary }: { summary: EmployeeAttendanceSummary }) {
+  return (
+    <div className="staff-list-panel attendance-detail-panel">
+      <div className="list-header">
+        <div>
+          <span>员工考勤详情</span>
+          <h3>{summary.employee.full_name}</h3>
+        </div>
+      </div>
+
+      <div className="detail-list">
+        <div><span>员工姓名</span><strong>{summary.employee.full_name}</strong></div>
+        <div><span>员工编号</span><strong>{summary.employee.employee_code ?? '-'}</strong></div>
+        <div><span>区域</span><strong>{summary.employee.region?.code ?? '-'}</strong></div>
+      </div>
+
+      <div className="leave-stats-grid">
+        <StatCard label="迟到次数" value={summary.lateCount} />
+        <StatCard label="早退次数" value={summary.earlyLeaveCount} />
+        <StatCard label="旷工次数" value={summary.absentCount} />
+        <StatCard label="超时休息次数" value={summary.overtimeBreakCount} />
+      </div>
+
+      <div className="leave-stats-grid">
+        <StatCard label="年假次数" value={summary.leaveCounts.annual} />
+        <StatCard label="病假次数" value={summary.leaveCounts.medical} />
+        <StatCard label="无薪假次数" value={summary.leaveCounts.unpaid} />
+        <StatCard label="换休次数" value={summary.leaveCounts.replacement} />
+      </div>
+
+      <div className="staff-table-wrap">
+        <table className="staff-table">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>上班时间</th>
+              <th>开始休息</th>
+              <th>结束休息</th>
+              <th>下班时间</th>
+              <th>工作时长</th>
+              <th>休息时长</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summary.dailyRecords.map((record) => (
+              <tr key={record.date}>
+                <td>{record.date}</td>
+                <td>{formatRecordTime(record.clockIn)}</td>
+                <td>{formatRecordTime(record.breakStart)}</td>
+                <td>{formatRecordTime(record.breakEnd)}</td>
+                <td>{formatRecordTime(record.clockOut)}</td>
+                <td>{record.workHours === null ? '-' : `${record.workHours.toFixed(1)} 小时`}</td>
+                <td>{record.breakMinutes ? `${record.breakMinutes} 分钟` : '-'}</td>
+                <td>{record.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AbnormalCenter({ records }: { records: AbnormalRecord[] }) {
+  return (
+    <div className="staff-list-panel attendance-detail-panel">
+      <div className="list-header">
+        <div>
+          <span>异常打卡详情</span>
+          <h3>{records.length} 条异常</h3>
+        </div>
+      </div>
+
+      {records.length === 0 ? (
+        <div className="table-state">当前周期暂无异常打卡。</div>
+      ) : (
+        <div className="staff-table-wrap">
+          <table className="staff-table">
+            <thead>
+              <tr>
+                <th>员工姓名</th>
+                <th>异常类型</th>
+                <th>异常时间</th>
+                <th>GPS</th>
+                <th>IP</th>
+                <th>设备信息</th>
+                <th>打卡照片</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((record) => (
+                <tr key={record.id}>
+                  <td><strong>{record.employee.full_name}</strong></td>
+                  <td>{record.type}</td>
+                  <td>{new Date(record.punchedAt).toLocaleString('zh-CN')}</td>
+                  <td>{record.gps}</td>
+                  <td>{record.ip}</td>
+                  <td className="device-cell">{record.deviceInfo}</td>
+                  <td>{record.photoPath ? '已拍照' : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -187,90 +315,117 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function buildAttendanceRows(
+function buildSummaries(
   employees: AttendanceEmployee[],
   attendanceRecords: AttendanceRecord[],
   leaveRequests: LeaveRequest[],
-  month: string,
+  startDate: string,
+  endDate: string,
 ) {
-  const dates = getDatesForMonth(month);
+  const dates = getDateRange(startDate, endDate);
   const today = toDateKey(new Date());
   const recordsByEmployeeDate = groupAttendanceRecords(attendanceRecords);
-  const leaveByEmployeeDate = groupLeaveRequests(leaveRequests, dates);
+  const leavesByEmployeeDate = groupLeaveRequests(leaveRequests, dates);
 
-  return employees.flatMap((employee) => {
-    return dates.map((date) => {
+  return employees.map((employee) => {
+    const leaveCounts: Record<LeaveType, number> = {
+      annual: 0,
+      medical: 0,
+      unpaid: 0,
+      replacement: 0,
+    };
+    const abnormalRecords: AbnormalRecord[] = [];
+    let lateCount = 0;
+    let earlyLeaveCount = 0;
+    let absentCount = 0;
+    let overtimeBreakCount = 0;
+    let abnormalPunchCount = 0;
+
+    const employeeRecords = attendanceRecords.filter((record) => record.employee_id === employee.id);
+    const expectedIp = mostFrequent(employeeRecords.map((record) => record.ip_address).filter(Boolean) as string[]);
+    const expectedDevice = mostFrequent(employeeRecords.map((record) => record.device_info).filter(Boolean));
+    const expectedGps = mostFrequent(employeeRecords.map((record) => gpsKey(record)).filter(Boolean));
+
+    const dailyRecords = dates.map((date) => {
       const records = recordsByEmployeeDate.get(`${employee.id}:${date}`) ?? [];
       const clockIn = records.find((record) => record.punch_type === 'clock_in') ?? null;
-      const clockOut = records.find((record) => record.punch_type === 'clock_out') ?? null;
-      const leave = leaveByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
-      const isFuture = date > today;
-      const attendanceStatus = getAttendanceStatus(clockIn, clockOut, leave, isFuture);
+      const breakStart = records.find((record) => record.punch_type === 'break_start') ?? null;
+      const breakEnd = records.find((record) => record.punch_type === 'break_end') ?? null;
+      const clockOut = [...records].reverse().find((record) => record.punch_type === 'clock_out') ?? null;
+      const leave = leavesByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
+      const breakMinutes = breakStart && breakEnd ? minutesBetween(breakStart.punched_at, breakEnd.punched_at) : 0;
+      const workHours = clockIn && clockOut ? minutesBetween(clockIn.punched_at, clockOut.punched_at) / 60 : null;
+      const statuses: string[] = [];
+      const isPastOrToday = date <= today;
+
+      if (leave?.status === 'approved') {
+        statuses.push(`${leaveTypeLabels[leave.leave_type]}已通过`);
+        leaveCounts[leave.leave_type] += 1;
+      }
+
+      if (employee.require_attendance && !leave && isPastOrToday && !clockIn) {
+        statuses.push('旷工');
+        absentCount += 1;
+      }
+
+      if (employee.require_attendance && clockIn && employee.start_work_time && isAfterWorkTime(clockIn.punched_at, employee.start_work_time)) {
+        statuses.push('迟到');
+        lateCount += 1;
+        abnormalPunchCount += 1;
+        abnormalRecords.push(toAbnormal(clockIn, employee, '异常时间打卡'));
+      }
+
+      if (employee.require_attendance && clockOut && employee.end_work_time && isBeforeWorkTime(clockOut.punched_at, employee.end_work_time)) {
+        statuses.push('早退');
+        earlyLeaveCount += 1;
+        abnormalPunchCount += 1;
+        abnormalRecords.push(toAbnormal(clockOut, employee, '异常时间打卡'));
+      }
+
+      if (employee.require_attendance && breakMinutes > 60 && breakEnd) {
+        statuses.push('超时休息');
+        overtimeBreakCount += 1;
+        abnormalPunchCount += 1;
+        abnormalRecords.push(toAbnormal(breakEnd, employee, '超时休息'));
+      }
+
+      records.forEach((record) => {
+        const abnormalTypes = getDeviceAbnormalTypes(record, expectedIp, expectedGps, expectedDevice);
+
+        abnormalTypes.forEach((type) => {
+          abnormalPunchCount += 1;
+          abnormalRecords.push(toAbnormal(record, employee, type));
+        });
+      });
+
+      if (!statuses.length && (clockIn || clockOut)) {
+        statuses.push('正常');
+      }
 
       return {
-        key: `${employee.id}:${date}`,
-        employee,
         date,
         clockIn,
+        breakStart,
+        breakEnd,
         clockOut,
-        leaveStatus: leave ? leaveStatusLabels[leave.status] : '-',
-        attendanceStatus,
+        workHours,
+        breakMinutes,
+        status: statuses.join('、') || '-',
       };
     });
+
+    return {
+      employee,
+      lateCount,
+      earlyLeaveCount,
+      absentCount,
+      overtimeBreakCount,
+      abnormalPunchCount,
+      leaveCounts,
+      dailyRecords,
+      abnormalRecords,
+    };
   });
-}
-
-function calculateStats(rows: AttendanceRow[]): AttendanceStats {
-  return rows.reduce<AttendanceStats>(
-    (stats, row) => {
-      if (row.attendanceStatus === 'present' || row.attendanceStatus === 'partial') {
-        stats.presentDays += 1;
-      }
-
-      if (row.attendanceStatus === 'leave') {
-        stats.leaveDays += 1;
-      }
-
-      if (row.attendanceStatus === 'absent') {
-        stats.absentDays += 1;
-      }
-
-      stats.punchCount += Number(Boolean(row.clockIn)) + Number(Boolean(row.clockOut));
-
-      return stats;
-    },
-    {
-      presentDays: 0,
-      leaveDays: 0,
-      absentDays: 0,
-      punchCount: 0,
-    },
-  );
-}
-
-function getAttendanceStatus(
-  clockIn: AttendanceRecord | null,
-  clockOut: AttendanceRecord | null,
-  leave: LeaveRequest | null,
-  isFuture: boolean,
-): AttendanceRow['attendanceStatus'] {
-  if (isFuture) {
-    return 'future';
-  }
-
-  if (leave?.status === 'approved') {
-    return 'leave';
-  }
-
-  if (clockIn && clockOut) {
-    return 'present';
-  }
-
-  if (clockIn || clockOut) {
-    return 'partial';
-  }
-
-  return 'absent';
 }
 
 function groupAttendanceRecords(records: AttendanceRecord[]) {
@@ -296,7 +451,7 @@ function groupLeaveRequests(requests: LeaveRequest[], dates: string[]) {
   const dateSet = new Set(dates);
 
   requests.forEach((request) => {
-    if (!request.employee_id) {
+    if (!request.employee_id || request.status === 'rejected') {
       return;
     }
 
@@ -308,21 +463,6 @@ function groupLeaveRequests(requests: LeaveRequest[], dates: string[]) {
   });
 
   return map;
-}
-
-function getDatesForMonth(month: string) {
-  const [yearText, monthText] = month.split('-');
-  const year = Number(yearText);
-  const monthIndex = Number(monthText) - 1;
-  const date = new Date(year, monthIndex, 1);
-  const dates: string[] = [];
-
-  while (date.getMonth() === monthIndex) {
-    dates.push(toDateKey(date));
-    date.setDate(date.getDate() + 1);
-  }
-
-  return dates;
 }
 
 function getDateRange(startDate: string, endDate: string) {
@@ -350,9 +490,81 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatTime(value: string) {
+function minutesBetween(startValue: string, endValue: string) {
+  return Math.max(0, Math.round((new Date(endValue).getTime() - new Date(startValue).getTime()) / 60000));
+}
+
+function isAfterWorkTime(value: string, workTime: string) {
+  return minutesOfDay(new Date(value)) > minutesFromTime(workTime);
+}
+
+function isBeforeWorkTime(value: string, workTime: string) {
+  return minutesOfDay(new Date(value)) < minutesFromTime(workTime);
+}
+
+function minutesOfDay(date: Date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function minutesFromTime(value: string) {
+  const [hourText, minuteText] = value.slice(0, 5).split(':');
+  return Number(hourText) * 60 + Number(minuteText);
+}
+
+function mostFrequent(values: string[]) {
+  const counts = new Map<string, number>();
+
+  values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
+
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+}
+
+function gpsKey(record: AttendanceRecord) {
+  if (record.latitude === null || record.longitude === null) {
+    return '';
+  }
+
+  return `${Number(record.latitude).toFixed(3)},${Number(record.longitude).toFixed(3)}`;
+}
+
+function getDeviceAbnormalTypes(record: AttendanceRecord, expectedIp: string, expectedGps: string, expectedDevice: string) {
+  const types: string[] = [];
+
+  if (expectedIp && record.ip_address && record.ip_address !== expectedIp) {
+    types.push('IP异常');
+  }
+
+  if (expectedGps && gpsKey(record) && gpsKey(record) !== expectedGps) {
+    types.push('GPS异常');
+  }
+
+  if (expectedDevice && record.device_info && record.device_info !== expectedDevice) {
+    types.push('设备异常');
+  }
+
+  return types;
+}
+
+function toAbnormal(record: AttendanceRecord, employee: AttendanceEmployee, type: string): AbnormalRecord {
+  return {
+    id: `${record.id}:${type}`,
+    employee,
+    type,
+    punchedAt: record.punched_at,
+    gps: `${Number(record.latitude).toFixed(5)}, ${Number(record.longitude).toFixed(5)}`,
+    ip: record.ip_address ?? '-',
+    deviceInfo: record.device_info,
+    photoPath: record.photo_path,
+  };
+}
+
+function formatRecordTime(record: AttendanceRecord | null) {
+  if (!record) {
+    return '-';
+  }
+
   return new Intl.DateTimeFormat('zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value));
+  }).format(new Date(record.punched_at));
 }
