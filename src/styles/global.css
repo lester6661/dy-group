@@ -1272,6 +1272,134 @@ a {
   font-size: 12px;
 }
 
+.schedule-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.full-field {
+  grid-column: 1 / -1;
+}
+
+.shift-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.shift-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--panel-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shift-item strong,
+.shift-item small {
+  display: block;
+}
+
+.shift-item small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.shift-item em {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(31, 122, 140, 0.1);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.schedule-calendar-panel {
+  margin-top: 18px;
+}
+
+.schedule-calendar-wrap {
+  overflow: auto;
+}
+
+.schedule-calendar-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.schedule-calendar-table th,
+.schedule-calendar-table td {
+  min-width: 74px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.schedule-calendar-table th:first-child,
+.schedule-calendar-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 150px;
+  background: var(--panel);
+  text-align: left;
+}
+
+.schedule-calendar-table th {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.schedule-calendar-table th span,
+.schedule-calendar-table th small,
+.schedule-calendar-table td strong,
+.schedule-calendar-table td span {
+  display: block;
+}
+
+.schedule-calendar-table th small,
+.schedule-calendar-table td span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.schedule-cell {
+  display: inline-grid;
+  place-items: center;
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid rgba(31, 122, 140, 0.18);
+  border-radius: 8px;
+  color: var(--primary);
+  background: rgba(31, 122, 140, 0.08);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.schedule-cell.day-off {
+  color: #7a4d0b;
+  border-color: rgba(242, 165, 65, 0.28);
+  background: rgba(242, 165, 65, 0.14);
+}
+
 .attendance-status-present {
   color: #17603a;
   background: #e8f7ee;
@@ -1392,6 +1520,10 @@ a {
   }
 
   .attendance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-grid {
     grid-template-columns: 1fr;
   }
 

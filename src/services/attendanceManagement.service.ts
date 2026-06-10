@@ -1,5 +1,14 @@
 import { supabase } from '../lib/supabase';
-import type { AttendanceRecord, Employee, EmploymentType, JobTitle, LeaveRequest, Region } from '../types/database';
+import type {
+  AttendanceRecord,
+  Employee,
+  EmploymentType,
+  JobTitle,
+  LeaveRequest,
+  Region,
+  ScheduleEntry,
+  Shift,
+} from '../types/database';
 
 export type AttendanceEmployee = Pick<
   Employee,
@@ -21,8 +30,13 @@ export type AttendancePeriodData = {
   employees: AttendanceEmployee[];
   attendanceRecords: AttendanceRecord[];
   leaveRequests: LeaveRequest[];
+  scheduleEntries: AttendanceScheduleEntry[];
   regions: Region[];
   range: AttendancePeriodRange;
+};
+
+export type AttendanceScheduleEntry = ScheduleEntry & {
+  shift: Shift | null;
 };
 
 export type AttendancePeriodRange = {
@@ -46,6 +60,10 @@ type EmployeeRowWithRelations = Pick<
   regions: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
   job_titles: Pick<JobTitle, 'id' | 'name'> | null;
+};
+
+type ScheduleEntryRow = ScheduleEntry & {
+  shifts: Shift | null;
 };
 
 export const attendanceManagementService = {
@@ -73,7 +91,7 @@ export const attendanceManagementService = {
 
     const scopedEmployeesQuery = regionId ? employeesQuery.eq('region_id', regionId) : employeesQuery;
 
-    const [employeesResult, attendanceResult, leaveResult, regionsResult] = await Promise.all([
+    const [employeesResult, attendanceResult, leaveResult, scheduleResult, regionsResult] = await Promise.all([
       scopedEmployeesQuery,
       supabase
         .from('attendance_records')
@@ -87,6 +105,12 @@ export const attendanceManagementService = {
         .lte('start_date', range.endDate)
         .gte('end_date', range.startDate)
         .order('start_date', { ascending: true }),
+      supabase
+        .from('schedule_entries')
+        .select('*, shifts:shift_id(*)')
+        .gte('work_date', range.startDate)
+        .lte('work_date', range.endDate)
+        .order('work_date', { ascending: true }),
       supabase.from('regions').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
     ]);
 
@@ -102,6 +126,10 @@ export const attendanceManagementService = {
       throw leaveResult.error;
     }
 
+    if (scheduleResult.error) {
+      throw scheduleResult.error;
+    }
+
     if (regionsResult.error) {
       throw regionsResult.error;
     }
@@ -110,6 +138,10 @@ export const attendanceManagementService = {
       employees: ((employeesResult.data ?? []) as unknown as EmployeeRowWithRelations[]).map(mapEmployeeRow),
       attendanceRecords: attendanceResult.data ?? [],
       leaveRequests: leaveResult.data ?? [],
+      scheduleEntries: ((scheduleResult.data ?? []) as unknown as ScheduleEntryRow[]).map((entry) => ({
+        ...entry,
+        shift: entry.shifts,
+      })),
       regions: regionsResult.data ?? [],
       range,
     };

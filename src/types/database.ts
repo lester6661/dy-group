@@ -108,6 +108,30 @@ export type AttendanceRecord = {
   created_at: string;
 };
 
+export type Shift = {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  break_minutes: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScheduleEntry = {
+  id: string;
+  employee_id: string;
+  shift_id: string | null;
+  work_date: string;
+  is_day_off: boolean;
+  note: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -224,6 +248,35 @@ export type Database = {
             columns: ['profile_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      shifts: {
+        Row: Shift;
+        Insert: Partial<Pick<Shift, 'id' | 'break_minutes' | 'is_active' | 'created_at' | 'updated_at'>> &
+          Pick<Shift, 'name' | 'start_time' | 'end_time'>;
+        Update: Partial<Omit<Shift, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [];
+      };
+      schedule_entries: {
+        Row: ScheduleEntry;
+        Insert: Pick<ScheduleEntry, 'employee_id' | 'work_date'> &
+          Partial<Pick<ScheduleEntry, 'id' | 'shift_id' | 'is_day_off' | 'note' | 'created_by' | 'updated_by' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<ScheduleEntry, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'schedule_entries_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'schedule_entries_shift_id_fkey';
+            columns: ['shift_id'];
+            isOneToOne: false;
+            referencedRelation: 'shifts';
             referencedColumns: ['id'];
           },
         ];
