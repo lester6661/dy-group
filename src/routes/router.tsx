@@ -14,6 +14,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { RegisterReviewPage } from '../pages/RegisterReviewPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { getMenuPath } from './menu';
 
 export const router = createBrowserRouter([
   {
@@ -36,7 +37,7 @@ export const router = createBrowserRouter([
             element: <SchedulePage />,
           },
           {
-            path: 'staff',
+            path: getMenuPath('staff'),
             element: <StaffPage />,
           },
           {
