@@ -3,6 +3,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type ProfileStatus = 'pending_review' | 'approved' | 'rejected' | 'suspended';
 export type EmployeeStatus = 'active' | 'inactive' | 'left';
 export type AppRole = 'super_admin' | 'admin' | 'hr' | 'manager' | 'staff';
+export type LeaveType = 'annual' | 'medical' | 'unpaid' | 'replacement';
+export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected';
 
 export type Profile = {
   id: string;
@@ -60,6 +62,23 @@ export type Employee = {
   status: EmployeeStatus;
   hire_date: string | null;
   deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LeaveRequest = {
+  id: string;
+  profile_id: string;
+  employee_id: string | null;
+  leave_type: LeaveType;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  medical_attachment_url: string | null;
+  status: LeaveRequestStatus;
+  review_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -135,9 +154,37 @@ export type Database = {
           },
         ];
       };
+      leave_requests: {
+        Row: LeaveRequest;
+        Insert: Pick<LeaveRequest, 'profile_id' | 'leave_type' | 'start_date' | 'end_date' | 'reason'> &
+          Partial<Pick<LeaveRequest, 'id' | 'employee_id' | 'medical_attachment_url' | 'status' | 'review_note' | 'reviewed_by' | 'reviewed_at' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<LeaveRequest, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'leave_requests_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'leave_requests_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      approve_leave_request: {
+        Args: {
+          request_id: string;
+        };
+        Returns: void;
+      };
       approve_registration: {
         Args: {
           profile_id: string;
@@ -147,6 +194,13 @@ export type Database = {
       reject_registration: {
         Args: {
           profile_id: string;
+          note: string;
+        };
+        Returns: void;
+      };
+      reject_leave_request: {
+        Args: {
+          request_id: string;
           note: string;
         };
         Returns: void;
@@ -162,6 +216,8 @@ export type Database = {
       profile_status: ProfileStatus;
       employee_status: EmployeeStatus;
       app_role: AppRole;
+      leave_type: LeaveType;
+      leave_request_status: LeaveRequestStatus;
     };
     CompositeTypes: Record<string, never>;
   };

@@ -50,6 +50,14 @@ export const menuItems: MenuItem[] = [
     group: '人事部',
   },
   {
+    key: 'leave-review',
+    label: '请假审核',
+    path: '/hr/leave-reviews',
+    icon: FileClock,
+    section: '工作工具',
+    group: '人事部',
+  },
+  {
     key: 'attendance',
     label: '考勤',
     path: '/attendance',

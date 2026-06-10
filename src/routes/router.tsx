@@ -7,6 +7,7 @@ import { SchedulePage } from '../pages/SchedulePage';
 import { StaffPage } from '../pages/StaffPage';
 import { AttendancePage } from '../pages/AttendancePage';
 import { LeavePage } from '../pages/LeavePage';
+import { LeaveReviewPage } from '../pages/LeaveReviewPage';
 import { RestPlanningPage } from '../pages/RestPlanningPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { SettingsPage } from '../pages/SettingsPage';
@@ -47,6 +48,14 @@ export const router = createBrowserRouter([
             element: (
               <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
                 <RegistrationReviewPage />
+              </RequireRole>
+            ),
+          },
+          {
+            path: getMenuPath('leave-review'),
+            element: (
+              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+                <LeaveReviewPage />
               </RequireRole>
             ),
           },

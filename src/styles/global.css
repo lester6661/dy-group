@@ -996,6 +996,57 @@ a {
   background: linear-gradient(135deg, #e83e8c, #7c3aed);
 }
 
+.leave-page {
+  display: grid;
+  gap: 22px;
+}
+
+.leave-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.leave-stat-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--panel);
+}
+
+.leave-stat-card svg {
+  color: var(--primary);
+}
+
+.leave-stat-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.leave-stat-card strong {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.leave-status-pending {
+  color: #7a4d0b;
+  background: #fff4dc;
+}
+
+.leave-status-approved {
+  color: #17603a;
+  background: #e8f7ee;
+}
+
+.leave-status-rejected {
+  color: #9f1d1d;
+  background: #fee2e2;
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -1086,6 +1137,10 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .leave-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .avatar-meta {
     display: none;
   }
@@ -1128,5 +1183,9 @@ a {
 
   .table-search {
     width: 100%;
+  }
+
+  .leave-stats-grid {
+    grid-template-columns: 1fr;
   }
 }
