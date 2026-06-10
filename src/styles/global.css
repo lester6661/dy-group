@@ -1047,6 +1047,97 @@ a {
   background: #fee2e2;
 }
 
+.attendance-page {
+  display: grid;
+  gap: 22px;
+}
+
+.attendance-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 480px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.camera-panel {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.camera-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.camera-frame video,
+.camera-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.camera-frame video {
+  object-fit: cover;
+}
+
+.camera-placeholder {
+  display: grid;
+  place-items: center;
+  color: #dbe5f2;
+  font-weight: 800;
+  background: #111827;
+}
+
+.hidden-canvas {
+  display: none;
+}
+
+.attendance-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.attendance-meta-item {
+  display: grid;
+  grid-template-columns: auto 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.attendance-meta-item svg {
+  color: var(--primary);
+}
+
+.attendance-meta-item span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.attendance-meta-item strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.punch-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -1141,6 +1232,10 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .attendance-grid {
+    grid-template-columns: 1fr;
+  }
+
   .avatar-meta {
     display: none;
   }
@@ -1187,5 +1282,17 @@ a {
 
   .leave-stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .punch-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-meta-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .attendance-meta-item strong {
+    grid-column: 1 / -1;
   }
 }

@@ -5,6 +5,7 @@ export type EmployeeStatus = 'active' | 'inactive' | 'left';
 export type AppRole = 'super_admin' | 'admin' | 'hr' | 'manager' | 'staff';
 export type LeaveType = 'annual' | 'medical' | 'unpaid' | 'replacement';
 export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected';
+export type AttendancePunchType = 'clock_in' | 'clock_out';
 
 export type Profile = {
   id: string;
@@ -81,6 +82,21 @@ export type LeaveRequest = {
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type AttendanceRecord = {
+  id: string;
+  profile_id: string;
+  employee_id: string | null;
+  punch_type: AttendancePunchType;
+  punched_at: string;
+  photo_path: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  ip_address: string | null;
+  device_info: string;
+  created_at: string;
 };
 
 export type Database = {
@@ -176,6 +192,28 @@ export type Database = {
           },
         ];
       };
+      attendance_records: {
+        Row: AttendanceRecord;
+        Insert: Pick<AttendanceRecord, 'profile_id' | 'punch_type' | 'photo_path' | 'latitude' | 'longitude' | 'device_info'> &
+          Partial<Pick<AttendanceRecord, 'id' | 'employee_id' | 'punched_at' | 'accuracy' | 'ip_address' | 'created_at'>>;
+        Update: Partial<Omit<AttendanceRecord, 'id' | 'created_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'attendance_records_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'attendance_records_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -218,6 +256,7 @@ export type Database = {
       app_role: AppRole;
       leave_type: LeaveType;
       leave_request_status: LeaveRequestStatus;
+      attendance_punch_type: AttendancePunchType;
     };
     CompositeTypes: Record<string, never>;
   };
