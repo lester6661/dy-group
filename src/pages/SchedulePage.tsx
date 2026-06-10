@@ -18,7 +18,7 @@ const leaveTypeLabels: Record<LeaveType | 'rest', string> = {
 
 export function SchedulePage() {
   const { profile } = useAuth();
-  const [month, setMonth] = useState(getCurrentMonth());
+  const [month, setMonth] = useState(getCurrentRestCycle());
   const [regionId, setRegionId] = useState('');
   const [regions, setRegions] = useState<Region[]>([]);
   const [leaves, setLeaves] = useState<LeaveCalendarItem[]>([]);
@@ -27,7 +27,7 @@ export function SchedulePage() {
 
   const canViewAllRegions = profile?.role === 'super_admin' || Boolean(profile?.can_view_all_regions);
   const monthRange = useMemo(() => getMonthRange(month), [month]);
-  const dates = useMemo(() => getCalendarDates(month), [month]);
+  const calendarCells = useMemo(() => getCalendarCells(month), [month]);
   const leavesByDate = useMemo(() => {
     const map = new Map<string, LeaveCalendarItem[]>();
     leaves.forEach((leave) => {
@@ -64,7 +64,7 @@ export function SchedulePage() {
         <div className="page-heading">
           <span>休假班表</span>
           <h2>休假班表 / 休假日历</h2>
-          <p>{monthRange.startDate} 至 {monthRange.endDate}，显示已通过请假的员工休假情况。</p>
+          <p>{monthRange.startDate} 至 {monthRange.endDate}，显示已通过请假与排休情况。</p>
         </div>
 
         <button className="secondary-action" type="button" onClick={loadLeaveCalendar} disabled={loading}>
@@ -78,7 +78,7 @@ export function SchedulePage() {
       <div className="staff-list-panel schedule-filter-panel">
         <div className="attendance-filters">
           <label className="form-field">
-            <span>年月份</span>
+            <span>显示月份</span>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
           </label>
 
@@ -112,7 +112,7 @@ export function SchedulePage() {
         <div className="list-header">
           <div>
             <span>月历模式</span>
-            <h3>{leaves.length} 条已批准休假</h3>
+            <h3>{leaves.length} 条休假 / 排休</h3>
           </div>
           <CalendarDays size={22} />
         </div>
@@ -121,7 +121,17 @@ export function SchedulePage() {
           <div className="table-state">正在读取休假日历...</div>
         ) : (
           <div className="leave-calendar-grid">
-            {dates.map((date) => {
+            {weekdays.map((weekday) => (
+              <div className="leave-calendar-weekday" key={weekday}>
+                {weekday}
+              </div>
+            ))}
+
+            {calendarCells.map((date, index) => {
+              if (!date) {
+                return <div className="leave-calendar-empty" key={`empty-${index}`} />;
+              }
+
               const dayLeaves = leavesByDate.get(date) ?? [];
 
               return (
@@ -141,6 +151,7 @@ export function SchedulePage() {
                           key={`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}`}
                         >
                           {leave.employee_name}：{leaveTypeLabels[leave.leave_type]}
+                          {leave.leave_type === 'rest' && leave.source === 'auto' ? '（自动）' : ''}
                         </span>
                       ))}
                     </div>
@@ -155,17 +166,28 @@ export function SchedulePage() {
   );
 }
 
-function getCurrentMonth() {
+const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+function getCurrentRestCycle() {
   const now = new Date();
-  return `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}`;
+  const target = now.getDate() < 26
+    ? new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    : new Date(now.getFullYear(), now.getMonth() + 2, 1);
+
+  return `${target.getFullYear()}-${`${target.getMonth() + 1}`.padStart(2, '0')}`;
 }
 
-function getCalendarDates(month: string) {
+function getCalendarCells(month: string) {
   const [yearText, monthText] = month.split('-');
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
   const date = new Date(year, monthIndex, 1);
-  const dates: string[] = [];
+  const dates: Array<string | null> = [];
+  const mondayOffset = (date.getDay() + 6) % 7;
+
+  for (let index = 0; index < mondayOffset; index += 1) {
+    dates.push(null);
+  }
 
   while (date.getMonth() === monthIndex) {
     dates.push(toDateKey(date));

@@ -24,13 +24,19 @@ export const scheduleService = {
   async getLeaveCalendar(month: string, regionId: string): Promise<LeaveCalendarMonthData> {
     const range = getMonthRange(month);
 
+    const previousCycle = getPreviousCycle(parseCycle(month));
     const currentCycle = parseCycle(month);
     const nextCycle = getNextCycle(currentCycle);
 
-    const [leavesResult, restResult, nextRestResult, regionsResult] = await Promise.all([
+    const [leavesResult, previousRestResult, restResult, nextRestResult, regionsResult] = await Promise.all([
       supabase.rpc('get_leave_calendar', {
         month_start: range.startDate,
         month_end: range.endDate,
+        region_filter: regionId || null,
+      }),
+      supabase.rpc('get_rest_day_calendar', {
+        cycle_year: previousCycle.year,
+        cycle_month: previousCycle.month,
         region_filter: regionId || null,
       }),
       supabase.rpc('get_rest_day_calendar', {
@@ -50,6 +56,10 @@ export const scheduleService = {
       throw leavesResult.error;
     }
 
+    if (previousRestResult.error) {
+      throw previousRestResult.error;
+    }
+
     if (restResult.error) {
       throw restResult.error;
     }
@@ -62,7 +72,11 @@ export const scheduleService = {
       throw regionsResult.error;
     }
 
-    const restLeaves = [...(restResult.data ?? []), ...(nextRestResult.data ?? [])]
+    const restLeaves = [
+      ...(previousRestResult.data ?? []),
+      ...(restResult.data ?? []),
+      ...(nextRestResult.data ?? []),
+    ]
       .filter((restDay) => restDay.rest_date >= range.startDate && restDay.rest_date <= range.endDate)
       .map((restDay) => ({
         leave_request_id: restDay.rest_day_id,
@@ -79,7 +93,7 @@ export const scheduleService = {
       }));
 
     return {
-      leaves: [...((leavesResult.data ?? []) as LeaveCalendarItem[]), ...restLeaves],
+      leaves: dedupeLeaves([...((leavesResult.data ?? []) as LeaveCalendarItem[]), ...restLeaves]),
       regions: regionsResult.data ?? [],
     };
   },
@@ -112,6 +126,24 @@ function getNextCycle(cycle: { year: number; month: number }) {
   }
 
   return { year: cycle.year, month: cycle.month + 1 };
+}
+
+function getPreviousCycle(cycle: { year: number; month: number }) {
+  if (cycle.month === 1) {
+    return { year: cycle.year - 1, month: 12 };
+  }
+
+  return { year: cycle.year, month: cycle.month - 1 };
+}
+
+function dedupeLeaves(leaves: LeaveCalendarItem[]) {
+  const map = new Map<string, LeaveCalendarItem>();
+
+  leaves.forEach((leave) => {
+    map.set(`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}:${leave.leave_type}`, leave);
+  });
+
+  return [...map.values()];
 }
 
 function toDateKey(date: Date) {

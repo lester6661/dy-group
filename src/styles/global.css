@@ -1294,7 +1294,23 @@ a {
 .leave-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
+}
+
+.leave-calendar-weekday {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--panel-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.leave-calendar-empty {
+  min-height: 148px;
+  border: 1px dashed transparent;
 }
 
 .leave-calendar-day {
@@ -1303,6 +1319,10 @@ a {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-soft);
+}
+
+.leave-calendar-day:has(.leave-calendar-list) {
+  background: #ffffff;
 }
 
 .leave-calendar-day header {
