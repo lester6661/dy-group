@@ -103,8 +103,8 @@ export function getMonthRange(month: string) {
   const [yearText, monthText] = month.split('-');
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
-  const start = new Date(year, monthIndex, 1);
-  const end = new Date(year, monthIndex + 1, 0);
+  const start = new Date(year, monthIndex - 1, 26);
+  const end = new Date(year, monthIndex, 25);
 
   return {
     startDate: toDateKey(start),

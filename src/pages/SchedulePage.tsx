@@ -27,7 +27,10 @@ export function SchedulePage() {
 
   const canViewAllRegions = profile?.role === 'super_admin' || Boolean(profile?.can_view_all_regions);
   const monthRange = useMemo(() => getMonthRange(month), [month]);
-  const calendarCells = useMemo(() => getCalendarCells(month), [month]);
+  const calendarCells = useMemo(
+    () => getCalendarCells(monthRange.startDate, monthRange.endDate),
+    [monthRange.startDate, monthRange.endDate],
+  );
   const leavesByDate = useMemo(() => {
     const map = new Map<string, LeaveCalendarItem[]>();
     leaves.forEach((leave) => {
@@ -166,7 +169,7 @@ export function SchedulePage() {
   );
 }
 
-const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
 function getCurrentRestCycle() {
   const now = new Date();
@@ -177,11 +180,9 @@ function getCurrentRestCycle() {
   return `${target.getFullYear()}-${`${target.getMonth() + 1}`.padStart(2, '0')}`;
 }
 
-function getCalendarCells(month: string) {
-  const [yearText, monthText] = month.split('-');
-  const year = Number(yearText);
-  const monthIndex = Number(monthText) - 1;
-  const date = new Date(year, monthIndex, 1);
+function getCalendarCells(startDate: string, endDate: string) {
+  const date = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
   const dates: Array<string | null> = [];
   const mondayOffset = (date.getDay() + 6) % 7;
 
@@ -189,7 +190,7 @@ function getCalendarCells(month: string) {
     dates.push(null);
   }
 
-  while (date.getMonth() === monthIndex) {
+  while (date <= end) {
     dates.push(toDateKey(date));
     date.setDate(date.getDate() + 1);
   }

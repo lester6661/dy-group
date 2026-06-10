@@ -46,7 +46,10 @@ export function LeavePage() {
 
   const stats = useMemo(() => getLeaveStats(requests), [requests]);
   const restCycleRange = useMemo(() => getRestCycleRange(restCycle), [restCycle]);
-  const restDates = useMemo(() => getDateRange(restCycleRange.startDate, restCycleRange.endDate), [restCycleRange]);
+  const restCalendarCells = useMemo(
+    () => getCalendarCells(restCycleRange.startDate, restCycleRange.endDate),
+    [restCycleRange.startDate, restCycleRange.endDate],
+  );
   const restDaysByDate = useMemo(() => {
     const map = new Map<string, RestDayCalendarItem[]>();
     restDays.forEach((restDay) => {
@@ -88,7 +91,7 @@ export function LeavePage() {
       const leaveRequests = await leaveService.listMyLeaveRequests(profileId);
       setRequests(leaveRequests);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '读取请假记录失败。');
+      setError(`读取请假记录失败：${getErrorMessage(loadError)}`);
     } finally {
       setLoading(false);
     }
@@ -106,7 +109,7 @@ export function LeavePage() {
         restDayList.filter((restDay) => restDay.profile_id === profile?.id).map((restDay) => restDay.rest_date),
       );
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '读取排休日历失败。');
+      setError(`读取排休日历失败：${getErrorMessage(loadError)}`);
     } finally {
       setLoading(false);
     }
@@ -130,7 +133,7 @@ export function LeavePage() {
       setFormValues(emptyForm);
       await loadLeaveRequests(profile.id);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '提交请假申请失败。');
+      setError(`提交请假申请失败：${getErrorMessage(saveError)}`);
     } finally {
       setSaving(false);
     }
@@ -145,10 +148,10 @@ export function LeavePage() {
 
     try {
       await leaveService.saveMyRestDays(Number(yearText), Number(monthText), selectedRestDates);
-      setMessage('排休已提交。');
+      setMessage('排休已保存。');
       await loadRestDays();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '提交排休失败。');
+      setError(`提交排休失败：${getErrorMessage(saveError)}`);
     } finally {
       setSaving(false);
     }
@@ -166,7 +169,7 @@ export function LeavePage() {
       setMessage(`已自动补足 ${count} 天排休。`);
       await loadRestDays();
     } catch (autoError) {
-      setError(autoError instanceof Error ? autoError.message : '自动排休失败。');
+      setError(`自动排休失败：${getErrorMessage(autoError)}`);
     } finally {
       setSaving(false);
     }
@@ -227,7 +230,7 @@ export function LeavePage() {
           cycle={restCycle}
           setCycle={setRestCycle}
           cycleRange={restCycleRange}
-          dates={restDates}
+          calendarCells={restCalendarCells}
           restDaysByDate={restDaysByDate}
           selectedRestDates={selectedRestDates}
           myRestDays={myRestDays}
@@ -394,7 +397,7 @@ type RestDayPlannerProps = {
   cycle: string;
   setCycle: (cycle: string) => void;
   cycleRange: { startDate: string; endDate: string };
-  dates: string[];
+  calendarCells: Array<string | null>;
   restDaysByDate: Map<string, RestDayCalendarItem[]>;
   selectedRestDates: string[];
   myRestDays: string[];
@@ -412,7 +415,7 @@ function RestDayPlanner({
   cycle,
   setCycle,
   cycleRange,
-  dates,
+  calendarCells,
   restDaysByDate,
   selectedRestDates,
   myRestDays,
@@ -467,7 +470,17 @@ function RestDayPlanner({
           <div className="table-state">正在读取排休日历...</div>
         ) : (
           <div className="leave-calendar-grid">
-            {dates.map((date) => {
+            {weekdays.map((weekday) => (
+              <div className="leave-calendar-weekday" key={weekday}>
+                {weekday}
+              </div>
+            ))}
+
+            {calendarCells.map((date, index) => {
+              if (!date) {
+                return <div className="leave-calendar-empty" key={`empty-${index}`} />;
+              }
+
               const dayRestDays = restDaysByDate.get(date) ?? [];
               const selected = selectedRestDates.includes(date);
 
@@ -534,10 +547,17 @@ function getRestCycleRange(cycle: string) {
   };
 }
 
-function getDateRange(startDate: string, endDate: string) {
+const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+
+function getCalendarCells(startDate: string, endDate: string) {
   const date = new Date(`${startDate}T00:00:00`);
   const end = new Date(`${endDate}T00:00:00`);
-  const dates: string[] = [];
+  const dates: Array<string | null> = [];
+  const mondayOffset = (date.getDay() + 6) % 7;
+
+  for (let index = 0; index < mondayOffset; index += 1) {
+    dates.push(null);
+  }
 
   while (date <= end) {
     dates.push(toDateKey(date));
@@ -556,4 +576,20 @@ function toDateKey(date: Date) {
 
 function weekdayLabel(date: string) {
   return new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(new Date(`${date}T00:00:00`));
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+
+    if (typeof message === 'string' && message.trim()) {
+      return message;
+    }
+  }
+
+  return '未知错误';
 }
