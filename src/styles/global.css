@@ -1363,6 +1363,96 @@ a {
   background: #f1e8ff;
 }
 
+.leave-type-rest {
+  color: #8b2f75;
+  background: #fde7f6;
+}
+
+.view-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.view-tabs button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.view-tabs button.active {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.rest-planner {
+  display: grid;
+  gap: 18px;
+}
+
+.rest-cycle-summary {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.rest-cycle-summary span,
+.rest-cycle-summary small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rest-cycle-summary strong {
+  color: var(--text);
+}
+
+.leave-calendar-day.rest-selected {
+  border-color: rgba(139, 47, 117, 0.34);
+  background: #fff7fc;
+}
+
+.rest-date-toggle {
+  width: 100%;
+  min-height: 32px;
+  margin-bottom: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rest-date-toggle.selected {
+  color: #8b2f75;
+  border-color: rgba(139, 47, 117, 0.28);
+  background: #fde7f6;
+}
+
+.rest-date-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.rest-save-button {
+  margin-top: 16px;
+}
+
 .attendance-status-present {
   color: #17603a;
   background: #e8f7ee;

@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
   AttendanceEmployee,
+  AttendanceRestDay,
   attendanceManagementService,
   getAttendancePeriodRange,
 } from '../services/attendanceManagement.service';
@@ -82,6 +83,7 @@ export function AttendanceManagementPage() {
           data.employees,
           data.attendanceRecords,
           data.leaveRequests,
+          data.restDays,
           data.range.startDate,
           data.range.endDate,
         ),
@@ -327,6 +329,7 @@ function buildSummaries(
   employees: AttendanceEmployee[],
   attendanceRecords: AttendanceRecord[],
   leaveRequests: LeaveRequest[],
+  restDays: AttendanceRestDay[],
   startDate: string,
   endDate: string,
 ) {
@@ -334,6 +337,7 @@ function buildSummaries(
   const today = toDateKey(new Date());
   const recordsByEmployeeDate = groupAttendanceRecords(attendanceRecords);
   const leavesByEmployeeDate = groupLeaveRequests(leaveRequests, dates);
+  const restDaysByEmployeeDate = groupRestDays(restDays);
 
   return employees.map((employee) => {
     const leaveCounts: Record<LeaveType, number> = {
@@ -361,6 +365,7 @@ function buildSummaries(
       const breakEnd = records.find((record) => record.punch_type === 'break_end') ?? null;
       const clockOut = [...records].reverse().find((record) => record.punch_type === 'clock_out') ?? null;
       const leave = leavesByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
+      const restDay = restDaysByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
       const breakMinutes = breakStart && breakEnd ? minutesBetween(breakStart.punched_at, breakEnd.punched_at) : 0;
       const workHours = clockIn && clockOut ? minutesBetween(clockIn.punched_at, clockOut.punched_at) / 60 : null;
       const statuses: string[] = [];
@@ -371,19 +376,23 @@ function buildSummaries(
         leaveCounts[leave.leave_type] += 1;
       }
 
-      if (employee.require_attendance && !leave && isPastOrToday && !clockIn) {
+      if (restDay) {
+        statuses.push('排休');
+      }
+
+      if (employee.require_attendance && !leave && !restDay && isPastOrToday && !clockIn) {
         statuses.push('旷工');
         absentCount += 1;
       }
 
-      if (employee.require_attendance && clockIn && employee.start_work_time && isAfterWorkTime(clockIn.punched_at, employee.start_work_time)) {
+      if (employee.require_attendance && !restDay && clockIn && employee.start_work_time && isAfterWorkTime(clockIn.punched_at, employee.start_work_time)) {
         statuses.push('迟到');
         lateCount += 1;
         abnormalPunchCount += 1;
         abnormalRecords.push(toAbnormal(clockIn, employee, '异常时间打卡'));
       }
 
-      if (employee.require_attendance && clockOut && employee.end_work_time && isBeforeWorkTime(clockOut.punched_at, employee.end_work_time)) {
+      if (employee.require_attendance && !restDay && clockOut && employee.end_work_time && isBeforeWorkTime(clockOut.punched_at, employee.end_work_time)) {
         statuses.push('早退');
         earlyLeaveCount += 1;
         abnormalPunchCount += 1;
@@ -434,6 +443,16 @@ function buildSummaries(
       abnormalRecords,
     };
   });
+}
+
+function groupRestDays(restDays: AttendanceRestDay[]) {
+  const map = new Map<string, AttendanceRestDay>();
+
+  restDays.forEach((restDay) => {
+    map.set(`${restDay.employee_id}:${restDay.rest_date}`, restDay);
+  });
+
+  return map;
 }
 
 function groupAttendanceRecords(records: AttendanceRecord[]) {

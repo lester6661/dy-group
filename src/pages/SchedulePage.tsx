@@ -8,11 +8,12 @@ import {
 } from '../services/schedule.service';
 import type { LeaveType, Region } from '../types/database';
 
-const leaveTypeLabels: Record<LeaveType, string> = {
+const leaveTypeLabels: Record<LeaveType | 'rest', string> = {
   annual: '年假',
   medical: '病假',
   unpaid: '无薪假',
   replacement: '换休假',
+  rest: '排休',
 };
 
 export function SchedulePage() {

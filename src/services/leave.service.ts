@@ -15,6 +15,19 @@ export type LeaveRequestItem = LeaveRequest & {
 
 export type LeaveStats = Record<LeaveRequestStatus | 'total', number>;
 
+export type RestDayCalendarItem = {
+  rest_day_id: string;
+  employee_id: string;
+  profile_id: string;
+  employee_name: string;
+  employee_code: string | null;
+  region_id: string | null;
+  region_code: string | null;
+  rest_date: string;
+  source: 'manual' | 'auto';
+  status: 'confirmed' | 'cancelled';
+};
+
 type LeaveRequestRowWithEmployee = LeaveRequest & {
   employees: Pick<Employee, 'id' | 'full_name' | 'phone' | 'employee_code'> | null;
 };
@@ -93,6 +106,46 @@ export const leaveService = {
     if (error) {
       throw error;
     }
+  },
+
+  async listRestDays(cycleYear: number, cycleMonth: number, regionId = '') {
+    const { data, error } = await supabase.rpc('get_rest_day_calendar', {
+      cycle_year: cycleYear,
+      cycle_month: cycleMonth,
+      region_filter: regionId || null,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []) as RestDayCalendarItem[];
+  },
+
+  async saveMyRestDays(cycleYear: number, cycleMonth: number, restDates: string[]) {
+    const { error } = await supabase.rpc('save_my_rest_days', {
+      cycle_year: cycleYear,
+      cycle_month: cycleMonth,
+      rest_dates: restDates,
+    });
+
+    if (error) {
+      throw error;
+    }
+  },
+
+  async autoFillRestDays(cycleYear: number, cycleMonth: number, regionId = '') {
+    const { data, error } = await supabase.rpc('auto_fill_rest_days', {
+      cycle_year: cycleYear,
+      cycle_month: cycleMonth,
+      region_filter: regionId || null,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data ?? 0;
   },
 };
 

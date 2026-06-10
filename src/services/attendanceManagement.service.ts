@@ -28,8 +28,22 @@ export type AttendancePeriodData = {
   employees: AttendanceEmployee[];
   attendanceRecords: AttendanceRecord[];
   leaveRequests: LeaveRequest[];
+  restDays: AttendanceRestDay[];
   regions: Region[];
   range: AttendancePeriodRange;
+};
+
+export type AttendanceRestDay = {
+  rest_day_id: string;
+  employee_id: string;
+  profile_id: string;
+  employee_name: string;
+  employee_code: string | null;
+  region_id: string | null;
+  region_code: string | null;
+  rest_date: string;
+  source: 'manual' | 'auto';
+  status: 'confirmed' | 'cancelled';
 };
 
 export type AttendancePeriodRange = {
@@ -80,7 +94,8 @@ export const attendanceManagementService = {
 
     const scopedEmployeesQuery = regionId ? employeesQuery.eq('region_id', regionId) : employeesQuery;
 
-    const [employeesResult, attendanceResult, leaveResult, regionsResult] = await Promise.all([
+    const [yearText, monthText] = month.split('-');
+    const [employeesResult, attendanceResult, leaveResult, restResult, regionsResult] = await Promise.all([
       scopedEmployeesQuery,
       supabase
         .from('attendance_records')
@@ -94,6 +109,11 @@ export const attendanceManagementService = {
         .lte('start_date', range.endDate)
         .gte('end_date', range.startDate)
         .order('start_date', { ascending: true }),
+      supabase.rpc('get_rest_day_calendar', {
+        cycle_year: Number(yearText),
+        cycle_month: Number(monthText),
+        region_filter: regionId || null,
+      }),
       supabase.from('regions').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
     ]);
 
@@ -109,6 +129,10 @@ export const attendanceManagementService = {
       throw leaveResult.error;
     }
 
+    if (restResult.error) {
+      throw restResult.error;
+    }
+
     if (regionsResult.error) {
       throw regionsResult.error;
     }
@@ -117,6 +141,7 @@ export const attendanceManagementService = {
       employees: ((employeesResult.data ?? []) as unknown as EmployeeRowWithRelations[]).map(mapEmployeeRow),
       attendanceRecords: attendanceResult.data ?? [],
       leaveRequests: leaveResult.data ?? [],
+      restDays: (restResult.data ?? []) as AttendanceRestDay[],
       regions: regionsResult.data ?? [],
       range,
     };

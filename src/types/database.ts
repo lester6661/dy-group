@@ -132,6 +132,20 @@ export type ScheduleEntry = {
   updated_at: string;
 };
 
+export type RestDay = {
+  id: string;
+  employee_id: string;
+  profile_id: string;
+  region_id: string | null;
+  rest_date: string;
+  cycle_year: number;
+  cycle_month: number;
+  source: 'manual' | 'auto';
+  status: 'confirmed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -281,6 +295,28 @@ export type Database = {
           },
         ];
       };
+      rest_days: {
+        Row: RestDay;
+        Insert: Pick<RestDay, 'employee_id' | 'profile_id' | 'rest_date' | 'cycle_year' | 'cycle_month'> &
+          Partial<Pick<RestDay, 'id' | 'region_id' | 'source' | 'status' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<RestDay, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'rest_days_employee_id_fkey';
+            columns: ['employee_id'];
+            isOneToOne: false;
+            referencedRelation: 'employees';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'rest_days_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -340,6 +376,41 @@ export type Database = {
           end_date: string;
           leave_date: string;
         }[];
+      };
+      get_rest_day_calendar: {
+        Args: {
+          cycle_year: number;
+          cycle_month: number;
+          region_filter?: string | null;
+        };
+        Returns: {
+          rest_day_id: string;
+          employee_id: string;
+          profile_id: string;
+          employee_name: string;
+          employee_code: string | null;
+          region_id: string | null;
+          region_code: string | null;
+          rest_date: string;
+          source: 'manual' | 'auto';
+          status: 'confirmed' | 'cancelled';
+        }[];
+      };
+      save_my_rest_days: {
+        Args: {
+          cycle_year: number;
+          cycle_month: number;
+          rest_dates: string[];
+        };
+        Returns: void;
+      };
+      auto_fill_rest_days: {
+        Args: {
+          cycle_year: number;
+          cycle_month: number;
+          region_filter?: string | null;
+        };
+        Returns: number;
       };
       soft_delete_employee: {
         Args: {
