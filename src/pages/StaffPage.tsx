@@ -99,6 +99,8 @@ export function StaffPage() {
     setMessage('');
 
     try {
+      console.info('currentUser.role', profile?.role ?? null);
+
       if (editingEmployee) {
         await staffService.updateEmployee(editingEmployee.id, formValues);
         setMessage('工作人员资料已更新。');
