@@ -138,6 +138,19 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      approve_registration: {
+        Args: {
+          profile_id: string;
+        };
+        Returns: void;
+      };
+      reject_registration: {
+        Args: {
+          profile_id: string;
+          note: string;
+        };
+        Returns: void;
+      };
       soft_delete_employee: {
         Args: {
           employee_id: string;

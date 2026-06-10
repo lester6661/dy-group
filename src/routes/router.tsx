@@ -13,8 +13,10 @@ import { SettingsPage } from '../pages/SettingsPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
 import { RegisterReviewPage } from '../pages/RegisterReviewPage';
+import { RegistrationReviewPage } from '../pages/RegistrationReviewPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { getMenuPath } from './menu';
+import { RequireRole } from '../components/RequireRole';
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +41,14 @@ export const router = createBrowserRouter([
           {
             path: getMenuPath('staff'),
             element: <StaffPage />,
+          },
+          {
+            path: getMenuPath('registration-review'),
+            element: (
+              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+                <RegistrationReviewPage />
+              </RequireRole>
+            ),
           },
           {
             path: 'attendance',

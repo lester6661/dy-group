@@ -8,6 +8,7 @@ import {
   UsersRound,
   Waves,
   FileClock,
+  ClipboardList,
 } from 'lucide-react';
 
 export type MenuItem = {
@@ -15,6 +16,8 @@ export type MenuItem = {
   label: string;
   path: string;
   icon: LucideIcon;
+  section?: string;
+  group?: string;
 };
 
 export const menuItems: MenuItem[] = [
@@ -35,6 +38,16 @@ export const menuItems: MenuItem[] = [
     label: '工作人员',
     path: '/staff',
     icon: UsersRound,
+    section: '工作工具',
+    group: '人事部',
+  },
+  {
+    key: 'registration-review',
+    label: '注册审核',
+    path: '/hr/registration-reviews',
+    icon: ClipboardList,
+    section: '工作工具',
+    group: '人事部',
   },
   {
     key: 'attendance',
