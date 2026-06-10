@@ -322,6 +322,25 @@ export type Database = {
         };
         Returns: void;
       };
+      get_leave_calendar: {
+        Args: {
+          month_start: string;
+          month_end: string;
+          region_filter?: string | null;
+        };
+        Returns: {
+          leave_request_id: string;
+          employee_id: string;
+          employee_name: string;
+          employee_code: string | null;
+          region_id: string | null;
+          region_code: string | null;
+          leave_type: LeaveType;
+          start_date: string;
+          end_date: string;
+          leave_date: string;
+        }[];
+      };
       soft_delete_employee: {
         Args: {
           employee_id: string;

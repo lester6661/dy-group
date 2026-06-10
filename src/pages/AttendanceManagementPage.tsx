@@ -3,7 +3,6 @@ import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
   AttendanceEmployee,
-  AttendanceScheduleEntry,
   attendanceManagementService,
   getAttendancePeriodRange,
 } from '../services/attendanceManagement.service';
@@ -17,7 +16,6 @@ type DailyRecord = {
   clockOut: AttendanceRecord | null;
   workHours: number | null;
   breakMinutes: number;
-  plannedShift: string;
   status: string;
 };
 
@@ -84,7 +82,6 @@ export function AttendanceManagementPage() {
           data.employees,
           data.attendanceRecords,
           data.leaveRequests,
-          data.scheduleEntries,
           data.range.startDate,
           data.range.endDate,
         ),
@@ -245,7 +242,6 @@ function EmployeeDetail({ summary }: { summary: EmployeeAttendanceSummary }) {
               <th>开始休息</th>
               <th>结束休息</th>
               <th>下班时间</th>
-              <th>班表</th>
               <th>工作时长</th>
               <th>休息时长</th>
               <th>状态</th>
@@ -259,7 +255,6 @@ function EmployeeDetail({ summary }: { summary: EmployeeAttendanceSummary }) {
                 <td>{formatRecordTime(record.breakStart)}</td>
                 <td>{formatRecordTime(record.breakEnd)}</td>
                 <td>{formatRecordTime(record.clockOut)}</td>
-                <td>{record.plannedShift}</td>
                 <td>{record.workHours === null ? '-' : `${record.workHours.toFixed(1)} 小时`}</td>
                 <td>{record.breakMinutes ? `${record.breakMinutes} 分钟` : '-'}</td>
                 <td>{record.status}</td>
@@ -332,7 +327,6 @@ function buildSummaries(
   employees: AttendanceEmployee[],
   attendanceRecords: AttendanceRecord[],
   leaveRequests: LeaveRequest[],
-  scheduleEntries: AttendanceScheduleEntry[],
   startDate: string,
   endDate: string,
 ) {
@@ -340,7 +334,6 @@ function buildSummaries(
   const today = toDateKey(new Date());
   const recordsByEmployeeDate = groupAttendanceRecords(attendanceRecords);
   const leavesByEmployeeDate = groupLeaveRequests(leaveRequests, dates);
-  const scheduleByEmployeeDate = groupScheduleEntries(scheduleEntries);
 
   return employees.map((employee) => {
     const leaveCounts: Record<LeaveType, number> = {
@@ -368,36 +361,29 @@ function buildSummaries(
       const breakEnd = records.find((record) => record.punch_type === 'break_end') ?? null;
       const clockOut = [...records].reverse().find((record) => record.punch_type === 'clock_out') ?? null;
       const leave = leavesByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
-      const scheduleEntry = scheduleByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
-      const plannedStartTime = scheduleEntry?.shift?.start_time ?? employee.start_work_time;
-      const plannedEndTime = scheduleEntry?.shift?.end_time ?? employee.end_work_time;
       const breakMinutes = breakStart && breakEnd ? minutesBetween(breakStart.punched_at, breakEnd.punched_at) : 0;
       const workHours = clockIn && clockOut ? minutesBetween(clockIn.punched_at, clockOut.punched_at) / 60 : null;
       const statuses: string[] = [];
       const isPastOrToday = date <= today;
-
-      if (scheduleEntry?.is_day_off) {
-        statuses.push('排休');
-      }
 
       if (leave?.status === 'approved') {
         statuses.push(`${leaveTypeLabels[leave.leave_type]}已通过`);
         leaveCounts[leave.leave_type] += 1;
       }
 
-      if (employee.require_attendance && !leave && !scheduleEntry?.is_day_off && isPastOrToday && !clockIn) {
+      if (employee.require_attendance && !leave && isPastOrToday && !clockIn) {
         statuses.push('旷工');
         absentCount += 1;
       }
 
-      if (employee.require_attendance && !scheduleEntry?.is_day_off && clockIn && plannedStartTime && isAfterWorkTime(clockIn.punched_at, plannedStartTime)) {
+      if (employee.require_attendance && clockIn && employee.start_work_time && isAfterWorkTime(clockIn.punched_at, employee.start_work_time)) {
         statuses.push('迟到');
         lateCount += 1;
         abnormalPunchCount += 1;
         abnormalRecords.push(toAbnormal(clockIn, employee, '异常时间打卡'));
       }
 
-      if (employee.require_attendance && !scheduleEntry?.is_day_off && clockOut && plannedEndTime && isBeforeWorkTime(clockOut.punched_at, plannedEndTime)) {
+      if (employee.require_attendance && clockOut && employee.end_work_time && isBeforeWorkTime(clockOut.punched_at, employee.end_work_time)) {
         statuses.push('早退');
         earlyLeaveCount += 1;
         abnormalPunchCount += 1;
@@ -432,13 +418,6 @@ function buildSummaries(
         clockOut,
         workHours,
         breakMinutes,
-        plannedShift: scheduleEntry?.is_day_off
-          ? '休假日'
-          : scheduleEntry?.shift
-            ? `${scheduleEntry.shift.name} ${scheduleEntry.shift.start_time.slice(0, 5)}-${scheduleEntry.shift.end_time.slice(0, 5)}`
-            : plannedStartTime && plannedEndTime
-              ? `默认 ${plannedStartTime.slice(0, 5)}-${plannedEndTime.slice(0, 5)}`
-              : '-',
         status: statuses.join('、') || '-',
       };
     });
@@ -455,16 +434,6 @@ function buildSummaries(
       abnormalRecords,
     };
   });
-}
-
-function groupScheduleEntries(entries: AttendanceScheduleEntry[]) {
-  const map = new Map<string, AttendanceScheduleEntry>();
-
-  entries.forEach((entry) => {
-    map.set(`${entry.employee_id}:${entry.work_date}`, entry);
-  });
-
-  return map;
 }
 
 function groupAttendanceRecords(records: AttendanceRecord[]) {
