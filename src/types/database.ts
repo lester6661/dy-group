@@ -59,6 +59,7 @@ export type Employee = {
   job_title_id: string | null;
   status: EmployeeStatus;
   hire_date: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -101,7 +102,7 @@ export type Database = {
       };
       employees: {
         Row: Employee;
-        Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'email' | 'phone' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'created_at' | 'updated_at'>> &
+        Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'email' | 'phone' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'deleted_at' | 'created_at' | 'updated_at'>> &
           Pick<Employee, 'full_name'> & {
             profile_id?: string | null;
           };
@@ -109,7 +110,14 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      soft_delete_employee: {
+        Args: {
+          employee_id: string;
+        };
+        Returns: void;
+      };
+    };
     Enums: {
       profile_status: ProfileStatus;
       employee_status: EmployeeStatus;
