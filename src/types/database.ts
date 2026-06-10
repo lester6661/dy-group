@@ -81,24 +81,28 @@ export type Database = {
           status?: ProfileStatus;
         };
         Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [];
       };
       regions: {
         Row: Region;
         Insert: Partial<Pick<Region, 'id' | 'is_active' | 'sort_order' | 'created_at' | 'updated_at'>> &
           Pick<Region, 'code' | 'name'>;
         Update: Partial<Omit<Region, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [];
       };
       employment_types: {
         Row: EmploymentType;
         Insert: Partial<Pick<EmploymentType, 'id' | 'is_active' | 'sort_order' | 'created_at' | 'updated_at'>> &
           Pick<EmploymentType, 'name'>;
         Update: Partial<Omit<EmploymentType, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [];
       };
       job_titles: {
         Row: JobTitle;
         Insert: Partial<Pick<JobTitle, 'id' | 'is_active' | 'sort_order' | 'created_at' | 'updated_at'>> &
           Pick<JobTitle, 'name'>;
         Update: Partial<Omit<JobTitle, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [];
       };
       employees: {
         Row: Employee;
@@ -107,6 +111,29 @@ export type Database = {
             profile_id?: string | null;
           };
         Update: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'employees_region_id_fkey';
+            columns: ['region_id'];
+            isOneToOne: false;
+            referencedRelation: 'regions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_employment_type_id_fkey';
+            columns: ['employment_type_id'];
+            isOneToOne: false;
+            referencedRelation: 'employment_types';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_job_title_id_fkey';
+            columns: ['job_title_id'];
+            isOneToOne: false;
+            referencedRelation: 'job_titles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
