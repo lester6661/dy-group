@@ -1,8 +1,12 @@
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu, Search, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useCurrentPage } from '../hooks/useCurrentPage';
+import { useAuth } from '../hooks/useAuth';
 
 export function Header() {
   const currentPage = useCurrentPage();
+  const { profile } = useAuth();
+  const initials = profile?.full_name?.slice(0, 1).toUpperCase() ?? 'D';
 
   return (
     <header className="topbar">
@@ -24,6 +28,14 @@ export function Header() {
         <button className="icon-button" type="button" aria-label="通知">
           <Bell size={19} />
         </button>
+        <Link className="avatar-settings-link" to="/settings" aria-label="系统设置">
+          <span className="avatar-circle">{initials}</span>
+          <span className="avatar-meta">
+            <strong>{profile?.full_name ?? 'DY 用户'}</strong>
+            <small>系统设置</small>
+          </span>
+          <Settings size={17} />
+        </Link>
       </div>
     </header>
   );

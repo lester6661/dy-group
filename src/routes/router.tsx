@@ -68,7 +68,11 @@ export const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            element: <SettingsPage />,
+            element: (
+              <RequireRole allowedRoles={['super_admin']}>
+                <SettingsPage />
+              </RequireRole>
+            ),
           },
         ],
       },
