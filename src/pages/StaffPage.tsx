@@ -86,7 +86,7 @@ export function StaffPage() {
       setEmployees(employeeList);
       setOptions(optionList);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '读取工作人员资料失败。');
+      setError(`读取工作人员资料失败：${getErrorMessage(loadError)}`);
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export function StaffPage() {
       resetForm();
       await loadStaffData();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : '保存工作人员资料失败。');
+      setError(`保存工作人员资料失败：${getErrorMessage(saveError)}`);
     } finally {
       setSaving(false);
     }
@@ -156,7 +156,7 @@ export function StaffPage() {
       setMessage('工作人员已删除。');
       await loadStaffData();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : '删除工作人员失败。');
+      setError(`删除工作人员失败：${getErrorMessage(deleteError)}`);
     }
   }
 
@@ -436,4 +436,20 @@ export function StaffPage() {
       </div>
     </section>
   );
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+
+    if (typeof message === 'string' && message.trim()) {
+      return message;
+    }
+  }
+
+  return '未知错误';
 }
