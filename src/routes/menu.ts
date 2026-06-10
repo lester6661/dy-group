@@ -58,6 +58,14 @@ export const menuItems: MenuItem[] = [
     group: '人事部',
   },
   {
+    key: 'attendance-management',
+    label: '考勤',
+    path: '/hr/attendance',
+    icon: ClipboardCheck,
+    section: '工作工具',
+    group: '人事部',
+  },
+  {
     key: 'attendance',
     label: '考勤',
     path: '/attendance',

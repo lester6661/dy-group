@@ -6,6 +6,7 @@ import { DashboardPage } from '../pages/DashboardPage';
 import { SchedulePage } from '../pages/SchedulePage';
 import { StaffPage } from '../pages/StaffPage';
 import { AttendancePage } from '../pages/AttendancePage';
+import { AttendanceManagementPage } from '../pages/AttendanceManagementPage';
 import { LeavePage } from '../pages/LeavePage';
 import { LeaveReviewPage } from '../pages/LeaveReviewPage';
 import { RestPlanningPage } from '../pages/RestPlanningPage';
@@ -56,6 +57,14 @@ export const router = createBrowserRouter([
             element: (
               <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
                 <LeaveReviewPage />
+              </RequireRole>
+            ),
+          },
+          {
+            path: getMenuPath('attendance-management'),
+            element: (
+              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+                <AttendanceManagementPage />
               </RequireRole>
             ),
           },

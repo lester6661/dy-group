@@ -1052,6 +1052,18 @@ a {
   gap: 22px;
 }
 
+.attendance-management-page {
+  display: grid;
+  gap: 22px;
+}
+
+.attendance-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 280px));
+  gap: 14px;
+  align-items: end;
+}
+
 .attendance-grid {
   display: grid;
   grid-template-columns: minmax(360px, 480px) minmax(0, 1fr);
@@ -1136,6 +1148,31 @@ a {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.attendance-status-present {
+  color: #17603a;
+  background: #e8f7ee;
+}
+
+.attendance-status-leave {
+  color: #155e75;
+  background: #e6f7fb;
+}
+
+.attendance-status-absent {
+  color: #9f1d1d;
+  background: #fee2e2;
+}
+
+.attendance-status-partial {
+  color: #7a4d0b;
+  background: #fff4dc;
+}
+
+.attendance-status-future {
+  color: #58667a;
+  background: #eef2f7;
 }
 
 @media (max-width: 960px) {
@@ -1233,6 +1270,10 @@ a {
   }
 
   .attendance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-filters {
     grid-template-columns: 1fr;
   }
 
