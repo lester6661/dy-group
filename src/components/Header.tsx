@@ -28,12 +28,14 @@ export function Header() {
         <button className="icon-button" type="button" aria-label="通知">
           <Bell size={19} />
         </button>
-        <Link className="avatar-settings-link" to="/settings" aria-label="系统设置">
+        <Link className="avatar-settings-link" to="/profile" aria-label="个人资料">
           <span className="avatar-circle">{initials}</span>
           <span className="avatar-meta">
             <strong>{profile?.full_name ?? 'DY 用户'}</strong>
-            <small>系统设置</small>
+            <small>个人资料</small>
           </span>
+        </Link>
+        <Link className="icon-button" to="/settings" aria-label="系统设置">
           <Settings size={17} />
         </Link>
       </div>

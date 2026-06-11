@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { futureToolGroups, menuItems } from '../routes/menu';
 
-export function Sidebar() {
+type SidebarProps = {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+};
+
+export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     工作工具: true,
   });
@@ -44,13 +49,12 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={collapsed ? 'sidebar collapsed' : 'sidebar'}>
       <div className="brand">
-        <div className="brand-mark">DY</div>
-        <div>
-          <strong>DY Group</strong>
-          <span>Production</span>
-        </div>
+        <button className="sidebar-collapse-button" type="button" onClick={onToggleCollapsed} aria-label="收起菜单">
+          <Menu size={20} />
+        </button>
+        <div className="brand-mark" title="DY Group">DY</div>
       </div>
 
       <nav className="nav" aria-label="主菜单">
@@ -61,6 +65,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              title={collapsed ? item.label : undefined}
               className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
             >
               <Icon size={18} />
@@ -74,7 +79,12 @@ export function Sidebar() {
 
           return (
             <div className="nav-section" key={sectionName}>
-              <button className="nav-toggle" type="button" onClick={() => toggleSection(sectionName)}>
+              <button
+                className="nav-toggle"
+                type="button"
+                title={collapsed ? sectionName : undefined}
+                onClick={() => toggleSection(sectionName)}
+              >
                 {sectionExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 <span>{sectionName}</span>
               </button>
@@ -86,7 +96,12 @@ export function Sidebar() {
 
                     return (
                       <div className="nav-group" key={groupName}>
-                        <button className="nav-group-toggle" type="button" onClick={() => toggleGroup(groupName)}>
+                        <button
+                          className="nav-group-toggle"
+                          type="button"
+                          title={collapsed ? groupName : undefined}
+                          onClick={() => toggleGroup(groupName)}
+                        >
                           {groupExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                           <span>{groupName}</span>
                         </button>
@@ -100,6 +115,7 @@ export function Sidebar() {
                                 <NavLink
                                   key={item.path}
                                   to={item.path}
+                                  title={collapsed ? item.label : undefined}
                                   className={({ isActive }) => (isActive ? 'nav-link active nested' : 'nav-link nested')}
                                 >
                                   <Icon size={18} />
@@ -113,25 +129,22 @@ export function Sidebar() {
                     );
                   })}
 
-                  <div className="nav-group future-groups">
-                    {futureToolGroups.map((groupName) => (
-                      <button className="nav-group-toggle muted" type="button" key={groupName} disabled>
-                        <ChevronRight size={15} />
-                        <span>{groupName}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {!collapsed ? (
+                    <div className="nav-group future-groups">
+                      {futureToolGroups.map((groupName) => (
+                        <button className="nav-group-toggle muted" type="button" key={groupName} disabled>
+                          <ChevronRight size={15} />
+                          <span>{groupName}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
           );
         })}
       </nav>
-
-      <div className="sidebar-footer">
-        <span>正式版系统</span>
-        <strong>V1</strong>
-      </div>
     </aside>
   );
 }

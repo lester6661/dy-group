@@ -5,8 +5,6 @@ import {
   Clock3,
   FileClock,
   Home,
-  Settings,
-  UserCircle,
   UsersRound,
 } from 'lucide-react';
 
@@ -43,18 +41,6 @@ export const menuItems: MenuItem[] = [
     label: '请假&休假',
     path: '/leave',
     icon: FileClock,
-  },
-  {
-    key: 'profile',
-    label: '个人资料',
-    path: '/profile',
-    icon: UserCircle,
-  },
-  {
-    key: 'settings',
-    label: '设置',
-    path: '/settings',
-    icon: Settings,
   },
   {
     key: 'staff',

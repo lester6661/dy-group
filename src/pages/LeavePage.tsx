@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { CalendarCheck2, FileClock, Plus, RefreshCw, Wand2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
   LeaveFormValues,
@@ -33,7 +34,11 @@ const emptyForm: LeaveFormValues = {
 
 export function LeavePage() {
   const { profile } = useAuth();
-  const [activeView, setActiveView] = useState<'leave' | 'rest'>('leave');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeView, setActiveView] = useState<'leave' | 'rest'>(() => {
+    const tab = searchParams.get('tab') ?? localStorage.getItem('leaveActiveTab');
+    return tab === 'rest' ? 'rest' : 'leave';
+  });
   const [requests, setRequests] = useState<LeaveRequestItem[]>([]);
   const [restDays, setRestDays] = useState<RestDayCalendarItem[]>([]);
   const [restCycle, setRestCycle] = useState(getCurrentRestCycle());
@@ -78,6 +83,14 @@ export function LeavePage() {
   useEffect(() => {
     loadRestDays();
   }, [profile?.id, restCycle]);
+
+  useEffect(() => {
+    localStorage.setItem('leaveActiveTab', activeView);
+
+    if ((searchParams.get('tab') ?? 'leave') !== activeView) {
+      setSearchParams(activeView === 'rest' ? { tab: 'rest' } : {}, { replace: true });
+    }
+  }, [activeView, searchParams, setSearchParams]);
 
   async function loadLeaveRequests(profileId = profile?.id) {
     if (!profileId) {
