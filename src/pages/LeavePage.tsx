@@ -147,6 +147,7 @@ export function LeavePage() {
 
     console.info('提交排休', {
       selectedRestDates: restDatesToSave,
+      normalizedDates: restDatesToSave,
       cycleYear,
       cycleMonth,
     });
@@ -168,10 +169,18 @@ export function LeavePage() {
     setMessage('');
 
     try {
-      await leaveService.saveMyRestDays(cycleYear, cycleMonth, restDatesToSave);
+      const result = await leaveService.saveMyRestDays(cycleYear, cycleMonth, restDatesToSave);
+      console.info('提交排休完成', {
+        result,
+        error: null,
+      });
       setMessage('排休已保存。');
       await loadRestDays();
     } catch (saveError) {
+      console.info('提交排休失败', {
+        result: null,
+        error: saveError,
+      });
       setError(`提交排休失败：${getErrorMessage(saveError)}`);
     } finally {
       setSaving(false);
@@ -539,9 +548,11 @@ function RestDayPlanner({
         )}
 
         <button className="primary-button rest-save-button" type="button" onClick={onSave} disabled={saving}>
-          <Plus size={18} />
-          <span>{saving ? '提交中' : '提交排休'}</span>
+          {saving ? null : <Plus size={18} />}
+          <span>{saving ? '提交中...' : '提交排休'}</span>
         </button>
+        {error ? <p className="form-alert rest-submit-feedback">{error}</p> : null}
+        {message ? <p className="form-success rest-submit-feedback">{message}</p> : null}
       </div>
     </div>
   );

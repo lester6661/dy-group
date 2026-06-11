@@ -402,7 +402,7 @@ export type Database = {
           cycle_month: number;
           rest_dates: string[];
         };
-        Returns: void;
+        Returns: number;
       };
       auto_fill_rest_days: {
         Args: {

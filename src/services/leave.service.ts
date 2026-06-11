@@ -125,15 +125,28 @@ export const leaveService = {
   async saveMyRestDays(cycleYear: number, cycleMonth: number, restDates: string[]) {
     const normalizedRestDates = [...new Set(restDates.map(toDateKey))].sort();
 
-    const { error } = await supabase.rpc('save_my_rest_days', {
+    console.info('save_my_rest_days request', {
+      cycleYear,
+      cycleMonth,
+      normalizedDates: normalizedRestDates,
+    });
+
+    const { data, error } = await supabase.rpc('save_my_rest_days', {
       cycle_year: cycleYear,
       cycle_month: cycleMonth,
       rest_dates: normalizedRestDates,
     });
 
+    console.info('save_my_rest_days response', {
+      data,
+      error,
+    });
+
     if (error) {
       throw error;
     }
+
+    return data;
   },
 
   async autoFillRestDays(cycleYear: number, cycleMonth: number, regionId = '') {
