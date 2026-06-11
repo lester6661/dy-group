@@ -1,12 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import {
-  CalendarDays,
-  ClipboardCheck,
-  Clock3,
-  FileClock,
-  Home,
-  UsersRound,
-} from 'lucide-react';
+import { CalendarDays, ClipboardCheck, Clock3, FileClock, Home, UsersRound } from 'lucide-react';
 
 export type MenuItem = {
   key: string;
@@ -20,7 +13,7 @@ export type MenuItem = {
 export const menuItems: MenuItem[] = [
   {
     key: 'dashboard',
-    label: '仪表盘',
+    label: '首页',
     path: '/dashboard',
     icon: Home,
   },
