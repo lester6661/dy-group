@@ -97,6 +97,17 @@ export const scheduleService = {
       regions: regionsResult.data ?? [],
     };
   },
+
+  async cancelLeaveCalendarItem(item: LeaveCalendarItem) {
+    const { error } = await supabase.rpc('cancel_calendar_leave_item', {
+      item_id: item.leave_request_id,
+      item_type: item.leave_type,
+    });
+
+    if (error) {
+      throw error;
+    }
+  },
 };
 
 export function getMonthRange(month: string) {

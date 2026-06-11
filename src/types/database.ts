@@ -412,6 +412,13 @@ export type Database = {
         };
         Returns: number;
       };
+      cancel_calendar_leave_item: {
+        Args: {
+          item_id: string;
+          item_type: string;
+        };
+        Returns: void;
+      };
       soft_delete_employee: {
         Args: {
           employee_id: string;

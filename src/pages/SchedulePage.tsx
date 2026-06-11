@@ -12,7 +12,7 @@ const leaveTypeLabels: Record<LeaveType | 'rest', string> = {
   annual: '年假',
   medical: '病假',
   unpaid: '无薪假',
-  replacement: '换休假',
+  replacement: '补休',
   rest: '排休',
 };
 
@@ -23,9 +23,11 @@ export function SchedulePage() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [leaves, setLeaves] = useState<LeaveCalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const canViewAllRegions = profile?.role === 'super_admin' || Boolean(profile?.can_view_all_regions);
+  const canCancelLeaves = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'hr';
   const monthRange = useMemo(() => getMonthRange(month), [month]);
   const calendarCells = useMemo(
     () => getCalendarCells(monthRange.startDate, monthRange.endDate),
@@ -61,6 +63,29 @@ export function SchedulePage() {
     }
   }
 
+  async function handleCancelLeave(leave: LeaveCalendarItem) {
+    if (!canCancelLeaves) {
+      return;
+    }
+
+    const confirmed = window.confirm('确定取消该假期？');
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError('');
+    setMessage('');
+
+    try {
+      await scheduleService.cancelLeaveCalendarItem(leave);
+      setMessage('假期已取消。');
+      await loadLeaveCalendar();
+    } catch (cancelError) {
+      setError(`取消假期失败：${getErrorMessage(cancelError)}`);
+    }
+  }
+
   return (
     <section className="schedule-page">
       <div className="staff-toolbar">
@@ -77,6 +102,7 @@ export function SchedulePage() {
       </div>
 
       {error ? <p className="form-alert">{error}</p> : null}
+      {message ? <p className="form-success">{message}</p> : null}
 
       <div className="staff-list-panel schedule-filter-panel">
         <div className="attendance-filters">
@@ -140,7 +166,7 @@ export function SchedulePage() {
               return (
                 <article className="leave-calendar-day" key={date}>
                   <header>
-                    <strong>{date.slice(8)}</strong>
+                    <strong>{formatDayMonth(date)}</strong>
                     <span>{weekdayLabel(date)}</span>
                   </header>
 
@@ -149,13 +175,17 @@ export function SchedulePage() {
                   ) : (
                     <div className="leave-calendar-list">
                       {dayLeaves.map((leave) => (
-                        <span
+                        <button
+                          type="button"
                           className={`leave-chip leave-type-${leave.leave_type}`}
                           key={`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}`}
+                          onClick={() => handleCancelLeave(leave)}
+                          disabled={!canCancelLeaves}
+                          title={canCancelLeaves ? '点击取消假期' : undefined}
                         >
                           {leave.employee_name}：{leaveTypeLabels[leave.leave_type]}
                           {leave.leave_type === 'rest' && leave.source === 'auto' ? '（自动）' : ''}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -174,8 +204,8 @@ const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五
 function getCurrentRestCycle() {
   const now = new Date();
   const target = now.getDate() < 26
-    ? new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    : new Date(now.getFullYear(), now.getMonth() + 2, 1);
+    ? new Date(now.getFullYear(), now.getMonth(), 1)
+    : new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   return `${target.getFullYear()}-${`${target.getMonth() + 1}`.padStart(2, '0')}`;
 }
@@ -207,6 +237,11 @@ function toDateKey(date: Date) {
 
 function weekdayLabel(date: string) {
   return new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(new Date(`${date}T00:00:00`));
+}
+
+function formatDayMonth(date: string) {
+  const value = new Date(`${date}T00:00:00`);
+  return `${String(value.getDate()).padStart(2, '0')}/${value.getMonth() + 1}`;
 }
 
 function getErrorMessage(error: unknown) {

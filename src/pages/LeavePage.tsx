@@ -530,7 +530,7 @@ function RestDayPlanner({
               return (
                 <article className={selected ? 'leave-calendar-day rest-selected' : 'leave-calendar-day'} key={date}>
                   <header>
-                    <strong>{date.slice(8)}</strong>
+                    <strong>{formatDayMonth(date)}</strong>
                     <span>{weekdayLabel(date)}</span>
                   </header>
 
@@ -621,6 +621,11 @@ function toDateKey(date: Date) {
 
 function weekdayLabel(date: string) {
   return new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(new Date(`${date}T00:00:00`));
+}
+
+function formatDayMonth(date: string) {
+  const value = new Date(`${date}T00:00:00`);
+  return `${String(value.getDate()).padStart(2, '0')}/${value.getMonth() + 1}`;
 }
 
 function getErrorMessage(error: unknown) {
