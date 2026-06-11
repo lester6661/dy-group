@@ -146,8 +146,13 @@ as $$
 $$;
 
 drop policy if exists "Approved users can read employees" on public.employees;
+drop policy if exists "Approved users can create employees" on public.employees;
+drop policy if exists "Approved users can update employees" on public.employees;
 drop policy if exists "HR users can insert employees" on public.employees;
 drop policy if exists "HR users can update employees" on public.employees;
+drop policy if exists "Users can read scoped employees" on public.employees;
+drop policy if exists "HR users can insert scoped employees" on public.employees;
+drop policy if exists "HR users can update scoped employees" on public.employees;
 drop policy if exists "Super admins can delete employees" on public.employees;
 
 create policy "Users can read scoped employees"
