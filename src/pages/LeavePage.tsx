@@ -141,13 +141,34 @@ export function LeavePage() {
 
   async function handleSaveRestDays() {
     const [yearText, monthText] = restCycle.split('-');
+    const cycleYear = Number(yearText);
+    const cycleMonth = Number(monthText);
+    const restDatesToSave = [...new Set(selectedRestDates.map((date) => date.slice(0, 10)))].sort();
+
+    console.info('提交排休', {
+      selectedRestDates: restDatesToSave,
+      cycleYear,
+      cycleMonth,
+    });
+
+    if (restLocked) {
+      setError('已过排休截止日期，不能修改本周期排休。');
+      setMessage('');
+      return;
+    }
+
+    if (restDatesToSave.length === 0) {
+      setError('请选择排休日期');
+      setMessage('');
+      return;
+    }
 
     setSaving(true);
     setError('');
     setMessage('');
 
     try {
-      await leaveService.saveMyRestDays(Number(yearText), Number(monthText), selectedRestDates);
+      await leaveService.saveMyRestDays(cycleYear, cycleMonth, restDatesToSave);
       setMessage('排休已保存。');
       await loadRestDays();
     } catch (saveError) {
@@ -517,7 +538,7 @@ function RestDayPlanner({
           </div>
         )}
 
-        <button className="primary-button rest-save-button" type="button" onClick={onSave} disabled={saving || locked}>
+        <button className="primary-button rest-save-button" type="button" onClick={onSave} disabled={saving}>
           <Plus size={18} />
           <span>{saving ? '提交中' : '提交排休'}</span>
         </button>
