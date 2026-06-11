@@ -29,7 +29,9 @@ export function Header() {
           <Bell size={19} />
         </button>
         <Link className="avatar-settings-link" to="/profile" aria-label="个人资料">
-          <span className="avatar-circle">{initials}</span>
+          <span className="avatar-circle">
+            {profile?.avatar_url ? <img src={profile.avatar_url} alt="个人头像" /> : initials}
+          </span>
           <span className="avatar-meta">
             <strong>{profile?.full_name ?? 'DY 用户'}</strong>
             <small>个人资料</small>
