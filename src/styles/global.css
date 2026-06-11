@@ -1360,6 +1360,12 @@ a {
   color: var(--primary);
 }
 
+.abnormal-cycle-count {
+  margin: -8px 0 4px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .attendance-detail-panel {
   margin-top: 18px;
 }

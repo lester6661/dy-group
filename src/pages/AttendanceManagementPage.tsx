@@ -118,6 +118,8 @@ export function AttendanceManagementPage() {
         <strong>{abnormalEmployeeCount} 位员工</strong>
       </button>
 
+      <p className="abnormal-cycle-count">本周期异常次数：{abnormalRecords.length}</p>
+
       <div className="attendance-filters">
         <label className="form-field">
           <span>考勤月份</span>
@@ -199,7 +201,7 @@ export function AttendanceManagementPage() {
         )}
       </div>
 
-      {showAbnormalCenter ? <AbnormalCenter records={abnormalRecords} /> : null}
+      {showAbnormalCenter ? <AbnormalEmployeeCenter records={abnormalRecords} /> : null}
       {selectedSummary ? <EmployeeDetail summary={selectedSummary} /> : null}
     </section>
   );
@@ -265,6 +267,93 @@ function EmployeeDetail({ summary }: { summary: EmployeeAttendanceSummary }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function AbnormalEmployeeCenter({ records }: { records: AbnormalRecord[] }) {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const groupedEmployees = useMemo(() => {
+    const map = new Map<string, { employee: AttendanceEmployee; records: AbnormalRecord[] }>();
+
+    records.forEach((record) => {
+      const current = map.get(record.employee.id) ?? { employee: record.employee, records: [] };
+      current.records.push(record);
+      map.set(record.employee.id, current);
+    });
+
+    return [...map.values()].sort((a, b) => b.records.length - a.records.length);
+  }, [records]);
+  const selected = groupedEmployees.find((item) => item.employee.id === selectedEmployeeId) ?? null;
+
+  return (
+    <div className="staff-list-panel attendance-detail-panel">
+      <div className="list-header">
+        <div>
+          <span>异常打卡中心</span>
+          <h3>{selected ? `${selected.employee.full_name} 的异常记录` : `${records.length} 次异常`}</h3>
+        </div>
+        {selected ? (
+          <button className="secondary-action" type="button" onClick={() => setSelectedEmployeeId('')}>
+            返回员工列表
+          </button>
+        ) : null}
+      </div>
+
+      {records.length === 0 ? (
+        <div className="table-state">当前周期暂无异常打卡。</div>
+      ) : selected ? (
+        <div className="staff-table-wrap">
+          <table className="staff-table">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>异常类型</th>
+                <th>原因</th>
+                <th>打卡时间</th>
+                <th>备注</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selected.records.map((record) => (
+                <tr key={record.id}>
+                  <td>{toDateKey(new Date(record.punchedAt))}</td>
+                  <td>{record.type}</td>
+                  <td>{record.type}</td>
+                  <td>{new Date(record.punchedAt).toLocaleString('zh-CN')}</td>
+                  <td className="device-cell">GPS：{record.gps} / IP：{record.ip} / 设备：{record.deviceInfo}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="staff-table-wrap">
+          <table className="staff-table">
+            <thead>
+              <tr>
+                <th>员工姓名</th>
+                <th>异常次数</th>
+                <th>查看</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupedEmployees.map((item) => (
+                <tr key={item.employee.id}>
+                  <td><strong>{item.employee.full_name}</strong></td>
+                  <td>异常 {item.records.length} 次</td>
+                  <td>
+                    <button className="secondary-button compact-button" type="button" onClick={() => setSelectedEmployeeId(item.employee.id)}>
+                      <Eye size={16} />
+                      <span>查看详情</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
