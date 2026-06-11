@@ -9,6 +9,8 @@ export type LeaveFormValues = {
   medical_attachment_url?: string;
 };
 
+const MEDICAL_BUCKET = 'leave-medical-attachments';
+
 export type LeaveRequestItem = LeaveRequest & {
   employee: Pick<Employee, 'id' | 'full_name' | 'phone' | 'employee_code'> | null;
 };
@@ -87,6 +89,27 @@ export const leaveService = {
     if (error) {
       throw error;
     }
+  },
+
+  async uploadMedicalAttachment(profileId: string, file: File) {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('病假证明必须是图片格式。');
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const path = `${profileId}/${Date.now()}.${extension}`;
+    const { error } = await supabase.storage.from(MEDICAL_BUCKET).upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type,
+      upsert: false,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = supabase.storage.from(MEDICAL_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
   },
 
   async approveLeaveRequest(requestId: string) {

@@ -1,11 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, RefreshCw, Search, UserCheck, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { CheckCircle2, Search, UserCheck, X, XCircle } from 'lucide-react';
 import {
-  PendingRegistration,
-  RegistrationApprovalValues,
+  type PendingRegistration,
+  type RegistrationApprovalValues,
   registrationReviewService,
 } from '../services/registrationReview.service';
-import { StaffOptions, staffService } from '../services/staff.service';
+import { type StaffOptions, staffService } from '../services/staff.service';
 
 const defaultApprovalValues: RegistrationApprovalValues = {
   region_id: '',
@@ -39,15 +39,15 @@ export function RegistrationReviewPage() {
       return registrations;
     }
 
-    return registrations.filter((registration) => {
-      return [registration.full_name, registration.email, registration.phone]
+    return registrations.filter((registration) =>
+      [registration.full_name, registration.email, registration.phone]
         .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(keyword));
-    });
+        .some((value) => value!.toLowerCase().includes(keyword)),
+    );
   }, [registrations, searchTerm]);
 
   useEffect(() => {
-    loadRegistrations();
+    void loadRegistrations();
   }, []);
 
   async function loadRegistrations() {
@@ -61,18 +61,22 @@ export function RegistrationReviewPage() {
       ]);
       setRegistrations(pendingRegistrations);
       setOptions(staffOptions);
-      setSelectedRegistration((current) => {
-        if (!current) {
-          return pendingRegistrations[0] ?? null;
-        }
-
-        return pendingRegistrations.find((registration) => registration.id === current.id) ?? pendingRegistrations[0] ?? null;
-      });
+      setSelectedRegistration((current) =>
+        current && pendingRegistrations.some((registration) => registration.id === current.id) ? current : null,
+      );
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '读取注册审核列表失败。');
     } finally {
       setLoading(false);
     }
+  }
+
+  function openReview(registration: PendingRegistration) {
+    setSelectedRegistration(registration);
+    setApprovalValues(defaultApprovalValues);
+    setReviewNote('');
+    setError('');
+    setMessage('');
   }
 
   async function handleApprove() {
@@ -98,6 +102,7 @@ export function RegistrationReviewPage() {
 
       await registrationReviewService.approveRegistration(selectedRegistration.id, approvalValues);
       setMessage(`${selectedRegistration.full_name} 已通过审核。`);
+      setSelectedRegistration(null);
       setReviewNote('');
       setApprovalValues(defaultApprovalValues);
       await loadRegistrations();
@@ -122,6 +127,7 @@ export function RegistrationReviewPage() {
     try {
       await registrationReviewService.rejectRegistration(selectedRegistration.id, reviewNote);
       setMessage(`${selectedRegistration.full_name} 已拒绝。`);
+      setSelectedRegistration(null);
       setReviewNote('');
       await loadRegistrations();
     } catch (rejectError) {
@@ -133,210 +139,191 @@ export function RegistrationReviewPage() {
 
   return (
     <section className="review-page">
-      <div className="staff-toolbar">
-        <div className="page-heading">
-          <span>工作工具 / 人事部</span>
-          <h2>注册审核</h2>
-          <p>审核新注册账号，决定是否允许进入 DY Group 系统。</p>
-        </div>
+      {error && !selectedRegistration ? <p className="form-alert">{error}</p> : null}
+      {message && !selectedRegistration ? <p className="form-success">{message}</p> : null}
 
-        <button className="secondary-action" type="button" onClick={loadRegistrations} disabled={loading}>
-          <RefreshCw size={17} />
-          <span>刷新</span>
-        </button>
-      </div>
-
-      <div className="review-grid">
-        <div className="staff-list-panel">
-          <div className="list-header">
-            <div>
-              <span>待审核列表</span>
-              <h3>{filteredRegistrations.length} 个申请</h3>
-            </div>
-
-            <label className="table-search">
-              <Search size={16} />
-              <input
-                placeholder="搜索姓名、邮箱、电话"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </label>
+      <div className="staff-list-panel">
+        <div className="list-header">
+          <div>
+            <span>待审核列表</span>
+            <h3>{filteredRegistrations.length} 个申请</h3>
           </div>
 
-          {loading ? (
-            <div className="table-state">正在读取注册申请...</div>
-          ) : filteredRegistrations.length === 0 ? (
-            <div className="table-state">暂无待审核注册申请。</div>
-          ) : (
-            <div className="registration-list">
-              {filteredRegistrations.map((registration) => (
-                <button
-                  key={registration.id}
-                  className={
-                    selectedRegistration?.id === registration.id
-                      ? 'registration-item active'
-                      : 'registration-item'
-                  }
-                  type="button"
-                  onClick={() => setSelectedRegistration(registration)}
-                >
-                  <span>
-                    <strong>{registration.full_name}</strong>
-                    <small>{registration.email}</small>
-                  </span>
-                  <em>{formatDateTime(registration.created_at)}</em>
-                </button>
-              ))}
-            </div>
-          )}
+          <label className="table-search">
+            <Search size={16} />
+            <input
+              placeholder="搜索姓名、邮箱、电话"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
         </div>
 
-        <aside className="review-detail-panel">
-          <div className="panel-title-row">
-            <div>
-              <span>审核详情</span>
-              <h3>{selectedRegistration?.full_name ?? '未选择申请'}</h3>
+        {loading ? (
+          <div className="table-state">正在读取注册申请...</div>
+        ) : filteredRegistrations.length === 0 ? (
+          <div className="table-state">暂无待审核注册申请。</div>
+        ) : (
+          <div className="registration-list">
+            {filteredRegistrations.map((registration) => (
+              <button key={registration.id} className="registration-item" type="button" onClick={() => openReview(registration)}>
+                <span>
+                  <strong>{registration.full_name}</strong>
+                  <small>{registration.email}</small>
+                </span>
+                <em>{formatDateTime(registration.created_at)}</em>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedRegistration ? (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="注册审核详情">
+            <div className="modal-header">
+              <div>
+                <span>审核详情</span>
+                <h3>{selectedRegistration.full_name}</h3>
+              </div>
+              <button className="icon-button" type="button" onClick={() => setSelectedRegistration(null)} aria-label="关闭">
+                <X size={18} />
+              </button>
             </div>
+
             <div className="review-badge">
               <UserCheck size={16} />
               <span>待审核</span>
             </div>
+
+            <div className="detail-list">
+              <div>
+                <span>姓名</span>
+                <strong>{selectedRegistration.full_name}</strong>
+              </div>
+              <div>
+                <span>邮箱</span>
+                <strong>{selectedRegistration.email}</strong>
+              </div>
+              <div>
+                <span>电话</span>
+                <strong>{selectedRegistration.phone || '-'}</strong>
+              </div>
+              <div>
+                <span>注册时间</span>
+                <strong>{formatDateTime(selectedRegistration.created_at)}</strong>
+              </div>
+            </div>
+
+            <div className="approval-form-grid single">
+              <label className="form-field">
+                <span>区域</span>
+                <select
+                  value={approvalValues.region_id}
+                  onChange={(event) => setApprovalValues({ ...approvalValues, region_id: event.target.value })}
+                  required
+                >
+                  <option value="">请选择</option>
+                  {options.regions.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>职称</span>
+                <select
+                  value={approvalValues.job_title_id}
+                  onChange={(event) => setApprovalValues({ ...approvalValues, job_title_id: event.target.value })}
+                  required
+                >
+                  <option value="">请选择</option>
+                  {options.jobTitles.map((title) => (
+                    <option key={title.id} value={title.id}>
+                      {title.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>雇佣类型</span>
+                <select
+                  value={approvalValues.employment_type_id}
+                  onChange={(event) => setApprovalValues({ ...approvalValues, employment_type_id: event.target.value })}
+                  required
+                >
+                  <option value="">请选择</option>
+                  {options.employmentTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>入职日期</span>
+                <input
+                  type="date"
+                  value={approvalValues.hire_date}
+                  onChange={(event) => setApprovalValues({ ...approvalValues, hire_date: event.target.value })}
+                  required
+                />
+              </label>
+
+              <label className="form-field">
+                <span>上班时间</span>
+                <input
+                  type="time"
+                  value={approvalValues.start_work_time}
+                  onChange={(event) => setApprovalValues({ ...approvalValues, start_work_time: event.target.value })}
+                  required
+                />
+              </label>
+
+              <label className="form-field">
+                <span>下班时间</span>
+                <input
+                  type="time"
+                  value={approvalValues.end_work_time}
+                  onChange={(event) => setApprovalValues({ ...approvalValues, end_work_time: event.target.value })}
+                  required
+                />
+              </label>
+            </div>
+
+            {error ? <p className="form-alert">{error}</p> : null}
+            {message ? <p className="form-success">{message}</p> : null}
+
+            <div className="review-actions">
+              <button className="primary-button" type="button" onClick={handleApprove} disabled={submitting}>
+                <CheckCircle2 size={18} />
+                <span>{submitting ? '处理中...' : '审核通过'}</span>
+              </button>
+            </div>
+
+            <form className="reject-form" onSubmit={handleReject}>
+              <label className="form-field">
+                <span>拒绝原因</span>
+                <textarea
+                  value={reviewNote}
+                  onChange={(event) => setReviewNote(event.target.value)}
+                  placeholder="请输入拒绝原因"
+                  required
+                />
+              </label>
+
+              <button className="secondary-button danger-text-button" type="submit" disabled={submitting}>
+                <XCircle size={18} />
+                <span>{submitting ? '处理中...' : '审核拒绝'}</span>
+              </button>
+            </form>
           </div>
-
-          {selectedRegistration ? (
-            <>
-              <div className="detail-list">
-                <div>
-                  <span>姓名</span>
-                  <strong>{selectedRegistration.full_name}</strong>
-                </div>
-                <div>
-                  <span>邮箱</span>
-                  <strong>{selectedRegistration.email}</strong>
-                </div>
-                <div>
-                  <span>电话</span>
-                  <strong>{selectedRegistration.phone || '-'}</strong>
-                </div>
-                <div>
-                  <span>注册时间</span>
-                  <strong>{formatDateTime(selectedRegistration.created_at)}</strong>
-                </div>
-              </div>
-
-              <div className="approval-form-grid">
-                <label className="form-field">
-                  <span>区域</span>
-                  <select
-                    value={approvalValues.region_id}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, region_id: event.target.value })}
-                    required
-                  >
-                    <option value="">请选择</option>
-                    {options.regions.map((region) => (
-                      <option key={region.id} value={region.id}>
-                        {region.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="form-field">
-                  <span>职称</span>
-                  <select
-                    value={approvalValues.job_title_id}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, job_title_id: event.target.value })}
-                    required
-                  >
-                    <option value="">请选择</option>
-                    {options.jobTitles.map((title) => (
-                      <option key={title.id} value={title.id}>
-                        {title.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="form-field">
-                  <span>雇佣类型</span>
-                  <select
-                    value={approvalValues.employment_type_id}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, employment_type_id: event.target.value })}
-                    required
-                  >
-                    <option value="">请选择</option>
-                    {options.employmentTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="form-field">
-                  <span>入职日期</span>
-                  <input
-                    type="date"
-                    value={approvalValues.hire_date}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, hire_date: event.target.value })}
-                    required
-                  />
-                </label>
-
-                <label className="form-field">
-                  <span>上班时间</span>
-                  <input
-                    type="time"
-                    value={approvalValues.start_work_time}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, start_work_time: event.target.value })}
-                    required
-                  />
-                </label>
-
-                <label className="form-field">
-                  <span>下班时间</span>
-                  <input
-                    type="time"
-                    value={approvalValues.end_work_time}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, end_work_time: event.target.value })}
-                    required
-                  />
-                </label>
-              </div>
-
-              {error ? <p className="form-alert">{error}</p> : null}
-              {message ? <p className="form-success">{message}</p> : null}
-
-              <div className="review-actions">
-                <button className="primary-button" type="button" onClick={handleApprove} disabled={submitting}>
-                  <CheckCircle2 size={18} />
-                  <span>{submitting ? '处理中' : '审核通过'}</span>
-                </button>
-              </div>
-
-              <form className="reject-form" onSubmit={handleReject}>
-                <label className="form-field">
-                  <span>拒绝原因</span>
-                  <textarea
-                    value={reviewNote}
-                    onChange={(event) => setReviewNote(event.target.value)}
-                    placeholder="请输入拒绝原因"
-                    required
-                  />
-                </label>
-
-                <button className="secondary-button danger-text-button" type="submit" disabled={submitting}>
-                  <XCircle size={18} />
-                  <span>{submitting ? '处理中' : '审核拒绝'}</span>
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="table-state compact">请选择一条注册申请。</div>
-          )}
-        </aside>
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

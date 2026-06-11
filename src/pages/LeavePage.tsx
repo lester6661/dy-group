@@ -49,6 +49,7 @@ export function LeavePage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -144,7 +145,14 @@ export function LeavePage() {
     setMessage('');
 
     try {
-      await leaveService.createLeaveRequest(profile.id, formValues);
+      if (formValues.leave_type === 'medical' && !formValues.medical_attachment_url) {
+        throw new Error('请先上传病假证明。');
+      }
+
+      await leaveService.createLeaveRequest(profile.id, {
+        ...formValues,
+        medical_attachment_url: formValues.leave_type === 'medical' ? formValues.medical_attachment_url : '',
+      });
       setMessage('请假申请已提交。');
       setFormValues(emptyForm);
       setShowLeaveModal(false);
@@ -153,6 +161,26 @@ export function LeavePage() {
       setError(`提交请假申请失败：${getErrorMessage(saveError)}`);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleMedicalAttachmentUpload(file: File | null | undefined) {
+    if (!profile?.id || !file) {
+      return;
+    }
+
+    setUploadingAttachment(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const attachmentUrl = await leaveService.uploadMedicalAttachment(profile.id, file);
+      setFormValues((current) => ({ ...current, medical_attachment_url: attachmentUrl }));
+      setMessage('病假证明已上传。');
+    } catch (uploadError) {
+      setError(`病假证明上传失败：${getErrorMessage(uploadError)}`);
+    } finally {
+      setUploadingAttachment(false);
     }
   }
 
@@ -319,8 +347,10 @@ export function LeavePage() {
           error={error}
           message={message}
           onChange={setFormValues}
+          onUploadAttachment={handleMedicalAttachmentUpload}
           onClose={() => setShowLeaveModal(false)}
           onSubmit={handleSubmit}
+          uploadingAttachment={uploadingAttachment}
         />
       ) : null}
     </section>
@@ -343,11 +373,26 @@ type LeaveRequestModalProps = {
   error: string;
   message: string;
   onChange: (values: LeaveFormValues) => void;
+  onUploadAttachment: (file: File | null | undefined) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  uploadingAttachment: boolean;
 };
 
-function LeaveRequestModal({ values, saving, error, message, onChange, onClose, onSubmit }: LeaveRequestModalProps) {
+function LeaveRequestModal({
+  values,
+  saving,
+  error,
+  message,
+  onChange,
+  onUploadAttachment,
+  onClose,
+  onSubmit,
+  uploadingAttachment,
+}: LeaveRequestModalProps) {
+  const isMedical = values.leave_type === 'medical';
+  const isReplacement = values.leave_type === 'replacement';
+
   return (
     <div className="modal-backdrop" role="presentation">
       <div className="modal-panel" role="dialog" aria-modal="true" aria-label="提交请假申请">
@@ -362,12 +407,18 @@ function LeaveRequestModal({ values, saving, error, message, onChange, onClose, 
         </div>
 
         <form onSubmit={onSubmit}>
-          <div className="form-grid">
+          <div className="form-grid single">
             <label className="form-field">
               <span>假期类型</span>
               <select
                 value={values.leave_type}
-                onChange={(event) => onChange({ ...values, leave_type: event.target.value as LeaveType })}
+                onChange={(event) =>
+                  onChange({
+                    ...values,
+                    leave_type: event.target.value as LeaveType,
+                    medical_attachment_url: event.target.value === 'medical' ? values.medical_attachment_url : '',
+                  })
+                }
               >
                 <option value="annual">年假</option>
                 <option value="medical">病假</option>
@@ -377,7 +428,7 @@ function LeaveRequestModal({ values, saving, error, message, onChange, onClose, 
             </label>
 
             <label className="form-field">
-              <span>开始日期</span>
+              <span>{isReplacement ? '原本休假日' : '开始日期'}</span>
               <input
                 type="date"
                 value={values.start_date}
@@ -387,7 +438,7 @@ function LeaveRequestModal({ values, saving, error, message, onChange, onClose, 
             </label>
 
             <label className="form-field">
-              <span>结束日期</span>
+              <span>{isReplacement ? '换去日期' : '结束日期'}</span>
               <input
                 type="date"
                 value={values.end_date}
@@ -396,19 +447,36 @@ function LeaveRequestModal({ values, saving, error, message, onChange, onClose, 
               />
             </label>
 
-            <label className="form-field full-field">
+            <label className="form-field">
               <span>原因</span>
               <textarea value={values.reason} onChange={(event) => onChange({ ...values, reason: event.target.value })} required />
             </label>
 
-            <label className="form-field full-field">
-              <span>病假证明上传（预留）</span>
-              <input
-                value={values.medical_attachment_url}
-                onChange={(event) => onChange({ ...values, medical_attachment_url: event.target.value })}
-                placeholder="后续接入 Supabase Storage"
-              />
-            </label>
+            {isMedical ? (
+              <div className="form-field">
+                <span>病假证明上传</span>
+                <label className="secondary-action attachment-upload-action">
+                  {uploadingAttachment ? '上传中...' : '上传图片 / 拍照上传'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    disabled={uploadingAttachment || saving}
+                    onChange={(event) => {
+                      onUploadAttachment(event.target.files?.[0]);
+                      event.target.value = '';
+                    }}
+                  />
+                </label>
+                {values.medical_attachment_url ? (
+                  <a className="attachment-preview-link" href={values.medical_attachment_url} target="_blank" rel="noreferrer">
+                    查看已上传病假证明
+                  </a>
+                ) : (
+                  <p className="form-helper">请选择图片，手机端可直接拍照上传。</p>
+                )}
+              </div>
+            ) : null}
           </div>
 
           {error ? <p className="form-alert">{error}</p> : null}
@@ -441,9 +509,7 @@ function LeaveRequestTable({ requests }: { requests: LeaveRequestItem[] }) {
           {requests.map((request) => (
             <tr key={request.id}>
               <td>{leaveTypeLabels[request.leave_type]}</td>
-              <td>
-                {request.start_date} 至 {request.end_date}
-              </td>
+              <td>{formatLeaveDate(request)}</td>
               <td>{request.reason}</td>
               <td>
                 <span className={`status-pill leave-status-${request.status}`}>{statusLabels[request.status]}</span>
@@ -455,6 +521,14 @@ function LeaveRequestTable({ requests }: { requests: LeaveRequestItem[] }) {
       </table>
     </div>
   );
+}
+
+function formatLeaveDate(request: LeaveRequestItem) {
+  if (request.leave_type === 'replacement') {
+    return `原本休假日 ${request.start_date}，换去日期 ${request.end_date}`;
+  }
+
+  return `${request.start_date} 至 ${request.end_date}`;
 }
 
 export { leaveTypeLabels, statusLabels as leaveStatusLabels };

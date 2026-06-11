@@ -878,6 +878,10 @@ a {
   grid-template-columns: 1fr;
 }
 
+.approval-form-grid.single {
+  grid-template-columns: 1fr;
+}
+
 .panel-description {
   margin: -6px 0 18px;
   color: var(--muted);
@@ -1685,6 +1689,44 @@ button.leave-chip:disabled {
 .modal-header h3 {
   margin: 5px 0 0;
   font-size: 22px;
+}
+
+.attachment-upload-action {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.attachment-upload-action input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.attachment-preview-link {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 34px;
+  margin-top: 4px;
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+
+.medical-proof-link {
+  display: grid;
+  gap: 10px;
+  color: var(--primary-dark);
+}
+
+.medical-proof-link img {
+  width: min(100%, 360px);
+  max-height: 260px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
 }
 
 .attendance-status-present {
