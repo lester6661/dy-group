@@ -119,9 +119,9 @@ a {
   width: 46px;
   height: 46px;
   object-fit: contain;
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .sidebar.collapsed .brand-logo {
