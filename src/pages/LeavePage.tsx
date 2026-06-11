@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CalendarCheck2, FileClock, Plus, RefreshCw, Wand2 } from 'lucide-react';
+import { CalendarCheck2, FileClock, Plus, RefreshCw, Wand2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -44,6 +44,7 @@ export function LeavePage() {
   const [restCycle, setRestCycle] = useState(getCurrentRestCycle());
   const [selectedRestDates, setSelectedRestDates] = useState<string[]>([]);
   const [formValues, setFormValues] = useState<LeaveFormValues>(emptyForm);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -144,6 +145,7 @@ export function LeavePage() {
       await leaveService.createLeaveRequest(profile.id, formValues);
       setMessage('请假申请已提交。');
       setFormValues(emptyForm);
+      setShowLeaveModal(false);
       await loadLeaveRequests(profile.id);
     } catch (saveError) {
       setError(`提交请假申请失败：${getErrorMessage(saveError)}`);
@@ -247,6 +249,13 @@ export function LeavePage() {
           <h2>请假&休假</h2>
           <p>提交请假申请、查看审核状态，并安排每月排休。</p>
         </div>
+
+        {activeView === 'leave' ? (
+          <button className="secondary-action" type="button" onClick={() => setShowLeaveModal(true)}>
+            <Plus size={17} />
+            <span>提交申请</span>
+          </button>
+        ) : null}
 
         <button
           className="secondary-action"
@@ -387,6 +396,18 @@ export function LeavePage() {
       </div>
         </>
       )}
+
+      {showLeaveModal ? (
+        <LeaveRequestModal
+          values={formValues}
+          saving={saving}
+          error={error}
+          message={message}
+          onChange={setFormValues}
+          onClose={() => setShowLeaveModal(false)}
+          onSubmit={handleSubmit}
+        />
+      ) : null}
     </section>
   );
 }
@@ -397,6 +418,93 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <CalendarCheck2 size={20} />
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+type LeaveRequestModalProps = {
+  values: LeaveFormValues;
+  saving: boolean;
+  error: string;
+  message: string;
+  onChange: (values: LeaveFormValues) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+function LeaveRequestModal({ values, saving, error, message, onChange, onClose, onSubmit }: LeaveRequestModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal-panel" role="dialog" aria-modal="true" aria-label="提交请假申请">
+        <div className="modal-header">
+          <div>
+            <span>请假&休假</span>
+            <h3>提交申请</h3>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit}>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>假期类型</span>
+              <select
+                value={values.leave_type}
+                onChange={(event) => onChange({ ...values, leave_type: event.target.value as LeaveType })}
+              >
+                <option value="annual">年假</option>
+                <option value="medical">病假</option>
+                <option value="unpaid">无薪假</option>
+                <option value="replacement">补休</option>
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>开始日期</span>
+              <input
+                type="date"
+                value={values.start_date}
+                onChange={(event) => onChange({ ...values, start_date: event.target.value })}
+                required
+              />
+            </label>
+
+            <label className="form-field">
+              <span>结束日期</span>
+              <input
+                type="date"
+                value={values.end_date}
+                onChange={(event) => onChange({ ...values, end_date: event.target.value })}
+                required
+              />
+            </label>
+
+            <label className="form-field full-field">
+              <span>原因</span>
+              <textarea value={values.reason} onChange={(event) => onChange({ ...values, reason: event.target.value })} required />
+            </label>
+
+            <label className="form-field full-field">
+              <span>病假证明上传（预留）</span>
+              <input
+                value={values.medical_attachment_url}
+                onChange={(event) => onChange({ ...values, medical_attachment_url: event.target.value })}
+                placeholder="后续接入 Supabase Storage"
+              />
+            </label>
+          </div>
+
+          {error ? <p className="form-alert">{error}</p> : null}
+          {message ? <p className="form-success">{message}</p> : null}
+
+          <button className="primary-button" type="submit" disabled={saving}>
+            <Plus size={18} />
+            <span>{saving ? '提交中...' : '提交申请'}</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

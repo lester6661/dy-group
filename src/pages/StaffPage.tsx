@@ -42,6 +42,7 @@ export function StaffPage() {
   });
   const [formValues, setFormValues] = useState<EmployeeFormValues>(emptyForm);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null);
+  const [showStaffModal, setShowStaffModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -110,6 +111,7 @@ export function StaffPage() {
       }
 
       resetForm();
+      setShowStaffModal(false);
       await loadStaffData();
     } catch (saveError) {
       setError(`保存工作人员资料失败：${getErrorMessage(saveError)}`);
@@ -120,6 +122,7 @@ export function StaffPage() {
 
   function handleEdit(employee: EmployeeListItem) {
     setEditingEmployee(employee);
+    setShowStaffModal(true);
     setMessage('');
     setError('');
     setFormValues({
@@ -165,6 +168,7 @@ export function StaffPage() {
   function resetForm() {
     setEditingEmployee(null);
     setFormValues(emptyForm);
+    setShowStaffModal(false);
   }
 
   return (
@@ -175,6 +179,13 @@ export function StaffPage() {
           <h2>工作人员</h2>
           <p>维护员工基础资料、职位、区域、工作时间与考勤规则。</p>
         </div>
+
+        {canManageStaff ? (
+          <button className="secondary-action" type="button" onClick={() => setShowStaffModal(true)}>
+            <Plus size={17} />
+            <span>新增员工</span>
+          </button>
+        ) : null}
 
         <button className="secondary-action" type="button" onClick={loadStaffData} disabled={loading}>
           <RefreshCw size={17} />
@@ -436,7 +447,169 @@ export function StaffPage() {
           )}
         </div>
       </div>
+
+      {showStaffModal && canManageStaff ? (
+        <StaffFormModal
+          values={formValues}
+          options={options}
+          editingEmployee={editingEmployee}
+          saving={saving}
+          error={error}
+          message={message}
+          isSuperAdmin={isSuperAdmin}
+          onChange={setFormValues}
+          onClose={resetForm}
+          onSubmit={handleSubmit}
+        />
+      ) : null}
     </section>
+  );
+}
+
+type StaffFormModalProps = {
+  values: EmployeeFormValues;
+  options: StaffOptions;
+  editingEmployee: EmployeeListItem | null;
+  saving: boolean;
+  error: string;
+  message: string;
+  isSuperAdmin: boolean;
+  onChange: (values: EmployeeFormValues) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+function StaffFormModal({
+  values,
+  options,
+  editingEmployee,
+  saving,
+  error,
+  message,
+  isSuperAdmin,
+  onChange,
+  onClose,
+  onSubmit,
+}: StaffFormModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="工作人员资料">
+        <div className="modal-header">
+          <div>
+            <span>{editingEmployee ? '编辑资料' : '新增员工'}</span>
+            <h3>{editingEmployee ? editingEmployee.full_name : '员工资料'}</h3>
+          </div>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit}>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>姓名</span>
+              <input value={values.full_name} onChange={(event) => onChange({ ...values, full_name: event.target.value })} required />
+            </label>
+
+            <label className="form-field">
+              <span>电话</span>
+              <input value={values.phone} onChange={(event) => onChange({ ...values, phone: event.target.value })} />
+            </label>
+
+            <label className="form-field">
+              <span>邮箱</span>
+              <input type="email" value={values.email} onChange={(event) => onChange({ ...values, email: event.target.value })} />
+            </label>
+
+            <label className="form-field">
+              <span>员工编号</span>
+              <input value={values.employee_code} onChange={(event) => onChange({ ...values, employee_code: event.target.value })} />
+            </label>
+
+            <label className="form-field">
+              <span>区域</span>
+              <select value={values.region_id} onChange={(event) => onChange({ ...values, region_id: event.target.value })}>
+                <option value="">未选择</option>
+                {options.regions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>雇佣类型</span>
+              <select value={values.employment_type_id} onChange={(event) => onChange({ ...values, employment_type_id: event.target.value })}>
+                <option value="">未选择</option>
+                {options.employmentTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>职位</span>
+              <select value={values.job_title_id} onChange={(event) => onChange({ ...values, job_title_id: event.target.value })}>
+                <option value="">未选择</option>
+                {options.jobTitles.map((title) => (
+                  <option key={title.id} value={title.id}>
+                    {title.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>状态</span>
+              <select value={values.status} onChange={(event) => onChange({ ...values, status: event.target.value as EmployeeStatus })}>
+                <option value="active">在职</option>
+                <option value="inactive">停用</option>
+                <option value="left">离职</option>
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>入职日期</span>
+              <input type="date" value={values.hire_date} onChange={(event) => onChange({ ...values, hire_date: event.target.value })} />
+            </label>
+
+            <label className="form-field">
+              <span>上班时间</span>
+              <input type="time" value={values.start_work_time} onChange={(event) => onChange({ ...values, start_work_time: event.target.value })} />
+            </label>
+
+            <label className="form-field">
+              <span>下班时间</span>
+              <input type="time" value={values.end_work_time} onChange={(event) => onChange({ ...values, end_work_time: event.target.value })} />
+            </label>
+
+            <label className="form-field checkbox-field">
+              <span>是否需要考勤</span>
+              <label className="inline-check">
+                <input
+                  type="checkbox"
+                  checked={values.require_attendance}
+                  disabled={!isSuperAdmin}
+                  onChange={(event) => onChange({ ...values, require_attendance: event.target.checked })}
+                />
+                <strong>{values.require_attendance ? '需要考勤' : '不需要考勤'}</strong>
+              </label>
+            </label>
+          </div>
+
+          {error ? <p className="form-alert">{error}</p> : null}
+          {message ? <p className="form-success">{message}</p> : null}
+
+          <button className="primary-button" type="submit" disabled={saving}>
+            <Plus size={18} />
+            <span>{saving ? '保存中...' : editingEmployee ? '保存修改' : '新增员工'}</span>
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
 
