@@ -263,6 +263,16 @@ a {
   background: var(--sidebar-soft);
 }
 
+.nav-link.muted {
+  color: rgba(255, 255, 255, 0.38);
+  cursor: default;
+}
+
+.nav-link.muted:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
 .nav-link.active {
   box-shadow: inset 3px 0 0 var(--accent);
 }
@@ -1240,6 +1250,11 @@ a {
   align-items: start;
 }
 
+.attendance-grid-single {
+  grid-template-columns: minmax(320px, 520px);
+  justify-content: start;
+}
+
 .camera-panel {
   padding: 22px;
   border: 1px solid var(--border);
@@ -1317,6 +1332,10 @@ a {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.attendance-records-button {
+  margin-top: 12px;
 }
 
 .form-helper {
@@ -1534,11 +1553,18 @@ button.leave-chip:disabled {
 .view-tabs {
   display: inline-flex;
   gap: 6px;
-  margin-bottom: 18px;
   padding: 5px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
+}
+
+.view-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .view-tabs button {
@@ -2189,6 +2215,18 @@ button.leave-chip:disabled {
     display: grid;
   }
 
+  .view-tabs-row {
+    display: grid;
+  }
+
+  .view-tabs {
+    width: 100%;
+  }
+
+  .view-tabs button {
+    flex: 1;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -2202,10 +2240,6 @@ button.leave-chip:disabled {
   }
 
   .leave-calendar-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .punch-actions {
     grid-template-columns: 1fr;
   }
 

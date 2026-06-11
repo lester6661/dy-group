@@ -10,6 +10,7 @@ import { AttendanceManagementPage } from '../pages/AttendanceManagementPage';
 import { LeavePage } from '../pages/LeavePage';
 import { LeaveReviewPage } from '../pages/LeaveReviewPage';
 import { RestPlanningPage } from '../pages/RestPlanningPage';
+import { ItineraryPage } from '../pages/ItineraryPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { LoginPage } from '../pages/LoginPage';
@@ -75,6 +76,10 @@ export const router = createBrowserRouter([
           {
             path: 'leave',
             element: <LeavePage />,
+          },
+          {
+            path: 'itinerary',
+            element: <ItineraryPage />,
           },
           {
             path: 'rest-planning',

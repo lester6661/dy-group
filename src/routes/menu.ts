@@ -1,5 +1,17 @@
 import type { LucideIcon } from 'lucide-react';
-import { CalendarDays, ClipboardCheck, Clock3, FileClock, Home, UsersRound } from 'lucide-react';
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Clock3,
+  FileClock,
+  Home,
+  Palette,
+  Route,
+  Settings,
+  Sparkles,
+  UserRound,
+  UsersRound,
+} from 'lucide-react';
 
 export type MenuItem = {
   key: string;
@@ -8,6 +20,7 @@ export type MenuItem = {
   icon: LucideIcon;
   section?: string;
   group?: string;
+  disabled?: boolean;
 };
 
 export const menuItems: MenuItem[] = [
@@ -34,6 +47,39 @@ export const menuItems: MenuItem[] = [
     label: '请假&休假',
     path: '/leave',
     icon: FileClock,
+  },
+  {
+    key: 'itinerary',
+    label: '行程表',
+    path: '/itinerary',
+    icon: Route,
+  },
+  {
+    key: 'scout',
+    label: '星探',
+    path: '/tools/scout',
+    icon: Sparkles,
+    section: '工作工具',
+    group: '星探',
+    disabled: true,
+  },
+  {
+    key: 'agent',
+    label: '经纪人',
+    path: '/tools/agent',
+    icon: UserRound,
+    section: '工作工具',
+    group: '经纪人',
+    disabled: true,
+  },
+  {
+    key: 'designer',
+    label: '美工',
+    path: '/tools/designer',
+    icon: Palette,
+    section: '工作工具',
+    group: '美工',
+    disabled: true,
   },
   {
     key: 'staff',
@@ -67,9 +113,17 @@ export const menuItems: MenuItem[] = [
     section: '工作工具',
     group: '人事部',
   },
+  {
+    key: 'settings',
+    label: '系统设置',
+    path: '/settings',
+    icon: Settings,
+    section: '工作工具',
+    group: '管理',
+  },
 ];
 
-export const futureToolGroups = ['星探部', '经纪部', '运营部', '财务部'];
+export const toolGroupOrder = ['星探', '经纪人', '美工', '人事部', '管理'];
 
 export function getMenuPath(key: MenuItem['key']) {
   const item = menuItems.find((menuItem) => menuItem.key === key);

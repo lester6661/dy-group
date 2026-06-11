@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
-import { Camera, Coffee, Clock, LogIn, LogOut, MapPin, RefreshCw, Wifi } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Camera, Coffee, Clock, FileClock, LogIn, LogOut, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import {
-  AttendanceRecordItem,
-  attendanceService,
-  getPublicIpAddress,
-} from '../services/attendance.service';
+import { type AttendanceRecordItem, attendanceService, getPublicIpAddress } from '../services/attendance.service';
 import type { AttendancePunchType } from '../types/database';
 
 const punchTypeLabels: Record<AttendancePunchType, string> = {
@@ -31,6 +26,7 @@ export function AttendancePage() {
   const [geoState, setGeoState] = useState<GeoState | null>(null);
   const [ipAddress, setIpAddress] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<AttendancePunchType | null>(null);
   const [message, setMessage] = useState('');
@@ -39,9 +35,9 @@ export function AttendancePage() {
   const deviceInfo = useMemo(() => navigator.userAgent, []);
 
   useEffect(() => {
-    startCamera();
+    void startCamera();
     loadLocation();
-    loadIpAddress();
+    void loadIpAddress();
 
     return () => {
       stopCamera();
@@ -50,7 +46,7 @@ export function AttendancePage() {
 
   useEffect(() => {
     if (profile?.id) {
-      loadRecords(profile.id);
+      void loadRecords(profile.id);
     }
   }, [profile?.id]);
 
@@ -209,20 +205,7 @@ export function AttendancePage() {
 
   return (
     <section className="attendance-page">
-      <div className="staff-toolbar">
-        <div className="page-heading">
-          <span>员工端</span>
-          <h2>考勤打卡</h2>
-          <p>使用浏览器摄像头实时拍照，并自动记录 GPS、IP、设备信息与打卡时间。</p>
-        </div>
-
-        <button className="secondary-action" type="button" onClick={() => loadRecords()} disabled={loading}>
-          <RefreshCw size={17} />
-          <span>刷新</span>
-        </button>
-      </div>
-
-      <div className="attendance-grid">
+      <div className="attendance-grid attendance-grid-single">
         <div className="camera-panel">
           <div className="panel-title-row">
             <div>
@@ -238,9 +221,7 @@ export function AttendancePage() {
           </div>
           <canvas ref={canvasRef} className="hidden-canvas" />
 
-          <div className="attendance-meta-grid">
-            <MetaItem icon={<MapPin size={17} />} label="GPS" value={geoState ? `${geoState.latitude.toFixed(5)}, ${geoState.longitude.toFixed(5)}` : '等待定位'} />
-            <MetaItem icon={<Wifi size={17} />} label="IP" value={ipAddress ?? '自动获取中'} />
+          <div className="attendance-meta-grid attendance-meta-compact">
             <MetaItem icon={<Clock size={17} />} label="时间" value={new Date().toLocaleString('zh-CN')} />
           </div>
 
@@ -250,64 +231,93 @@ export function AttendancePage() {
           <div className="punch-actions">
             <button className="primary-button" type="button" onClick={() => handlePunch('clock_in')} disabled={Boolean(submitting)}>
               <LogIn size={18} />
-              <span>{submitting === 'clock_in' ? '打卡中' : '上班打卡'}</span>
+              <span>{submitting === 'clock_in' ? '打卡中...' : '上班打卡'}</span>
             </button>
             <button className="secondary-button" type="button" onClick={() => handlePunch('break_start')} disabled={Boolean(submitting)}>
               <Coffee size={18} />
-              <span>{submitting === 'break_start' ? '记录中' : '开始休息'}</span>
-            </button>
-            <button className="secondary-button" type="button" onClick={() => handlePunch('break_end')} disabled={Boolean(submitting)}>
-              <Coffee size={18} />
-              <span>{submitting === 'break_end' ? '记录中' : '结束休息'}</span>
+              <span>{submitting === 'break_start' ? '记录中...' : '开始休息'}</span>
             </button>
             <button className="secondary-button" type="button" onClick={() => handlePunch('clock_out')} disabled={Boolean(submitting)}>
               <LogOut size={18} />
-              <span>{submitting === 'clock_out' ? '打卡中' : '下班打卡'}</span>
+              <span>{submitting === 'clock_out' ? '打卡中...' : '下班打卡'}</span>
+            </button>
+            <button className="secondary-button" type="button" onClick={() => handlePunch('break_end')} disabled={Boolean(submitting)}>
+              <Coffee size={18} />
+              <span>{submitting === 'break_end' ? '记录中...' : '结束休息'}</span>
+            </button>
+          </div>
+
+          <button className="secondary-button attendance-records-button" type="button" onClick={() => setRecordsOpen(true)}>
+            <FileClock size={18} />
+            <span>查看打卡记录</span>
+          </button>
+        </div>
+      </div>
+
+      {recordsOpen ? (
+        <AttendanceRecordsModal records={records} loading={loading} onRefresh={() => loadRecords()} onClose={() => setRecordsOpen(false)} />
+      ) : null}
+    </section>
+  );
+}
+
+function AttendanceRecordsModal({
+  records,
+  loading,
+  onRefresh,
+  onClose,
+}: {
+  records: AttendanceRecordItem[];
+  loading: boolean;
+  onRefresh: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="查看打卡记录">
+        <div className="modal-header">
+          <div>
+            <span>打卡</span>
+            <h3>查看打卡记录</h3>
+          </div>
+          <div className="row-actions">
+            <button className="secondary-action" type="button" onClick={onRefresh} disabled={loading}>
+              刷新
+            </button>
+            <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
+              <X size={18} />
             </button>
           </div>
         </div>
 
-        <div className="staff-list-panel">
-          <div className="list-header">
-            <div>
-              <span>打卡记录</span>
-              <h3>{records.length} 条记录</h3>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="table-state">正在读取打卡记录...</div>
-          ) : records.length === 0 ? (
-            <div className="table-state">暂无打卡记录。</div>
-          ) : (
-            <div className="staff-table-wrap">
-              <table className="staff-table">
-                <thead>
-                  <tr>
-                    <th>类型</th>
-                    <th>时间</th>
-                    <th>GPS</th>
-                    <th>IP</th>
-                    <th>照片</th>
+        {loading ? (
+          <div className="table-state compact">正在读取打卡记录...</div>
+        ) : records.length === 0 ? (
+          <div className="table-state compact">暂无打卡记录。</div>
+        ) : (
+          <div className="staff-table-wrap">
+            <table className="staff-table">
+              <thead>
+                <tr>
+                  <th>类型</th>
+                  <th>时间</th>
+                  <th>照片</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((record) => (
+                  <tr key={record.id}>
+                    <td>{punchTypeLabels[record.punch_type]}</td>
+                    <td>{new Date(record.punched_at).toLocaleString('zh-CN')}</td>
+                    <td>已拍照</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {records.map((record) => (
-                    <tr key={record.id}>
-                      <td>{punchTypeLabels[record.punch_type]}</td>
-                      <td>{new Date(record.punched_at).toLocaleString('zh-CN')}</td>
-                      <td>{Number(record.latitude).toFixed(5)}, {Number(record.longitude).toFixed(5)}</td>
-                      <td>{record.ip_address || '-'}</td>
-                      <td>已拍照</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { futureToolGroups, menuItems } from '../routes/menu';
+import { menuItems, toolGroupOrder } from '../routes/menu';
 import logoUrl from '../assets/logo.png';
 
 type SidebarProps = {
@@ -15,6 +15,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   });
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     人事部: true,
+    管理: true,
   });
 
   const standaloneItems = menuItems.filter((item) => !item.section);
@@ -59,24 +60,15 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
       </div>
 
       <nav className="nav" aria-label="主菜单">
-        {standaloneItems.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+        {standaloneItems.map((item) => (
+          <SidebarLink key={item.path} item={item} collapsed={collapsed} nested={false} />
+        ))}
 
         {Object.entries(groupedSections).map(([sectionName, groups]) => {
           const sectionExpanded = expandedSections[sectionName] ?? false;
+          const sortedGroups = Object.entries(groups).sort(
+            ([groupA], [groupB]) => toolGroupOrder.indexOf(groupA) - toolGroupOrder.indexOf(groupB),
+          );
 
           return (
             <div className="nav-section" key={sectionName}>
@@ -92,54 +84,37 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
               {sectionExpanded ? (
                 <div className="nav-section-body">
-                  {Object.entries(groups).map(([groupName, items]) => {
+                  {sortedGroups.map(([groupName, items]) => {
                     const groupExpanded = expandedGroups[groupName] ?? false;
+                    const onlyDisabledPlaceholder = items.every((item) => item.disabled);
 
                     return (
                       <div className="nav-group" key={groupName}>
                         <button
-                          className="nav-group-toggle"
+                          className={onlyDisabledPlaceholder ? 'nav-group-toggle muted' : 'nav-group-toggle'}
                           type="button"
                           title={collapsed ? groupName : undefined}
-                          onClick={() => toggleGroup(groupName)}
+                          onClick={() => {
+                            if (!onlyDisabledPlaceholder) {
+                              toggleGroup(groupName);
+                            }
+                          }}
+                          disabled={onlyDisabledPlaceholder}
                         >
-                          {groupExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                          {groupExpanded && !onlyDisabledPlaceholder ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                           <span>{groupName}</span>
                         </button>
 
-                        {groupExpanded ? (
+                        {groupExpanded && !onlyDisabledPlaceholder ? (
                           <div className="nav-group-body">
-                            {items.map((item) => {
-                              const Icon = item.icon;
-
-                              return (
-                                <NavLink
-                                  key={item.path}
-                                  to={item.path}
-                                  title={collapsed ? item.label : undefined}
-                                  className={({ isActive }) => (isActive ? 'nav-link active nested' : 'nav-link nested')}
-                                >
-                                  <Icon size={18} />
-                                  <span>{item.label}</span>
-                                </NavLink>
-                              );
-                            })}
+                            {items.map((item) => (
+                              <SidebarLink key={item.path} item={item} collapsed={collapsed} nested />
+                            ))}
                           </div>
                         ) : null}
                       </div>
                     );
                   })}
-
-                  {!collapsed ? (
-                    <div className="nav-group future-groups">
-                      {futureToolGroups.map((groupName) => (
-                        <button className="nav-group-toggle muted" type="button" key={groupName} disabled>
-                          <ChevronRight size={15} />
-                          <span>{groupName}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -147,5 +122,40 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         })}
       </nav>
     </aside>
+  );
+}
+
+function SidebarLink({
+  item,
+  collapsed,
+  nested,
+}: {
+  item: (typeof menuItems)[number];
+  collapsed: boolean;
+  nested: boolean;
+}) {
+  const Icon = item.icon;
+
+  if (item.disabled) {
+    return (
+      <span className={nested ? 'nav-link nested muted' : 'nav-link muted'} title={collapsed ? item.label : undefined}>
+        <Icon size={18} />
+        <span>{item.label}</span>
+      </span>
+    );
+  }
+
+  return (
+    <NavLink
+      to={item.path}
+      title={collapsed ? item.label : undefined}
+      className={({ isActive }) => {
+        const baseClass = nested ? 'nav-link nested' : 'nav-link';
+        return isActive ? `${baseClass} active` : baseClass;
+      }}
+    >
+      <Icon size={18} />
+      <span>{item.label}</span>
+    </NavLink>
   );
 }

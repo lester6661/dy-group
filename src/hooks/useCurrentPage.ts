@@ -5,12 +5,9 @@ export function useCurrentPage() {
   const { pathname } = useLocation();
 
   return (
-    menuItems.find((item) => pathname.startsWith(item.path)) ??
+    menuItems.find((item) => !item.disabled && pathname.startsWith(item.path)) ??
     pageFallbacks.find((item) => pathname.startsWith(item.path))
   );
 }
 
-const pageFallbacks = [
-  { path: '/profile', label: '个人资料' },
-  { path: '/settings', label: '系统设置' },
-];
+const pageFallbacks = [{ path: '/profile', label: '个人资料' }];

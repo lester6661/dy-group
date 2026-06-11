@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, RefreshCw } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import {
-  LeaveCalendarItem,
-  getMonthRange,
-  scheduleService,
-} from '../services/schedule.service';
+import { type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
 import type { LeaveType, Region } from '../types/database';
 
 const leaveTypeLabels: Record<LeaveType | 'rest', string> = {
   annual: '年假',
   medical: '病假',
   unpaid: '无薪假',
-  replacement: '补休',
+  replacement: '换休假',
   rest: '排休',
 };
+
+const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
 export function SchedulePage() {
   const { profile } = useAuth();
@@ -45,7 +43,7 @@ export function SchedulePage() {
   }, [leaves]);
 
   useEffect(() => {
-    loadLeaveCalendar();
+    void loadLeaveCalendar();
   }, [month, regionId]);
 
   async function loadLeaveCalendar() {
@@ -57,7 +55,7 @@ export function SchedulePage() {
       setLeaves(data.leaves);
       setRegions(data.regions);
     } catch (loadError) {
-      setError(`读取休假班表失败：${getErrorMessage(loadError)}`);
+      setError(`读取休假日历失败：${getErrorMessage(loadError)}`);
     } finally {
       setLoading(false);
     }
@@ -88,26 +86,13 @@ export function SchedulePage() {
 
   return (
     <section className="schedule-page">
-      <div className="staff-toolbar">
-        <div className="page-heading">
-          <span>休假班表</span>
-          <h2>休假班表 / 休假日历</h2>
-          <p>{monthRange.startDate} 至 {monthRange.endDate}，显示已通过请假与排休情况。</p>
-        </div>
-
-        <button className="secondary-action" type="button" onClick={loadLeaveCalendar} disabled={loading}>
-          <RefreshCw size={17} />
-          <span>刷新</span>
-        </button>
-      </div>
-
       {error ? <p className="form-alert">{error}</p> : null}
       {message ? <p className="form-success">{message}</p> : null}
 
       <div className="staff-list-panel schedule-filter-panel">
         <div className="attendance-filters">
           <label className="form-field">
-            <span>显示月份</span>
+            <span>月份</span>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
           </label>
 
@@ -199,13 +184,10 @@ export function SchedulePage() {
   );
 }
 
-const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
-
 function getCurrentRestCycle() {
   const now = new Date();
-  const target = now.getDate() < 26
-    ? new Date(now.getFullYear(), now.getMonth(), 1)
-    : new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const target =
+    now.getDate() < 26 ? new Date(now.getFullYear(), now.getMonth(), 1) : new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   return `${target.getFullYear()}-${`${target.getMonth() + 1}`.padStart(2, '0')}`;
 }
