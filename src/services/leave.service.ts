@@ -123,10 +123,12 @@ export const leaveService = {
   },
 
   async saveMyRestDays(cycleYear: number, cycleMonth: number, restDates: string[]) {
+    const normalizedRestDates = [...new Set(restDates.map(toDateKey))].sort();
+
     const { error } = await supabase.rpc('save_my_rest_days', {
       cycle_year: cycleYear,
       cycle_month: cycleMonth,
-      rest_dates: restDates,
+      rest_dates: normalizedRestDates,
     });
 
     if (error) {
@@ -185,4 +187,8 @@ function mapLeaveRequestRow(row: LeaveRequestRowWithEmployee): LeaveRequestItem 
     ...row,
     employee: row.employees,
   };
+}
+
+function toDateKey(date: string) {
+  return date.slice(0, 10);
 }
