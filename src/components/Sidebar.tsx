@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { futureToolGroups, menuItems } from '../routes/menu';
-import logoUrl from '../assets/logo.jpg';
+import logoUrl from '../assets/logo.png';
 
 type SidebarProps = {
   collapsed: boolean;
