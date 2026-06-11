@@ -114,6 +114,21 @@ a {
   background: linear-gradient(135deg, #e83e8c, #7c3aed);
 }
 
+.brand-logo {
+  display: block;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+}
+
+.sidebar.collapsed .brand-logo {
+  width: 44px;
+  height: 44px;
+}
+
 .brand strong,
 .brand span {
   display: block;

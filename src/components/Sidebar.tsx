@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { futureToolGroups, menuItems } from '../routes/menu';
+import logoUrl from '../assets/logo.jpg';
 
 type SidebarProps = {
   collapsed: boolean;
@@ -54,7 +55,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         <button className="sidebar-collapse-button" type="button" onClick={onToggleCollapsed} aria-label="收起菜单">
           <Menu size={20} />
         </button>
-        <div className="brand-mark" title="DY Group">DY</div>
+        <img className="brand-logo" src={logoUrl} alt="DY Group" title="DY Group" />
       </div>
 
       <nav className="nav" aria-label="主菜单">
