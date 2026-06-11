@@ -1,12 +1,34 @@
-import { Bell, Menu, Search, Settings } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, LogOut, Menu, Search, Settings, UserRound } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCurrentPage } from '../hooks/useCurrentPage';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 export function Header() {
   const currentPage = useCurrentPage();
   const { profile } = useAuth();
+  const navigate = useNavigate();
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const initials = profile?.full_name?.slice(0, 1).toUpperCase() ?? 'D';
+  const isSuperAdmin = profile?.role === 'super_admin';
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <header className="topbar">
@@ -28,18 +50,38 @@ export function Header() {
         <button className="icon-button" type="button" aria-label="通知">
           <Bell size={19} />
         </button>
-        <Link className="avatar-settings-link" to="/profile" aria-label="个人资料">
-          <span className="avatar-circle">
-            {profile?.avatar_url ? <img src={profile.avatar_url} alt="个人头像" /> : initials}
-          </span>
-          <span className="avatar-meta">
-            <strong>{profile?.full_name ?? 'DY 用户'}</strong>
-            <small>个人资料</small>
-          </span>
-        </Link>
-        <Link className="icon-button" to="/settings" aria-label="系统设置">
-          <Settings size={17} />
-        </Link>
+
+        <div className="avatar-menu" ref={menuRef}>
+          <button className="avatar-settings-link" type="button" onClick={() => setMenuOpen((open) => !open)}>
+            <span className="avatar-circle">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt="个人头像" /> : initials}
+            </span>
+            <span className="avatar-meta">
+              <strong>{profile?.full_name ?? 'DY 用户'}</strong>
+              <small>账号菜单</small>
+            </span>
+          </button>
+
+          {menuOpen ? (
+            <div className="avatar-menu-panel">
+              <Link to="/profile" onClick={() => setMenuOpen(false)}>
+                <UserRound size={16} />
+                <span>个人资料</span>
+              </Link>
+              {isSuperAdmin ? (
+                <Link to="/settings" onClick={() => setMenuOpen(false)}>
+                  <Settings size={16} />
+                  <span>系统设置</span>
+                </Link>
+              ) : null}
+              <div className="avatar-menu-divider" />
+              <button type="button" onClick={handleSignOut}>
+                <LogOut size={16} />
+                <span>登出</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

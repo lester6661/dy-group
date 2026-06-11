@@ -57,13 +57,22 @@ export type Employee = {
   profile_id: string | null;
   employee_code: string | null;
   full_name: string;
+  nickname: string | null;
+  avatar_url: string | null;
   email: string | null;
   phone: string | null;
+  birthday: string | null;
+  identity_number: string | null;
+  address: string | null;
+  bank_name: string | null;
+  bank_account: string | null;
+  base_salary: number | null;
   region_id: string | null;
   employment_type_id: string | null;
   job_title_id: string | null;
   status: EmployeeStatus;
   hire_date: string | null;
+  probation_confirm_date: string | null;
   start_work_time: string | null;
   end_work_time: string | null;
   require_attendance: boolean;
@@ -190,14 +199,14 @@ export type Database = {
       };
       employees: {
         Row: Employee;
-        Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'email' | 'phone' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'deleted_at' | 'created_at' | 'updated_at'>> &
+        Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'nickname' | 'avatar_url' | 'email' | 'phone' | 'birthday' | 'identity_number' | 'address' | 'bank_name' | 'bank_account' | 'base_salary' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'deleted_at' | 'created_at' | 'updated_at'>> &
           Pick<Employee, 'full_name'> & {
             profile_id?: string | null;
             start_work_time?: string | null;
             end_work_time?: string | null;
             require_attendance?: boolean;
           };
-        Update: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'probation_confirm_date'>>;
         Relationships: [
           {
             foreignKeyName: 'employees_region_id_fkey';

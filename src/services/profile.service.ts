@@ -8,9 +8,18 @@ export type MyEmployeeProfile = Pick<
   | 'id'
   | 'employee_code'
   | 'full_name'
+  | 'nickname'
+  | 'avatar_url'
   | 'email'
   | 'phone'
+  | 'birthday'
+  | 'identity_number'
+  | 'address'
+  | 'bank_name'
+  | 'bank_account'
+  | 'base_salary'
   | 'hire_date'
+  | 'probation_confirm_date'
   | 'start_work_time'
   | 'end_work_time'
   | 'region_id'
@@ -33,6 +42,32 @@ type EmployeeProfileRow = Omit<MyEmployeeProfile, 'region' | 'employment_type' |
   job_titles: Pick<JobTitle, 'id' | 'name'> | null;
 };
 
+const employeeProfileSelect = `
+  id,
+  employee_code,
+  full_name,
+  nickname,
+  avatar_url,
+  email,
+  phone,
+  birthday,
+  identity_number,
+  address,
+  bank_name,
+  bank_account,
+  base_salary,
+  hire_date,
+  probation_confirm_date,
+  start_work_time,
+  end_work_time,
+  region_id,
+  employment_type_id,
+  job_title_id,
+  regions:region_id(id, code, name),
+  employment_types:employment_type_id(id, name),
+  job_titles:job_title_id(id, name)
+`;
+
 export const profileService = {
   async getMyProfile(): Promise<MyProfileData> {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -51,24 +86,7 @@ export const profileService = {
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase
         .from('employees')
-        .select(
-          `
-          id,
-          employee_code,
-          full_name,
-          email,
-          phone,
-          hire_date,
-          start_work_time,
-          end_work_time,
-          region_id,
-          employment_type_id,
-          job_title_id,
-          regions:region_id(id, code, name),
-          employment_types:employment_type_id(id, name),
-          job_titles:job_title_id(id, name)
-        `,
-        )
+        .select(employeeProfileSelect)
         .eq('profile_id', userId)
         .is('deleted_at', null)
         .maybeSingle(),
@@ -117,6 +135,20 @@ export const profileService = {
     if (error) {
       throw error;
     }
+
+    const { error: employeeError } = await supabase
+      .from('employees')
+      .update({
+        full_name: values.full_name.trim(),
+        phone: values.phone.trim() || null,
+        avatar_url: values.avatar_url ?? null,
+      })
+      .eq('profile_id', userId)
+      .is('deleted_at', null);
+
+    if (employeeError) {
+      throw employeeError;
+    }
   },
 
   async uploadAvatar(file: File) {
@@ -158,9 +190,18 @@ function mapEmployeeProfile(row: EmployeeProfileRow): MyEmployeeProfile {
     id: row.id,
     employee_code: row.employee_code,
     full_name: row.full_name,
+    nickname: row.nickname,
+    avatar_url: row.avatar_url,
     email: row.email,
     phone: row.phone,
+    birthday: row.birthday,
+    identity_number: row.identity_number,
+    address: row.address,
+    bank_name: row.bank_name,
+    bank_account: row.bank_account,
+    base_salary: row.base_salary,
     hire_date: row.hire_date,
+    probation_confirm_date: row.probation_confirm_date,
     start_work_time: row.start_work_time,
     end_work_time: row.end_work_time,
     region_id: row.region_id,

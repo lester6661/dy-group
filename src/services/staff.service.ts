@@ -3,9 +3,17 @@ import type { EmployeeStatus, EmploymentType, JobTitle, Region } from '../types/
 
 export type EmployeeFormValues = {
   full_name: string;
+  nickname: string;
+  avatar_url: string;
   phone: string;
   email: string;
   employee_code: string;
+  birthday: string;
+  identity_number: string;
+  address: string;
+  bank_name: string;
+  bank_account: string;
+  base_salary: string;
   region_id: string;
   employment_type_id: string;
   job_title_id: string;
@@ -19,14 +27,23 @@ export type EmployeeFormValues = {
 export type EmployeeListItem = {
   id: string;
   full_name: string;
+  nickname: string | null;
+  avatar_url: string | null;
   phone: string | null;
   email: string | null;
   employee_code: string | null;
+  birthday: string | null;
+  identity_number: string | null;
+  address: string | null;
+  bank_name: string | null;
+  bank_account: string | null;
+  base_salary: number | null;
   region_id: string | null;
   employment_type_id: string | null;
   job_title_id: string | null;
   status: EmployeeStatus;
   hire_date: string | null;
+  probation_confirm_date: string | null;
   start_work_time: string | null;
   end_work_time: string | null;
   require_attendance: boolean;
@@ -41,49 +58,45 @@ export type StaffOptions = {
   jobTitles: JobTitle[];
 };
 
-type EmployeeRowWithRelations = {
-  id: string;
-  full_name: string;
-  phone: string | null;
-  email: string | null;
-  employee_code: string | null;
-  region_id: string | null;
-  employment_type_id: string | null;
-  job_title_id: string | null;
-  status: EmployeeStatus;
-  hire_date: string | null;
-  start_work_time: string | null;
-  end_work_time: string | null;
-  require_attendance: boolean;
+type EmployeeRowWithRelations = Omit<EmployeeListItem, 'region' | 'employment_type' | 'job_title'> & {
   regions: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
   job_titles: Pick<JobTitle, 'id' | 'name'> | null;
 };
 
+const employeeSelect = `
+  id,
+  full_name,
+  nickname,
+  avatar_url,
+  phone,
+  email,
+  employee_code,
+  birthday,
+  identity_number,
+  address,
+  bank_name,
+  bank_account,
+  base_salary,
+  region_id,
+  employment_type_id,
+  job_title_id,
+  status,
+  hire_date,
+  probation_confirm_date,
+  start_work_time,
+  end_work_time,
+  require_attendance,
+  regions:region_id(id, code, name),
+  employment_types:employment_type_id(id, name),
+  job_titles:job_title_id(id, name)
+`;
+
 export const staffService = {
   async listEmployees() {
     const { data, error } = await supabase
       .from('employees')
-      .select(
-        `
-        id,
-        full_name,
-        phone,
-        email,
-        employee_code,
-        region_id,
-        employment_type_id,
-        job_title_id,
-        status,
-        hire_date,
-        start_work_time,
-        end_work_time,
-        require_attendance,
-        regions:region_id(id, code, name),
-        employment_types:employment_type_id(id, name),
-        job_titles:job_title_id(id, name)
-      `,
-      )
+      .select(employeeSelect)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -149,14 +162,23 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
   return {
     id: row.id,
     full_name: row.full_name,
+    nickname: row.nickname,
+    avatar_url: row.avatar_url,
     phone: row.phone,
     email: row.email,
     employee_code: row.employee_code,
+    birthday: row.birthday,
+    identity_number: row.identity_number,
+    address: row.address,
+    bank_name: row.bank_name,
+    bank_account: row.bank_account,
+    base_salary: row.base_salary,
     region_id: row.region_id,
     employment_type_id: row.employment_type_id,
     job_title_id: row.job_title_id,
     status: row.status,
     hire_date: row.hire_date,
+    probation_confirm_date: row.probation_confirm_date,
     start_work_time: row.start_work_time,
     end_work_time: row.end_work_time,
     require_attendance: row.require_attendance,
@@ -169,9 +191,17 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
 function normalizeEmployeePayload(values: EmployeeFormValues) {
   return {
     full_name: values.full_name.trim(),
+    nickname: values.nickname.trim() || null,
+    avatar_url: values.avatar_url.trim() || null,
     phone: values.phone.trim() || null,
     email: values.email.trim() || null,
     employee_code: values.employee_code.trim() || null,
+    birthday: values.birthday || null,
+    identity_number: values.identity_number.trim() || null,
+    address: values.address.trim() || null,
+    bank_name: values.bank_name.trim() || null,
+    bank_account: values.bank_account.trim() || null,
+    base_salary: values.base_salary.trim() ? Number(values.base_salary) : null,
     region_id: values.region_id || null,
     employment_type_id: values.employment_type_id || null,
     job_title_id: values.job_title_id || null,

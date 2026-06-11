@@ -21,6 +21,205 @@
   --sidebar-text: #e8eef7;
 }
 
+.avatar-settings-link {
+  cursor: pointer;
+}
+
+.avatar-menu {
+  position: relative;
+}
+
+.avatar-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 18px 44px rgba(16, 25, 40, 0.14);
+}
+
+.avatar-menu-panel a,
+.avatar-menu-panel button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.avatar-menu-panel a:hover,
+.avatar-menu-panel button:hover {
+  background: var(--panel-soft);
+}
+
+.avatar-menu-divider {
+  height: 1px;
+  margin: 6px 0;
+  background: var(--border);
+}
+
+.staff-actions-row {
+  justify-content: flex-start;
+}
+
+.staff-simple-table {
+  min-width: 620px;
+}
+
+.text-link-button {
+  border: 0;
+  padding: 0;
+  color: var(--primary-dark);
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.text-link-button:hover {
+  text-decoration: underline;
+}
+
+.employee-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 900;
+  background: linear-gradient(135deg, #e83e8c, #7c3aed);
+}
+
+.employee-avatar.large {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+}
+
+.employee-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.employee-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.modal-actions-row {
+  margin-top: 18px;
+}
+
+.employee-detail-sections {
+  display: grid;
+  gap: 18px;
+}
+
+.employee-detail-section {
+  display: grid;
+  gap: 10px;
+}
+
+.employee-detail-section h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.detail-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-grid-wide {
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+}
+
+.profile-photo-card {
+  align-self: start;
+  display: grid;
+  gap: 14px;
+}
+
+.profile-photo-frame {
+  display: grid;
+  place-items: center;
+  width: min(100%, 240px);
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 48px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #e83e8c, #7c3aed);
+  cursor: pointer;
+}
+
+.profile-photo-frame:disabled {
+  cursor: default;
+}
+
+.profile-photo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-preview-modal img {
+  display: block;
+  width: min(100%, 420px);
+  max-height: 76vh;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.attendance-management-page > .staff-toolbar {
+  display: none;
+}
+
+.attendance-management-page > .attendance-detail-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  width: min(100%, 980px);
+  max-height: min(86vh, 820px);
+  margin: auto;
+  padding: 22px;
+  border: 1px solid rgba(223, 230, 239, 0.92);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(16, 25, 40, 0.24);
+}
+
+.attendance-management-page > .attendance-detail-panel::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(16, 25, 40, 0.46);
+  backdrop-filter: blur(10px);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1110,29 +1309,29 @@ a {
 
 .detail-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 18px 0;
 }
 
-.detail-list div {
+.detail-list > div {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-soft);
 }
 
-.detail-list span,
-.detail-list strong {
+.detail-list > div span,
+.detail-list > div strong {
   display: block;
 }
 
-.detail-list span {
+.detail-list > div span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
 }
 
-.detail-list strong {
+.detail-list > div strong {
   margin-top: 5px;
   overflow-wrap: anywhere;
 }
