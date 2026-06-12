@@ -28,11 +28,25 @@ const emptyForm: EmployeeFormValues = {
   require_attendance: true,
 };
 
-const statusLabels: Record<EmployeeStatus, string> = {
+const statusLabels: Record<string, string> = {
   active: '在职',
-  inactive: '停用',
+  probation: '试用期',
+  inactive: '停职',
+  suspended: '停职',
   left: '离职',
 };
+
+const statusSortOrder: Record<string, number> = {
+  active: 0,
+  probation: 1,
+  inactive: 2,
+  suspended: 2,
+  left: 3,
+};
+
+function getEmployeeStatus(status: EmployeeStatus | string | null | undefined) {
+  return status || 'active';
+}
 
 export function StaffPage() {
   const { profile } = useAuth();
@@ -41,6 +55,7 @@ export function StaffPage() {
   const [options, setOptions] = useState<StaffOptions>({ regions: [], employmentTypes: [], jobTitles: [] });
   const [formValues, setFormValues] = useState<EmployeeFormValues>(emptyForm);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItem | null>(null);
+  const [avatarPreviewEmployee, setAvatarPreviewEmployee] = useState<EmployeeListItem | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,13 +66,20 @@ export function StaffPage() {
 
   const filteredEmployees = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    if (!keyword) return employees;
+    const visibleEmployees = keyword
+      ? employees.filter((employee) =>
+          [employee.full_name, employee.nickname, employee.employee_code, employee.job_title?.name, employee.employment_type?.name]
+            .filter(Boolean)
+            .some((value) => value!.toLowerCase().includes(keyword)),
+        )
+      : employees;
 
-    return employees.filter((employee) =>
-      [employee.full_name, employee.nickname, employee.employee_code, employee.job_title?.name]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(keyword)),
-    );
+    return [...visibleEmployees].sort((first, second) => {
+      const firstStatus = statusSortOrder[getEmployeeStatus(first.status)] ?? statusSortOrder.active;
+      const secondStatus = statusSortOrder[getEmployeeStatus(second.status)] ?? statusSortOrder.active;
+      if (firstStatus !== secondStatus) return firstStatus - secondStatus;
+      return first.full_name.localeCompare(second.full_name, 'zh-Hans');
+    });
   }, [employees, searchTerm]);
 
   useEffect(() => {
@@ -169,25 +191,17 @@ export function StaffPage() {
                   <th>名字</th>
                   <th>昵称</th>
                   <th>职称</th>
+                  <th>雇佣类型</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredEmployees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td>
-                      <span className={`status-pill status-${employee.status}`}>{statusLabels[employee.status]}</span>
-                    </td>
-                    <td>
-                      <EmployeeAvatar employee={employee} />
-                    </td>
-                    <td>
-                      <button className="text-link-button" type="button" onClick={() => setSelectedEmployee(employee)}>
-                        {employee.full_name}
-                      </button>
-                    </td>
-                    <td>{employee.nickname || '-'}</td>
-                    <td>{employee.job_title?.name || '-'}</td>
-                  </tr>
+                  <StaffListRow
+                    key={employee.id}
+                    employee={employee}
+                    onOpenAvatar={() => setAvatarPreviewEmployee(employee)}
+                    onOpenDetail={() => setSelectedEmployee(employee)}
+                  />
                 ))}
               </tbody>
             </table>
@@ -207,6 +221,10 @@ export function StaffPage() {
         />
       ) : null}
 
+      {avatarPreviewEmployee ? (
+        <AvatarPreviewModal employee={avatarPreviewEmployee} onClose={() => setAvatarPreviewEmployee(null)} />
+      ) : null}
+
       {showStaffModal && canManageStaff ? (
         <StaffFormModal
           values={formValues}
@@ -221,6 +239,53 @@ export function StaffPage() {
         />
       ) : null}
     </section>
+  );
+}
+
+function StaffListRow({
+  employee,
+  onOpenAvatar,
+  onOpenDetail,
+}: {
+  employee: EmployeeListItem;
+  onOpenAvatar: () => void;
+  onOpenDetail: () => void;
+}) {
+  const status = getEmployeeStatus(employee.status);
+
+  return (
+    <tr>
+      <td>
+        <span className={`status-pill status-${status}`}>{statusLabels[status] ?? statusLabels.active}</span>
+      </td>
+      <td>
+        <button className="employee-avatar-list-button" type="button" onClick={onOpenAvatar} aria-label={`查看 ${employee.full_name} 头像`}>
+          <EmployeeAvatar employee={employee} />
+        </button>
+      </td>
+      <td>
+        <button className="text-link-button" type="button" onClick={onOpenDetail}>
+          {employee.full_name}
+        </button>
+      </td>
+      <td>{employee.nickname || '-'}</td>
+      <td>{employee.job_title?.name || '-'}</td>
+      <td>{employee.employment_type?.name || '-'}</td>
+    </tr>
+  );
+}
+
+function AvatarPreviewModal({ employee, onClose }: { employee: EmployeeListItem; onClose: () => void }) {
+  return (
+    <SystemModal title="查看头像" ariaLabel="查看头像" className="avatar-preview-modal" onClose={onClose}>
+      <div className="avatar-preview-content">
+        {employee.avatar_url ? (
+          <img src={employee.avatar_url} alt={employee.full_name + ' 头像'} />
+        ) : (
+          <EmployeeAvatar employee={employee} large />
+        )}
+      </div>
+    </SystemModal>
   );
 }
 
@@ -290,7 +355,7 @@ function EmployeeDetailModal({
             <Info label="正式日期" value={employee.hire_date ? calculateConfirmDate(employee.hire_date) : employee.probation_confirm_date} />
             <Info label="上班时间" value={formatTime(employee.start_work_time)} />
             <Info label="下班时间" value={formatTime(employee.end_work_time)} />
-            <Info label="状态" value={statusLabels[employee.status]} />
+            <Info label="状态" value={statusLabels[getEmployeeStatus(employee.status)] ?? statusLabels.active} />
           </DetailSection>
 
           <DetailSection title="银行资料">

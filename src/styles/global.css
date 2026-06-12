@@ -95,10 +95,10 @@
 .employee-avatar {
   display: inline-grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #ffffff;
   font-weight: 900;
   background: linear-gradient(135deg, #e83e8c, #7c3aed);
@@ -124,10 +124,33 @@
   cursor: pointer;
 }
 
+.employee-avatar-list-button {
+  display: inline-grid;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.employee-avatar-list-button:focus-visible,
 .employee-avatar-preview-button:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
   border-radius: 12px;
+}
+
+.avatar-preview-content {
+  display: grid;
+  place-items: center;
+}
+
+.avatar-preview-content img {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 14px;
 }
 
 .employee-detail-title {
@@ -1268,7 +1291,17 @@ a {
   background: #e8f7ee;
 }
 
+.status-probation {
+  color: #075985;
+  background: #e0f2fe;
+}
+
 .status-inactive {
+  color: #7a4d0b;
+  background: #fff4dc;
+}
+
+.status-suspended {
   color: #7a4d0b;
   background: #fff4dc;
 }
