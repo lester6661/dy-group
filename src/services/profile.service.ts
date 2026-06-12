@@ -26,7 +26,7 @@ export type MyEmployeeProfile = Pick<
   | 'employment_type_id'
   | 'job_title_id'
 > & {
-  region: Pick<Region, 'id' | 'code' | 'name'> | null;
+  region: Pick<Region, 'id' | 'code' | 'name' | 'company_english_name' | 'company_registration_no'> | null;
   employment_type: Pick<EmploymentType, 'id' | 'name'> | null;
   job_title: Pick<JobTitle, 'id' | 'name'> | null;
 };
@@ -47,7 +47,7 @@ export type MyProfileUpdateValues = {
 };
 
 type EmployeeProfileRow = Omit<MyEmployeeProfile, 'region' | 'employment_type' | 'job_title'> & {
-  regions: Pick<Region, 'id' | 'code' | 'name'> | null;
+  regions: Pick<Region, 'id' | 'code' | 'name' | 'company_english_name' | 'company_registration_no'> | null;
   employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
   job_titles: Pick<JobTitle, 'id' | 'name'> | null;
 };
@@ -73,7 +73,7 @@ const employeeProfileSelect = `
   region_id,
   employment_type_id,
   job_title_id,
-  regions:region_id(id, code, name),
+  regions:region_id(id, code, name, company_english_name, company_registration_no),
   employment_types:employment_type_id(id, name),
   job_titles:job_title_id(id, name)
 `;

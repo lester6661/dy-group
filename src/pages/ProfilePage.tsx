@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Camera, Download, Lock, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
-import { profileService, type MyEmployeeProfile, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
+import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
+import logoUrl from '../assets/logo.png';
 
 type ProfileForm = {
   phone: string;
@@ -26,13 +27,13 @@ export function ProfilePage() {
     bank_account: '',
   });
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [downloadChoiceOpen, setDownloadChoiceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloadingCard, setDownloadingCard] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const employee = profileData?.employee;
   const profile = profileData?.profile;
@@ -40,6 +41,8 @@ export function ProfilePage() {
   const initials = useMemo(() => displayName.slice(0, 1).toUpperCase(), [displayName]);
   const avatarUrl = employee?.avatar_url || form.avatar_url;
   const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
+  const companyEnglishName = employee?.region?.company_english_name ?? '';
+  const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
 
   useEffect(() => {
     void loadProfile();
@@ -149,14 +152,14 @@ export function ProfilePage() {
     }
   }
 
-  async function handleDownloadCard() {
+  async function handleDownloadCard(orientation: 'horizontal' | 'vertical') {
     setDownloadingCard(true);
     setError('');
 
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = 900;
-      canvas.height = 1400;
+      canvas.width = orientation === 'horizontal' ? 1600 : 960;
+      canvas.height = orientation === 'horizontal' ? 960 : 1600;
       const context = canvas.getContext('2d');
 
       if (!context) {
@@ -164,18 +167,22 @@ export function ProfilePage() {
       }
 
       await drawBusinessCard(context, {
+        orientation,
         name: displayName,
         jobTitle: employee?.job_title?.name ?? 'DY Group',
         whatsapp,
         wechat: '未设置',
         avatarUrl,
         initials,
+        companyEnglishName,
+        companyRegistrationNo,
       });
 
       const link = document.createElement('a');
-      link.download = `${displayName}-电子名片.png`;
+      link.download = `${displayName}-${orientation === 'horizontal' ? '横式' : '竖式'}电子名片.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+      setDownloadChoiceOpen(false);
     } catch (downloadError) {
       setError(downloadError instanceof Error ? downloadError.message : '下载电子名片失败。');
     } finally {
@@ -197,31 +204,32 @@ export function ProfilePage() {
       {success ? <p className="form-success">{success}</p> : null}
 
       <div className="profile-card business-card-section">
-        <div className="business-card-preview" ref={cardRef}>
-          <div className="business-card-photo-column">
-            <button className="business-card-photo" type="button" onClick={() => avatarUrl && setPreviewOpen(true)} disabled={!avatarUrl}>
-              {avatarUrl ? <img src={avatarUrl} alt="个人头像" /> : <span>{initials}</span>}
-            </button>
-            <label className="secondary-action profile-upload-button">
-              <Camera size={17} />
-              {uploading ? '上传中...' : '更换头像'}
-              <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploading || saving} />
-            </label>
+        <div className="business-card-preview">
+          <div className="business-card-company">
+            <img src={logoUrl} alt="DY Group" />
+            <strong>东娱传媒</strong>
+            {companyEnglishName ? <span>{companyEnglishName}</span> : null}
+            {companyRegistrationNo ? <small>Reg. No. {companyRegistrationNo}</small> : null}
           </div>
 
-          <div className="business-card-info">
-            <span>电子名片</span>
-            <h2>{displayName}</h2>
-            <strong>{employee?.job_title?.name ?? '未设置职称'}</strong>
-            <div className="business-card-contact-grid">
-              <CardContact label="Whatsapp" value={whatsapp} />
-              <CardContact label="微信" value="未设置" />
-              <CardContact label="公司 IG" value={companyInstagram} />
-              <CardContact label="公司 FB" value={companyFacebook} />
+          <div className="business-card-main">
+            <div className="business-card-info">
+              <h2>{displayName}</h2>
+              <strong>{employee?.job_title?.name ?? '未设置职称'}</strong>
+              <div className="business-card-contact-grid">
+                <CardContact label="Whatsapp" value={whatsapp} />
+                <CardContact label="微信" value="未设置" />
+                <CardContact label="公司 IG" value={companyInstagram} />
+                <CardContact label="公司 FB" value={companyFacebook} />
+              </div>
+              <button className="primary-button business-card-download" type="button" onClick={() => setDownloadChoiceOpen(true)} disabled={downloadingCard}>
+                <Download size={18} />
+                <span>{downloadingCard ? '生成中...' : '下载电子名片'}</span>
+              </button>
             </div>
-            <button className="primary-button business-card-download" type="button" onClick={handleDownloadCard} disabled={downloadingCard}>
-              <Download size={18} />
-              <span>{downloadingCard ? '生成中...' : '下载电子名片'}</span>
+
+            <button className="business-card-photo" type="button" onClick={() => avatarUrl && setPreviewOpen(true)} disabled={!avatarUrl}>
+              {avatarUrl ? <img src={avatarUrl} alt="个人头像" /> : <span>{initials}</span>}
             </button>
           </div>
         </div>
@@ -296,8 +304,34 @@ export function ProfilePage() {
       </div>
 
       {previewOpen && avatarUrl ? (
-        <SystemModal title={displayName} subtitle="头像预览" ariaLabel="头像预览" className="profile-preview-modal" onClose={() => setPreviewOpen(false)}>
+        <SystemModal
+          title={displayName}
+          subtitle="头像预览"
+          ariaLabel="头像预览"
+          className="profile-preview-modal"
+          onClose={() => setPreviewOpen(false)}
+          footer={
+            <label className="secondary-action profile-upload-button">
+              <Camera size={17} />
+              {uploading ? '上传中...' : '更换头像'}
+              <input type="file" accept="image/*" onChange={handleAvatarChange} disabled={uploading || saving} />
+            </label>
+          }
+        >
           <img src={avatarUrl} alt="头像大图" />
+        </SystemModal>
+      ) : null}
+
+      {downloadChoiceOpen ? (
+        <SystemModal title="下载电子名片" subtitle="选择版式" ariaLabel="下载电子名片" wide={false} onClose={() => setDownloadChoiceOpen(false)}>
+          <div className="business-card-download-options">
+            <button className="secondary-action" type="button" onClick={() => handleDownloadCard('horizontal')} disabled={downloadingCard}>
+              下载横式电子名片
+            </button>
+            <button className="secondary-action" type="button" onClick={() => handleDownloadCard('vertical')} disabled={downloadingCard}>
+              下载竖式电子名片
+            </button>
+          </div>
         </SystemModal>
       ) : null}
     </section>
@@ -351,64 +385,142 @@ function formatMoney(value: number | null | undefined) {
 async function drawBusinessCard(
   context: CanvasRenderingContext2D,
   values: {
+    orientation: 'horizontal' | 'vertical';
     name: string;
     jobTitle: string;
     whatsapp: string;
     wechat: string;
     avatarUrl: string | null | undefined;
     initials: string;
+    companyEnglishName: string;
+    companyRegistrationNo: string;
   },
 ) {
   const { canvas } = context;
-  context.fillStyle = '#f4f7fb';
+  context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  gradient.addColorStop(0, '#ffffff');
-  gradient.addColorStop(1, '#e9f5f7');
-  context.fillStyle = gradient;
-  roundedRect(context, 52, 52, 796, 1296, 28);
-  context.fill();
+  const accentGradient = context.createLinearGradient(0, 0, canvas.width, 0);
+  accentGradient.addColorStop(0, '#e83e8c');
+  accentGradient.addColorStop(1, '#7c3aed');
+  context.fillStyle = accentGradient;
+  context.fillRect(0, 0, canvas.width, values.orientation === 'horizontal' ? 28 : 34);
 
-  context.fillStyle = '#101928';
-  roundedRect(context, 92, 92, 716, 796, 24);
+  context.fillStyle = '#ffffff';
+  context.strokeStyle = '#dfe6ef';
+  context.lineWidth = 2;
+  roundedRect(context, 34, 34, canvas.width - 68, canvas.height - 68, 26);
   context.fill();
+  context.stroke();
 
-  const image = values.avatarUrl ? await loadImage(values.avatarUrl) : null;
-  if (image) {
-    context.save();
-    roundedRect(context, 92, 92, 716, 796, 24);
-    context.clip();
-    drawCoverImage(context, image, 92, 92, 716, 796);
-    context.restore();
-  } else {
-    const photoGradient = context.createLinearGradient(92, 92, 808, 888);
-    photoGradient.addColorStop(0, '#e83e8c');
-    photoGradient.addColorStop(1, '#7c3aed');
-    context.fillStyle = photoGradient;
-    roundedRect(context, 92, 92, 716, 796, 24);
-    context.fill();
-    context.fillStyle = '#ffffff';
-    context.font = 'bold 180px Arial';
-    context.textAlign = 'center';
-    context.fillText(values.initials, 450, 530);
+  const logo = await loadImage(logoUrl);
+  const companyCenterX = canvas.width / 2;
+  const companyTop = values.orientation === 'horizontal' ? 84 : 92;
+
+  if (logo) {
+    drawContainImage(context, logo, companyCenterX - 46, companyTop, 92, 92);
   }
 
   context.fillStyle = '#172033';
-  context.textAlign = 'left';
-  context.font = 'bold 64px Arial';
-  context.fillText(values.name, 92, 990);
+  context.textAlign = 'center';
+  context.font = 'bold 42px "Microsoft YaHei", Arial';
+  context.fillText('东娱传媒', companyCenterX, companyTop + 138);
 
-  context.fillStyle = '#1f7a8c';
-  context.font = 'bold 34px Arial';
-  context.fillText(values.jobTitle, 92, 1048);
+  context.fillStyle = '#172033';
+  context.font = 'bold 26px Arial';
+  if (values.companyEnglishName) {
+    context.fillText(values.companyEnglishName, companyCenterX, companyTop + 178);
+  }
 
   context.fillStyle = '#68758a';
-  context.font = 'bold 28px Arial';
-  context.fillText(`Whatsapp  ${values.whatsapp}`, 92, 1134);
-  context.fillText(`微信  ${values.wechat}`, 92, 1190);
-  context.fillText(`公司 IG  ${companyInstagram}`, 92, 1246);
-  context.fillText(`公司 FB  ${companyFacebook}`, 92, 1302);
+  context.font = '22px Arial';
+  if (values.companyRegistrationNo) {
+    context.fillText(`Reg. No. ${values.companyRegistrationNo}`, companyCenterX, companyTop + 214);
+  }
+
+  const image = values.avatarUrl ? await loadImage(values.avatarUrl) : null;
+
+  if (values.orientation === 'horizontal') {
+    drawCardDetails(context, values, image, 128, 388, 800);
+    drawAvatar(context, values, image, 1060, 396, 330);
+    return;
+  }
+
+  drawAvatar(context, values, image, 300, 440, 360);
+  drawCardDetails(context, values, image, 122, 920, 716);
+}
+
+function drawCardDetails(
+  context: CanvasRenderingContext2D,
+  values: {
+    name: string;
+    jobTitle: string;
+    whatsapp: string;
+    wechat: string;
+  },
+  _image: HTMLImageElement | null,
+  x: number,
+  y: number,
+  width: number,
+) {
+  context.textAlign = 'left';
+  context.fillStyle = '#172033';
+  context.font = 'bold 56px "Microsoft YaHei", Arial';
+  context.fillText(values.name, x, y);
+
+  context.fillStyle = '#1f7a8c';
+  context.font = 'bold 30px "Microsoft YaHei", Arial';
+  context.fillText(values.jobTitle, x, y + 58);
+
+  context.fillStyle = '#68758a';
+  context.font = 'bold 25px Arial';
+  const rows = [
+    ['Whatsapp', values.whatsapp],
+    ['微信', values.wechat],
+    ['公司 IG', companyInstagram],
+    ['公司 FB', companyFacebook],
+  ];
+
+  rows.forEach(([label, value], index) => {
+    const rowY = y + 142 + index * 54;
+    context.fillStyle = '#68758a';
+    context.fillText(label, x, rowY);
+    context.fillStyle = '#172033';
+    context.fillText(value, x + Math.min(180, width * 0.28), rowY);
+  });
+}
+
+function drawAvatar(
+  context: CanvasRenderingContext2D,
+  values: { initials: string },
+  image: HTMLImageElement | null,
+  x: number,
+  y: number,
+  size: number,
+) {
+  context.save();
+  roundedRect(context, x, y, size, size, 26);
+  context.clip();
+
+  if (image) {
+    drawCoverImage(context, image, x, y, size, size);
+  } else {
+    const gradient = context.createLinearGradient(x, y, x + size, y + size);
+    gradient.addColorStop(0, '#e83e8c');
+    gradient.addColorStop(1, '#7c3aed');
+    context.fillStyle = gradient;
+    context.fillRect(x, y, size, size);
+    context.fillStyle = '#ffffff';
+    context.font = `bold ${Math.round(size * 0.38)}px Arial`;
+    context.textAlign = 'center';
+    context.fillText(values.initials, x + size / 2, y + size * 0.62);
+  }
+
+  context.restore();
+  context.strokeStyle = '#dfe6ef';
+  context.lineWidth = 3;
+  roundedRect(context, x, y, size, size, 26);
+  context.stroke();
 }
 
 function loadImage(src: string) {
@@ -419,6 +531,13 @@ function loadImage(src: string) {
     image.onerror = () => resolve(null);
     image.src = src;
   });
+}
+
+function drawContainImage(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {
+  const scale = Math.min(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
 }
 
 function drawCoverImage(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, width: number, height: number) {

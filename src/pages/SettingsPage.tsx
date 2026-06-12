@@ -42,6 +42,8 @@ const modules: SettingsModule[] = [
 const emptyForm: SettingsFormValues = {
   code: '',
   name: '',
+  company_english_name: '',
+  company_registration_no: '',
   sort_order: 0,
   is_active: true,
 };
@@ -154,6 +156,8 @@ export function SettingsPage() {
     setFormValues({
       code: 'code' in record ? record.code : '',
       name: record.name,
+      company_english_name: 'company_english_name' in record ? record.company_english_name ?? '' : '',
+      company_registration_no: 'company_registration_no' in record ? record.company_registration_no ?? '' : '',
       sort_order: record.sort_order,
       is_active: record.is_active,
     });
@@ -222,6 +226,8 @@ export function SettingsPage() {
                   <tr>
                     {activeModule.hasCode ? <th>代码</th> : null}
                     <th>名称</th>
+                    {activeModule.key === 'regions' ? <th>公司英文名称</th> : null}
+                    {activeModule.key === 'regions' ? <th>公司注册号</th> : null}
                     <th>排序</th>
                     <th>状态</th>
                     <th>操作</th>
@@ -234,6 +240,8 @@ export function SettingsPage() {
                       <td>
                         <strong>{record.name}</strong>
                       </td>
+                      {activeModule.key === 'regions' ? <td>{'company_english_name' in record ? record.company_english_name || '-' : '-'}</td> : null}
+                      {activeModule.key === 'regions' ? <td>{'company_registration_no' in record ? record.company_registration_no || '-' : '-'}</td> : null}
                       <td>{record.sort_order}</td>
                       <td>
                         <span className={record.is_active ? 'status-pill status-active' : 'status-pill status-inactive'}>
@@ -333,6 +341,28 @@ function SettingsFormModal({
             <span>{activeModule.nameLabel}</span>
             <input value={formValues.name} onChange={(event) => onChange({ ...formValues, name: event.target.value })} required />
           </label>
+
+          {activeModule.key === 'regions' ? (
+            <>
+              <label className="form-field">
+                <span>公司英文名称</span>
+                <input
+                  value={formValues.company_english_name ?? ''}
+                  onChange={(event) => onChange({ ...formValues, company_english_name: event.target.value })}
+                  placeholder="例如 DY ENTERTAINMENT SDN BHD"
+                />
+              </label>
+
+              <label className="form-field">
+                <span>公司注册号</span>
+                <input
+                  value={formValues.company_registration_no ?? ''}
+                  onChange={(event) => onChange({ ...formValues, company_registration_no: event.target.value })}
+                  placeholder="例如 202401047280 (1593126-M)"
+                />
+              </label>
+            </>
+          ) : null}
 
           <label className="form-field">
             <span>排序</span>

@@ -8,6 +8,8 @@ export type SettingsRecord = Region | JobTitle | EmploymentType;
 export type SettingsFormValues = {
   code?: string;
   name: string;
+  company_english_name?: string;
+  company_registration_no?: string;
   sort_order: number;
   is_active: boolean;
 };
@@ -91,6 +93,8 @@ function getRegionPayload(values: SettingsFormValues) {
   return {
     code: values.code?.trim().toUpperCase() ?? '',
     name: values.name.trim(),
+    company_english_name: values.company_english_name?.trim() || null,
+    company_registration_no: values.company_registration_no?.trim() || null,
     sort_order: values.sort_order,
     is_active: values.is_active,
   };

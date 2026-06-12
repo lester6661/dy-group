@@ -30,6 +30,8 @@ export type Region = {
   id: string;
   code: string;
   name: string;
+  company_english_name: string | null;
+  company_registration_no: string | null;
   is_active: boolean;
   sort_order: number;
   created_at: string;
@@ -195,7 +197,7 @@ export type Database = {
       };
       regions: {
         Row: Region;
-        Insert: Partial<Pick<Region, 'id' | 'is_active' | 'sort_order' | 'created_at' | 'updated_at'>> &
+        Insert: Partial<Pick<Region, 'id' | 'company_english_name' | 'company_registration_no' | 'is_active' | 'sort_order' | 'created_at' | 'updated_at'>> &
           Pick<Region, 'code' | 'name'>;
         Update: Partial<Omit<Region, 'id' | 'created_at' | 'updated_at'>>;
         Relationships: [];
