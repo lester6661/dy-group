@@ -2164,8 +2164,8 @@ button.leave-chip:disabled {
 .business-card-preview {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(190px, 28%, 280px);
-  gap: clamp(28px, 5vw, 70px);
+  grid-template-columns: minmax(0, 500px) clamp(250px, 28%, 280px);
+  gap: clamp(44px, 7vw, 84px);
   align-items: center;
   aspect-ratio: 90 / 54;
   max-width: 980px;
@@ -2214,7 +2214,7 @@ button.leave-chip:disabled {
   display: grid;
   justify-items: center;
   gap: 5px;
-  width: min(100%, 560px);
+  width: min(100%, 500px);
   text-align: center;
 }
 
@@ -2255,7 +2255,7 @@ button.leave-chip:disabled {
   display: grid;
   place-items: center;
   justify-self: end;
-  width: min(100%, 280px);
+  width: min(100%, 270px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -2301,7 +2301,7 @@ button.leave-chip:disabled {
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 44px;
+  gap: 12px 48px;
   width: min(100%, 560px);
   margin-top: 26px;
 }
@@ -2319,7 +2319,7 @@ button.leave-chip:disabled {
 .business-card-contact-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -2348,27 +2348,27 @@ button.leave-chip:disabled {
 .business-card-app-icon {
   display: grid;
   place-items: center;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 38px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   color: #ffffff;
-  border-radius: 9px;
-  box-shadow: 0 8px 18px rgba(16, 25, 40, 0.14);
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(16, 25, 40, 0.12);
 }
 
-.business-card-app-icon.whatsapp,
-.business-card-app-icon.instagram {
-  background: linear-gradient(135deg, #f01384, #8a21d2);
-}
-
-.business-card-app-icon.wechat,
-.business-card-app-icon.facebook {
-  background: linear-gradient(135deg, #5e239d, #43229b);
+.business-card-app-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .business-card-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 12px;
   margin-top: 18px;
 }
 
@@ -2378,9 +2378,18 @@ button.leave-chip:disabled {
   margin-top: 4px;
 }
 
+.business-card-edit {
+  margin-top: 4px;
+}
+
 .business-card-download-options {
   display: grid;
   gap: 12px;
+}
+
+.business-card-contact-form {
+  display: grid;
+  gap: 14px;
 }
 
 .business-card-download-options .secondary-action {

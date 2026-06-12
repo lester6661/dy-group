@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent } from 'react';
-import { Camera, Download, Facebook, Instagram, Lock, MessageCircle, MessagesSquare, ShieldCheck, UserRound } from 'lucide-react';
+import { Camera, Download, Lock, Pencil, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
 import logoUrl from '../assets/logo.png';
+import whatsappLogoUrl from '../assets/whatsapp-logo.webp';
+import wechatLogoUrl from '../assets/wechat-logo.webp';
+import instagramLogoUrl from '../assets/instagram-logo.webp';
+import facebookLogoUrl from '../assets/facebook-logo.webp';
 
 type ProfileForm = {
   phone: string;
@@ -13,8 +17,11 @@ type ProfileForm = {
   bank_account: string;
 };
 
+type ContactKind = 'whatsapp' | 'wechat' | 'instagram' | 'facebook';
+
 const companyInstagram = '@dygroup';
 const companyFacebook = 'DY Group';
+const wechatStorageKey = 'dy-group-business-card-wechat';
 const avatarCropSize = 320;
 const avatarOutputSize = 800;
 
@@ -30,6 +37,9 @@ export function ProfilePage() {
   });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [downloadChoiceOpen, setDownloadChoiceOpen] = useState(false);
+  const [contactEditOpen, setContactEditOpen] = useState(false);
+  const [wechat, setWechat] = useState('');
+  const [contactForm, setContactForm] = useState({ whatsapp: '', wechat: '' });
   const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
   const [cropImageSize, setCropImageSize] = useState({ width: 0, height: 0 });
   const [cropZoom, setCropZoom] = useState(1);
@@ -48,6 +58,7 @@ export function ProfilePage() {
   const initials = useMemo(() => displayName.slice(0, 1).toUpperCase(), [displayName]);
   const avatarUrl = employee?.avatar_url || form.avatar_url;
   const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
+  const cardWechat = wechat.trim() || '未设置';
   const companyEnglishName = employee?.region?.company_english_name ?? '';
   const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
   const cropBaseScale =
@@ -57,6 +68,10 @@ export function ProfilePage() {
 
   useEffect(() => {
     void loadProfile();
+  }, []);
+
+  useEffect(() => {
+    setWechat(window.localStorage.getItem(wechatStorageKey) ?? '');
   }, []);
 
   useEffect(() => {
@@ -99,6 +114,44 @@ export function ProfilePage() {
       bank_name: nextForm.bank_name,
       bank_account: nextForm.bank_account,
     };
+  }
+
+  function openContactEditor() {
+    setContactForm({
+      whatsapp: form.phone || employee?.phone || profile?.phone || '',
+      wechat,
+    });
+    setContactEditOpen(true);
+  }
+
+  async function handleSaveBusinessCardContact(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const nextForm = { ...form, phone: contactForm.whatsapp };
+      await profileService.updateMyProfile(getUpdateValues(nextForm));
+      window.localStorage.setItem(wechatStorageKey, contactForm.wechat.trim());
+      setForm(nextForm);
+      setWechat(contactForm.wechat.trim());
+      setProfileData((current) =>
+        current
+          ? {
+              ...current,
+              profile: { ...current.profile, phone: nextForm.phone.trim() || null },
+              employee: current.employee ? { ...current.employee, phone: nextForm.phone.trim() || null } : current.employee,
+            }
+          : current,
+      );
+      setContactEditOpen(false);
+      setSuccess('电子名片联系方式已更新。');
+    } catch (err) {
+      setError(`保存电子名片联系方式失败：${err instanceof Error ? err.message : '未知错误'}`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
@@ -263,7 +316,7 @@ export function ProfilePage() {
         name: displayName,
         jobTitle: employee?.job_title?.name ?? 'DY Group',
         whatsapp,
-        wechat: '未设置',
+        wechat: cardWechat,
         avatarUrl,
         initials,
         companyEnglishName,
@@ -310,7 +363,7 @@ export function ProfilePage() {
               <strong>{employee?.job_title?.name ?? '未设置职称'}</strong>
               <div className="business-card-contact-grid">
                 <CardContact kind="whatsapp" label="Whatsapp" value={whatsapp} />
-                <CardContact kind="wechat" label="微信" value="未设置" />
+                <CardContact kind="wechat" label="微信" value={cardWechat} />
                 <CardContact kind="instagram" label="公司 Instagram" value={companyInstagram} />
                 <CardContact kind="facebook" label="公司 Facebook" value={companyFacebook} />
               </div>
@@ -325,6 +378,10 @@ export function ProfilePage() {
           <button className="primary-button business-card-download" type="button" onClick={() => setDownloadChoiceOpen(true)} disabled={downloadingCard}>
             <Download size={18} />
             <span>{downloadingCard ? '生成中...' : '下载电子名片'}</span>
+          </button>
+          <button className="secondary-action business-card-edit" type="button" onClick={openContactEditor} disabled={saving}>
+            <Pencil size={17} />
+            <span>编辑</span>
           </button>
         </div>
       </div>
@@ -473,6 +530,37 @@ export function ProfilePage() {
           </div>
         </SystemModal>
       ) : null}
+
+      {contactEditOpen ? (
+        <SystemModal
+          title="编辑电子名片"
+          subtitle="联系方式"
+          ariaLabel="编辑电子名片联系方式"
+          wide={false}
+          onClose={() => setContactEditOpen(false)}
+          footer={
+            <>
+              <button className="secondary-action" type="button" onClick={() => setContactEditOpen(false)} disabled={saving}>
+                取消
+              </button>
+              <button className="primary-button" type="submit" form="business-card-contact-form" disabled={saving}>
+                {saving ? '保存中...' : '保存'}
+              </button>
+            </>
+          }
+        >
+          <form id="business-card-contact-form" className="business-card-contact-form" onSubmit={handleSaveBusinessCardContact}>
+            <label className="form-field">
+              <span>Whatsapp</span>
+              <input value={contactForm.whatsapp} onChange={(event) => setContactForm((current) => ({ ...current, whatsapp: event.target.value }))} />
+            </label>
+            <label className="form-field">
+              <span>Wechat</span>
+              <input value={contactForm.wechat} onChange={(event) => setContactForm((current) => ({ ...current, wechat: event.target.value }))} />
+            </label>
+          </form>
+        </SystemModal>
+      ) : null}
     </section>
   );
 }
@@ -482,22 +570,21 @@ function CardContact({
   label,
   value,
 }: {
-  kind: 'whatsapp' | 'wechat' | 'instagram' | 'facebook';
+  kind: ContactKind;
   label: string;
   value: string;
 }) {
-  const iconProps = { size: 21, strokeWidth: 2.5 };
-  const icons = {
-    whatsapp: <MessageCircle {...iconProps} />,
-    wechat: <MessagesSquare {...iconProps} />,
-    instagram: <Instagram {...iconProps} />,
-    facebook: <Facebook {...iconProps} />,
+  const icons: Record<ContactKind, string> = {
+    whatsapp: whatsappLogoUrl,
+    wechat: wechatLogoUrl,
+    instagram: instagramLogoUrl,
+    facebook: facebookLogoUrl,
   };
 
   return (
     <div className="business-card-contact-row">
       <span className={`business-card-app-icon ${kind}`} aria-label={label}>
-        {icons[kind]}
+        <img src={icons[kind]} alt="" />
       </span>
       <strong>{value}</strong>
     </div>
@@ -570,7 +657,7 @@ async function drawBusinessCard(
 
   const logo = await loadImage(logoUrl);
   const isHorizontal = values.orientation === 'horizontal';
-  const companyCenterX = isHorizontal ? canvas.width * 0.34 : canvas.width / 2;
+  const companyCenterX = isHorizontal ? canvas.width * 0.3 : canvas.width / 2;
   const companyTop = isHorizontal ? 72 : 92;
 
   if (logo) {
@@ -607,15 +694,21 @@ async function drawBusinessCard(
   context.fill();
 
   const image = values.avatarUrl ? await loadImage(values.avatarUrl) : null;
+  const contactLogos = {
+    whatsapp: await loadImage(whatsappLogoUrl),
+    wechat: await loadImage(wechatLogoUrl),
+    instagram: await loadImage(instagramLogoUrl),
+    facebook: await loadImage(facebookLogoUrl),
+  };
 
   if (values.orientation === 'horizontal') {
-    drawCardDetails(context, values, 96, 520, 820);
-    drawAvatar(context, values, image, 1070, 252, 420);
+    drawCardDetails(context, values, contactLogos, 96, 520, 820);
+    drawAvatar(context, values, image, 1040, 252, 420);
     return;
   }
 
   drawAvatar(context, values, image, 300, 440, 360);
-  drawCardDetails(context, values, 122, 920, 716);
+  drawCardDetails(context, values, contactLogos, 122, 920, 716);
 }
 
 function drawCardDetails(
@@ -627,6 +720,7 @@ function drawCardDetails(
     whatsapp: string;
     wechat: string;
   },
+  contactLogos: Record<ContactKind, HTMLImageElement | null>,
   x: number,
   y: number,
   width: number,
@@ -650,7 +744,7 @@ function drawCardDetails(
     ] as const;
 
     rows.forEach(([kind, value], index) => {
-      drawCanvasContactRow(context, kind, value, x + 48, y + 140 + index * 88, width - 96, true);
+      drawCanvasContactRow(context, kind, value, contactLogos[kind], x + 48, y + 140 + index * 88, width - 96, true);
     });
     return;
   }
@@ -673,16 +767,17 @@ function drawCardDetails(
   context.lineTo(dividerX, contactTop + 118);
   context.stroke();
 
-  drawCanvasContactRow(context, 'whatsapp', values.whatsapp, x, contactTop, 330, false);
-  drawCanvasContactRow(context, 'wechat', values.wechat, x, contactTop + 72, 330, false);
-  drawCanvasContactRow(context, 'instagram', companyInstagram, x + 500, contactTop, width - 500, false);
-  drawCanvasContactRow(context, 'facebook', companyFacebook, x + 500, contactTop + 72, width - 500, false);
+  drawCanvasContactRow(context, 'whatsapp', values.whatsapp, contactLogos.whatsapp, x, contactTop, 330, false);
+  drawCanvasContactRow(context, 'wechat', values.wechat, contactLogos.wechat, x, contactTop + 72, 330, false);
+  drawCanvasContactRow(context, 'instagram', companyInstagram, contactLogos.instagram, x + 500, contactTop, width - 500, false);
+  drawCanvasContactRow(context, 'facebook', companyFacebook, contactLogos.facebook, x + 500, contactTop + 72, width - 500, false);
 }
 
 function drawCanvasContactRow(
   context: CanvasRenderingContext2D,
-  kind: 'whatsapp' | 'wechat' | 'instagram' | 'facebook',
+  kind: ContactKind,
   value: string,
+  logo: HTMLImageElement | null,
   x: number,
   y: number,
   width: number,
@@ -697,7 +792,7 @@ function drawCanvasContactRow(
     context.stroke();
   }
 
-  drawCanvasAppIcon(context, kind, x, y - 34, 54);
+  drawCanvasAppIcon(context, kind, logo, x, y - 34, 54);
   context.fillStyle = '#111827';
   context.font = '30px Arial';
   context.textAlign = 'left';
@@ -706,11 +801,17 @@ function drawCanvasContactRow(
 
 function drawCanvasAppIcon(
   context: CanvasRenderingContext2D,
-  kind: 'whatsapp' | 'wechat' | 'instagram' | 'facebook',
+  kind: ContactKind,
+  logo: HTMLImageElement | null,
   x: number,
   y: number,
   size: number,
 ) {
+  if (logo) {
+    drawContainImage(context, logo, x, y, size, size);
+    return;
+  }
+
   const gradient = context.createLinearGradient(x, y, x + size, y + size);
   if (kind === 'whatsapp' || kind === 'instagram') {
     gradient.addColorStop(0, '#f01384');
