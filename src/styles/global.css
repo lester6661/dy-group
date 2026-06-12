@@ -2079,6 +2079,128 @@ button.leave-chip:disabled {
   gap: 22px;
 }
 
+.business-card-section {
+  padding: 22px;
+}
+
+.business-card-preview {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.business-card-photo-column {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.business-card-photo {
+  display: grid;
+  place-items: center;
+  width: min(100%, 280px);
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 56px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #e83e8c, #7c3aed);
+  cursor: pointer;
+}
+
+.business-card-photo:disabled {
+  cursor: default;
+}
+
+.business-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.business-card-info {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(18px, 3vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(31, 122, 140, 0.08), rgba(242, 165, 65, 0.08)),
+    var(--panel-soft);
+}
+
+.business-card-info > span {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.business-card-info h2 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 54px);
+  line-height: 1.05;
+}
+
+.business-card-info > strong {
+  color: var(--primary-dark);
+  font-size: 18px;
+}
+
+.business-card-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.business-card-contact-grid div {
+  display: grid;
+  gap: 5px;
+  min-height: 66px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.business-card-contact-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.business-card-contact-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.business-card-download {
+  width: fit-content;
+  min-width: 190px;
+  margin-top: 4px;
+}
+
+.profile-final-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.profile-final-field input:disabled {
+  color: var(--muted);
+  background: var(--panel-soft);
+}
+
+.profile-save-button {
+  width: fit-content;
+  min-width: 180px;
+  margin-top: 4px;
+}
+
 .profile-hero {
   align-items: center;
 }

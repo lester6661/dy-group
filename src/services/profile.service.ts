@@ -36,6 +36,16 @@ export type MyProfileData = {
   employee: MyEmployeeProfile | null;
 };
 
+export type MyProfileUpdateValues = {
+  full_name: string;
+  phone: string;
+  avatar_url?: string | null;
+  nickname?: string;
+  address?: string;
+  bank_name?: string;
+  bank_account?: string;
+};
+
 type EmployeeProfileRow = Omit<MyEmployeeProfile, 'region' | 'employment_type' | 'job_title'> & {
   regions: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
@@ -110,7 +120,7 @@ export const profileService = {
     };
   },
 
-  async updateMyProfile(values: { full_name: string; phone: string; avatar_url?: string | null }) {
+  async updateMyProfile(values: MyProfileUpdateValues) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
 
     if (userError) {
@@ -140,8 +150,12 @@ export const profileService = {
       .from('employees')
       .update({
         full_name: values.full_name.trim(),
+        nickname: values.nickname?.trim() || null,
         phone: values.phone.trim() || null,
         avatar_url: values.avatar_url ?? null,
+        address: values.address?.trim() || null,
+        bank_name: values.bank_name?.trim() || null,
+        bank_account: values.bank_account?.trim() || null,
       })
       .eq('profile_id', userId)
       .is('deleted_at', null);
