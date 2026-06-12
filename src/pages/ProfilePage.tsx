@@ -403,8 +403,6 @@ async function drawBusinessCard(
   const accentGradient = context.createLinearGradient(0, 0, canvas.width, 0);
   accentGradient.addColorStop(0, '#e83e8c');
   accentGradient.addColorStop(1, '#7c3aed');
-  context.fillStyle = accentGradient;
-  context.fillRect(0, 0, canvas.width, values.orientation === 'horizontal' ? 28 : 34);
 
   context.fillStyle = '#ffffff';
   context.strokeStyle = '#dfe6ef';
@@ -437,6 +435,17 @@ async function drawBusinessCard(
   if (values.companyRegistrationNo) {
     context.fillText(`Reg. No. ${values.companyRegistrationNo}`, companyCenterX, companyTop + 214);
   }
+
+  context.fillStyle = accentGradient;
+  context.fillRect(companyCenterX - 95, companyTop + 242, 190, 7);
+  context.fillRect(0, canvas.height - (values.orientation === 'horizontal' ? 24 : 30), canvas.width, values.orientation === 'horizontal' ? 24 : 30);
+  context.beginPath();
+  context.moveTo(canvas.width - 210, canvas.height - (values.orientation === 'horizontal' ? 44 : 54));
+  context.lineTo(canvas.width, canvas.height - (values.orientation === 'horizontal' ? 44 : 54));
+  context.lineTo(canvas.width, canvas.height - (values.orientation === 'horizontal' ? 24 : 30));
+  context.lineTo(canvas.width - 246, canvas.height - (values.orientation === 'horizontal' ? 24 : 30));
+  context.closePath();
+  context.fill();
 
   const image = values.avatarUrl ? await loadImage(values.avatarUrl) : null;
 
