@@ -2164,11 +2164,13 @@ button.leave-chip:disabled {
 .business-card-preview {
   position: relative;
   display: grid;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) clamp(190px, 28%, 280px);
+  gap: clamp(28px, 5vw, 70px);
+  align-items: center;
   aspect-ratio: 90 / 54;
   max-width: 980px;
   margin: 0 auto;
-  padding: clamp(20px, 3vw, 34px);
+  padding: clamp(22px, 3.2vw, 42px) clamp(30px, 5vw, 58px) clamp(28px, 4vw, 54px);
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -2202,33 +2204,41 @@ button.leave-chip:disabled {
   z-index: 1;
 }
 
+.business-card-content {
+  display: grid;
+  gap: clamp(24px, 3.4vw, 42px);
+  min-width: 0;
+}
+
 .business-card-company {
   display: grid;
   justify-items: center;
   gap: 5px;
+  width: min(100%, 560px);
   text-align: center;
 }
 
 .business-card-company img {
-  width: 56px;
-  height: 56px;
+  width: clamp(58px, 8vw, 84px);
+  height: clamp(58px, 8vw, 84px);
   object-fit: contain;
 }
 
 .business-card-company strong {
   color: var(--text);
-  font-size: 20px;
+  font-size: clamp(23px, 3vw, 32px);
+  line-height: 1;
 }
 
 .business-card-company span {
   color: var(--text);
-  font-size: 13px;
+  font-size: clamp(13px, 1.5vw, 17px);
   font-weight: 800;
 }
 
 .business-card-company small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: clamp(12px, 1.4vw, 15px);
   font-weight: 700;
 }
 
@@ -2241,17 +2251,11 @@ button.leave-chip:disabled {
   border-radius: 999px;
 }
 
-.business-card-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
-  gap: 22px;
-  align-items: center;
-}
-
 .business-card-photo {
   display: grid;
   place-items: center;
-  width: min(100%, 220px);
+  justify-self: end;
+  width: min(100%, 280px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -2276,45 +2280,96 @@ button.leave-chip:disabled {
 .business-card-info {
   display: grid;
   align-content: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .business-card-info h2 {
   margin: 0;
-  font-size: clamp(28px, 4vw, 42px);
+  color: #05070d;
+  font-size: clamp(28px, 3.8vw, 38px);
   line-height: 1.05;
 }
 
 .business-card-info > strong {
-  color: var(--primary-dark);
-  font-size: 18px;
+  color: #351098;
+  font-size: clamp(18px, 2.3vw, 24px);
+  font-weight: 700;
 }
 
 .business-card-contact-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 14px;
-  margin-top: 2px;
+  gap: 12px 44px;
+  width: min(100%, 560px);
+  margin-top: 26px;
 }
 
-.business-card-contact-grid div {
-  display: grid;
-  gap: 3px;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
+.business-card-contact-grid::after {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  width: 1px;
+  content: '';
+  background: #d8dde7;
 }
 
-.business-card-contact-grid span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+.business-card-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
 }
 
-.business-card-contact-grid strong {
+.business-card-contact-row:nth-child(2) {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.business-card-contact-row:nth-child(3) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.business-card-contact-row:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.business-card-contact-row strong {
+  color: #111827;
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 500;
   overflow-wrap: anywhere;
+}
+
+.business-card-app-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  color: #ffffff;
+  border-radius: 9px;
+  box-shadow: 0 8px 18px rgba(16, 25, 40, 0.14);
+}
+
+.business-card-app-icon.whatsapp,
+.business-card-app-icon.instagram {
+  background: linear-gradient(135deg, #f01384, #8a21d2);
+}
+
+.business-card-app-icon.wechat,
+.business-card-app-icon.facebook {
+  background: linear-gradient(135deg, #5e239d, #43229b);
+}
+
+.business-card-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
 }
 
 .business-card-download {
@@ -2794,23 +2849,42 @@ button.leave-chip:disabled {
   }
 
   .business-card-preview {
+    grid-template-columns: 1fr;
     aspect-ratio: 54 / 90;
     max-width: 520px;
-  }
-
-  .business-card-main {
-    grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
   }
 
+  .business-card-content {
+    display: contents;
+  }
+
+  .business-card-company {
+    order: 1;
+  }
+
   .business-card-info {
-    order: 2;
+    order: 3;
     width: 100%;
+  }
+
+  .business-card-photo {
+    order: 2;
+    justify-self: center;
   }
 
   .business-card-contact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .business-card-contact-grid::after {
+    display: none;
+  }
+
+  .business-card-contact-row:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .business-card-download {

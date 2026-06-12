@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent } from 'react';
-import { Camera, Download, Lock, ShieldCheck, UserRound } from 'lucide-react';
+import { Camera, Download, Facebook, Instagram, Lock, MessageCircle, MessagesSquare, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
 import logoUrl from '../assets/logo.png';
@@ -297,33 +297,35 @@ export function ProfilePage() {
 
       <div className="profile-card business-card-section">
         <div className="business-card-preview">
-          <div className="business-card-company">
-            <img src={logoUrl} alt="DY Group" />
-            <strong>东娱传媒</strong>
-            {companyEnglishName ? <span>{companyEnglishName}</span> : null}
-            {companyRegistrationNo ? <small>Reg. No. {companyRegistrationNo}</small> : null}
-          </div>
+          <div className="business-card-content">
+            <div className="business-card-company">
+              <img src={logoUrl} alt="DY Group" />
+              <strong>东娱传媒</strong>
+              {companyEnglishName ? <span>{companyEnglishName}</span> : null}
+              {companyRegistrationNo ? <small>{companyRegistrationNo}</small> : null}
+            </div>
 
-          <div className="business-card-main">
             <div className="business-card-info">
               <h2>{displayName}</h2>
               <strong>{employee?.job_title?.name ?? '未设置职称'}</strong>
               <div className="business-card-contact-grid">
-                <CardContact label="Whatsapp" value={whatsapp} />
-                <CardContact label="微信" value="未设置" />
-                <CardContact label="公司 IG" value={companyInstagram} />
-                <CardContact label="公司 FB" value={companyFacebook} />
+                <CardContact kind="whatsapp" label="Whatsapp" value={whatsapp} />
+                <CardContact kind="wechat" label="微信" value="未设置" />
+                <CardContact kind="instagram" label="公司 Instagram" value={companyInstagram} />
+                <CardContact kind="facebook" label="公司 Facebook" value={companyFacebook} />
               </div>
-              <button className="primary-button business-card-download" type="button" onClick={() => setDownloadChoiceOpen(true)} disabled={downloadingCard}>
-                <Download size={18} />
-                <span>{downloadingCard ? '生成中...' : '下载电子名片'}</span>
-              </button>
             </div>
-
-            <button className="business-card-photo" type="button" onClick={() => avatarUrl && setPreviewOpen(true)} disabled={!avatarUrl}>
-              {avatarUrl ? <img src={avatarUrl} alt="个人头像" /> : <span>{initials}</span>}
-            </button>
           </div>
+
+          <button className="business-card-photo" type="button" onClick={() => avatarUrl && setPreviewOpen(true)} disabled={!avatarUrl}>
+            {avatarUrl ? <img src={avatarUrl} alt="个人头像" /> : <span>{initials}</span>}
+          </button>
+        </div>
+        <div className="business-card-actions">
+          <button className="primary-button business-card-download" type="button" onClick={() => setDownloadChoiceOpen(true)} disabled={downloadingCard}>
+            <Download size={18} />
+            <span>{downloadingCard ? '生成中...' : '下载电子名片'}</span>
+          </button>
         </div>
       </div>
 
@@ -475,10 +477,28 @@ export function ProfilePage() {
   );
 }
 
-function CardContact({ label, value }: { label: string; value: string }) {
+function CardContact({
+  kind,
+  label,
+  value,
+}: {
+  kind: 'whatsapp' | 'wechat' | 'instagram' | 'facebook';
+  label: string;
+  value: string;
+}) {
+  const iconProps = { size: 21, strokeWidth: 2.5 };
+  const icons = {
+    whatsapp: <MessageCircle {...iconProps} />,
+    wechat: <MessagesSquare {...iconProps} />,
+    instagram: <Instagram {...iconProps} />,
+    facebook: <Facebook {...iconProps} />,
+  };
+
   return (
-    <div>
-      <span>{label}</span>
+    <div className="business-card-contact-row">
+      <span className={`business-card-app-icon ${kind}`} aria-label={label}>
+        {icons[kind]}
+      </span>
       <strong>{value}</strong>
     </div>
   );
@@ -549,32 +569,34 @@ async function drawBusinessCard(
   context.stroke();
 
   const logo = await loadImage(logoUrl);
-  const companyCenterX = canvas.width / 2;
-  const companyTop = values.orientation === 'horizontal' ? 84 : 92;
+  const isHorizontal = values.orientation === 'horizontal';
+  const companyCenterX = isHorizontal ? canvas.width * 0.34 : canvas.width / 2;
+  const companyTop = isHorizontal ? 72 : 92;
 
   if (logo) {
-    drawContainImage(context, logo, companyCenterX - 46, companyTop, 92, 92);
+    const logoSize = isHorizontal ? 116 : 92;
+    drawContainImage(context, logo, companyCenterX - logoSize / 2, companyTop, logoSize, logoSize);
   }
 
   context.fillStyle = '#172033';
   context.textAlign = 'center';
-  context.font = 'bold 42px "Microsoft YaHei", Arial';
-  context.fillText('东娱传媒', companyCenterX, companyTop + 138);
+  context.font = `bold ${isHorizontal ? 56 : 42}px "Microsoft YaHei", Arial`;
+  context.fillText('东娱传媒', companyCenterX, companyTop + (isHorizontal ? 170 : 138));
 
   context.fillStyle = '#172033';
-  context.font = 'bold 26px Arial';
+  context.font = `bold ${isHorizontal ? 28 : 26}px Arial`;
   if (values.companyEnglishName) {
-    context.fillText(values.companyEnglishName, companyCenterX, companyTop + 178);
+    context.fillText(values.companyEnglishName, companyCenterX, companyTop + (isHorizontal ? 216 : 178));
   }
 
   context.fillStyle = '#68758a';
-  context.font = '22px Arial';
+  context.font = `${isHorizontal ? 25 : 22}px Arial`;
   if (values.companyRegistrationNo) {
-    context.fillText(`Reg. No. ${values.companyRegistrationNo}`, companyCenterX, companyTop + 214);
+    context.fillText(values.companyRegistrationNo, companyCenterX, companyTop + (isHorizontal ? 258 : 214));
   }
 
   context.fillStyle = accentGradient;
-  context.fillRect(companyCenterX - 95, companyTop + 242, 190, 7);
+  context.fillRect(companyCenterX - 95, companyTop + (isHorizontal ? 302 : 242), 190, 7);
   context.fillRect(0, canvas.height - (values.orientation === 'horizontal' ? 24 : 30), canvas.width, values.orientation === 'horizontal' ? 24 : 30);
   context.beginPath();
   context.moveTo(canvas.width - 210, canvas.height - (values.orientation === 'horizontal' ? 44 : 54));
@@ -587,53 +609,167 @@ async function drawBusinessCard(
   const image = values.avatarUrl ? await loadImage(values.avatarUrl) : null;
 
   if (values.orientation === 'horizontal') {
-    drawCardDetails(context, values, image, 128, 388, 800);
-    drawAvatar(context, values, image, 1060, 396, 330);
+    drawCardDetails(context, values, 96, 520, 820);
+    drawAvatar(context, values, image, 1070, 252, 420);
     return;
   }
 
   drawAvatar(context, values, image, 300, 440, 360);
-  drawCardDetails(context, values, image, 122, 920, 716);
+  drawCardDetails(context, values, 122, 920, 716);
 }
 
 function drawCardDetails(
   context: CanvasRenderingContext2D,
   values: {
+    orientation: 'horizontal' | 'vertical';
     name: string;
     jobTitle: string;
     whatsapp: string;
     wechat: string;
   },
-  _image: HTMLImageElement | null,
   x: number,
   y: number,
   width: number,
 ) {
+  if (values.orientation === 'vertical') {
+    const centerX = x + width / 2;
+    context.textAlign = 'center';
+    context.fillStyle = '#05070d';
+    context.font = 'bold 52px "Microsoft YaHei", Arial';
+    context.fillText(values.name, centerX, y);
+
+    context.fillStyle = '#351098';
+    context.font = 'bold 32px "Microsoft YaHei", Arial';
+    context.fillText(values.jobTitle, centerX, y + 58);
+
+    const rows = [
+      ['whatsapp', values.whatsapp],
+      ['wechat', values.wechat],
+      ['instagram', companyInstagram],
+      ['facebook', companyFacebook],
+    ] as const;
+
+    rows.forEach(([kind, value], index) => {
+      drawCanvasContactRow(context, kind, value, x + 48, y + 140 + index * 88, width - 96, true);
+    });
+    return;
+  }
+
   context.textAlign = 'left';
-  context.fillStyle = '#172033';
+  context.fillStyle = '#05070d';
   context.font = 'bold 56px "Microsoft YaHei", Arial';
   context.fillText(values.name, x, y);
 
-  context.fillStyle = '#1f7a8c';
+  context.fillStyle = '#351098';
   context.font = 'bold 30px "Microsoft YaHei", Arial';
   context.fillText(values.jobTitle, x, y + 58);
 
-  context.fillStyle = '#68758a';
-  context.font = 'bold 25px Arial';
-  const rows = [
-    ['Whatsapp', values.whatsapp],
-    ['微信', values.wechat],
-    ['公司 IG', companyInstagram],
-    ['公司 FB', companyFacebook],
-  ];
+  const contactTop = y + 140;
+  const dividerX = x + 430;
+  context.strokeStyle = '#d8dde7';
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(dividerX, contactTop - 20);
+  context.lineTo(dividerX, contactTop + 118);
+  context.stroke();
 
-  rows.forEach(([label, value], index) => {
-    const rowY = y + 142 + index * 54;
-    context.fillStyle = '#68758a';
-    context.fillText(label, x, rowY);
-    context.fillStyle = '#172033';
-    context.fillText(value, x + Math.min(180, width * 0.28), rowY);
-  });
+  drawCanvasContactRow(context, 'whatsapp', values.whatsapp, x, contactTop, 330, false);
+  drawCanvasContactRow(context, 'wechat', values.wechat, x, contactTop + 72, 330, false);
+  drawCanvasContactRow(context, 'instagram', companyInstagram, x + 500, contactTop, width - 500, false);
+  drawCanvasContactRow(context, 'facebook', companyFacebook, x + 500, contactTop + 72, width - 500, false);
+}
+
+function drawCanvasContactRow(
+  context: CanvasRenderingContext2D,
+  kind: 'whatsapp' | 'wechat' | 'instagram' | 'facebook',
+  value: string,
+  x: number,
+  y: number,
+  width: number,
+  withDivider: boolean,
+) {
+  if (withDivider) {
+    context.strokeStyle = '#d8dde7';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(x, y + 52);
+    context.lineTo(x + width, y + 52);
+    context.stroke();
+  }
+
+  drawCanvasAppIcon(context, kind, x, y - 34, 54);
+  context.fillStyle = '#111827';
+  context.font = '30px Arial';
+  context.textAlign = 'left';
+  context.fillText(value, x + 82, y + 4);
+}
+
+function drawCanvasAppIcon(
+  context: CanvasRenderingContext2D,
+  kind: 'whatsapp' | 'wechat' | 'instagram' | 'facebook',
+  x: number,
+  y: number,
+  size: number,
+) {
+  const gradient = context.createLinearGradient(x, y, x + size, y + size);
+  if (kind === 'whatsapp' || kind === 'instagram') {
+    gradient.addColorStop(0, '#f01384');
+    gradient.addColorStop(1, '#8a21d2');
+  } else {
+    gradient.addColorStop(0, '#5e239d');
+    gradient.addColorStop(1, '#43229b');
+  }
+
+  context.fillStyle = gradient;
+  roundedRect(context, x, y, size, size, 12);
+  context.fill();
+
+  context.strokeStyle = '#ffffff';
+  context.fillStyle = '#ffffff';
+  context.lineWidth = 4;
+
+  if (kind === 'instagram') {
+    roundedRect(context, x + 13, y + 13, size - 26, size - 26, 9);
+    context.stroke();
+    context.beginPath();
+    context.arc(x + size / 2, y + size / 2, 8, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.arc(x + size - 17, y + 17, 2.8, 0, Math.PI * 2);
+    context.fill();
+    return;
+  }
+
+  if (kind === 'facebook') {
+    context.font = 'bold 40px Arial';
+    context.textAlign = 'center';
+    context.fillText('f', x + size / 2 + 2, y + size - 10);
+    return;
+  }
+
+  if (kind === 'wechat') {
+    context.beginPath();
+    context.ellipse(x + 23, y + 25, 14, 11, 0, 0, Math.PI * 2);
+    context.fill();
+    context.beginPath();
+    context.ellipse(x + 34, y + 32, 14, 11, 0, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#43229b';
+    context.beginPath();
+    context.arc(x + 18, y + 23, 2, 0, Math.PI * 2);
+    context.arc(x + 27, y + 23, 2, 0, Math.PI * 2);
+    context.arc(x + 30, y + 30, 2, 0, Math.PI * 2);
+    context.arc(x + 39, y + 30, 2, 0, Math.PI * 2);
+    context.fill();
+    return;
+  }
+
+  context.beginPath();
+  context.arc(x + size / 2, y + size / 2, 16, 0.35, Math.PI * 1.78);
+  context.stroke();
+  context.font = 'bold 28px Arial';
+  context.textAlign = 'center';
+  context.fillText('☎', x + size / 2, y + size / 2 + 10);
 }
 
 function drawAvatar(
