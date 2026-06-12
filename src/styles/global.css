@@ -1354,6 +1354,47 @@ a {
   background: linear-gradient(135deg, #e83e8c, #7c3aed);
 }
 
+.permission-placeholder {
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+}
+
+.permission-placeholder p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.permission-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.permission-card {
+  display: grid;
+  gap: 8px;
+  min-height: 108px;
+  align-content: center;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.permission-card strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.permission-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .leave-page {
   display: grid;
   gap: 22px;

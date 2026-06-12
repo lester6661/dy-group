@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, LogOut, Menu, Search, Settings, UserRound } from 'lucide-react';
+import { Bell, LogOut, Menu, Search, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCurrentPage } from '../hooks/useCurrentPage';
 import { useAuth } from '../hooks/useAuth';
@@ -12,7 +12,6 @@ export function Header() {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const initials = profile?.full_name?.slice(0, 1).toUpperCase() ?? 'D';
-  const isSuperAdmin = profile?.role === 'super_admin';
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -68,12 +67,6 @@ export function Header() {
                 <UserRound size={16} />
                 <span>个人资料</span>
               </Link>
-              {isSuperAdmin ? (
-                <Link to="/settings" onClick={() => setMenuOpen(false)}>
-                  <Settings size={16} />
-                  <span>系统设置</span>
-                </Link>
-              ) : null}
               <div className="avatar-menu-divider" />
               <button type="button" onClick={handleSignOut}>
                 <LogOut size={16} />
