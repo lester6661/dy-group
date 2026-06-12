@@ -116,6 +116,20 @@
   object-fit: cover;
 }
 
+.employee-avatar-preview-button {
+  display: inline-grid;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.employee-avatar-preview-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
 .employee-detail-title {
   display: flex;
   align-items: center;
@@ -146,6 +160,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.form-section-title {
+  grid-column: 1 / -1;
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .profile-grid-wide {

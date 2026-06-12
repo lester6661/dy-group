@@ -36,7 +36,6 @@ const statusLabels: Record<EmployeeStatus, string> = {
 
 export function StaffPage() {
   const { profile } = useAuth();
-  const isSuperAdmin = profile?.role === 'super_admin';
   const canManageStaff = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'hr';
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [options, setOptions] = useState<StaffOptions>({ regions: [], employmentTypes: [], jobTitles: [] });
@@ -152,7 +151,7 @@ export function StaffPage() {
           </div>
           <label className="table-search">
             <Search size={16} />
-            <input placeholder="搜索名字、昵称、职位" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            <input placeholder="搜索名字、昵称、职称" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
           </label>
         </div>
 
@@ -169,7 +168,7 @@ export function StaffPage() {
                   <th>头像</th>
                   <th>名字</th>
                   <th>昵称</th>
-                  <th>职位</th>
+                  <th>职称</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,7 +215,6 @@ export function StaffPage() {
           saving={saving}
           error={error}
           message={message}
-          isSuperAdmin={isSuperAdmin}
           onChange={setFormValues}
           onClose={resetForm}
           onSubmit={handleSubmit}
@@ -237,64 +235,82 @@ function EmployeeDetailModal({
   onClose: () => void;
   onEdit: () => void;
 }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   return (
-    <SystemModal
-      title={employee.full_name}
-      subtitle="员工详情"
-      ariaLabel="员工详情"
-      onClose={onClose}
-      footer={
-        canManageStaff ? (
-          <>
+    <>
+      <SystemModal
+        title={employee.full_name}
+        subtitle="员工详情"
+        ariaLabel="员工详情"
+        onClose={onClose}
+        footer={
+          canManageStaff ? (
+            <>
+              <button className="secondary-button compact-button" type="button" onClick={onClose}>
+                关闭
+              </button>
+              <button className="primary-button compact-button" type="button" onClick={onEdit}>
+                <Edit3 size={16} />
+                <span>编辑资料</span>
+              </button>
+            </>
+          ) : (
             <button className="secondary-button compact-button" type="button" onClick={onClose}>
               关闭
             </button>
-            <button className="primary-button compact-button" type="button" onClick={onEdit}>
-              <Edit3 size={16} />
-              <span>编辑资料</span>
-            </button>
-          </>
-        ) : (
-          <button className="secondary-button compact-button" type="button" onClick={onClose}>
-            关闭
-          </button>
-        )
-      }
-    >
+          )
+        }
+      >
         <div className="employee-detail-sections">
-          <DetailSection title="基础资料">
+          <DetailSection title="头像区">
             <div className="detail-avatar-row">
-              <EmployeeAvatar employee={employee} large />
+              <button className="employee-avatar-preview-button" type="button" onClick={() => setPreviewOpen(true)}>
+                <EmployeeAvatar employee={employee} large />
+              </button>
               <Info label="姓名" value={employee.full_name} />
             </div>
+          </DetailSection>
+
+          <DetailSection title="基本资料">
+            <Info label="姓名" value={employee.full_name} />
             <Info label="昵称" value={employee.nickname} />
             <Info label="电话" value={employee.phone} />
             <Info label="邮箱" value={employee.email} />
             <Info label="生日" value={employee.birthday} />
-            <Info label="身份证号码" value={employee.identity_number} />
             <Info label="地址" value={employee.address} />
           </DetailSection>
 
           <DetailSection title="工作资料">
             <Info label="员工编号" value={employee.employee_code} />
-            <Info label="职位" value={employee.job_title?.name} />
-            <Info label="状态" value={statusLabels[employee.status]} />
+            <Info label="职称" value={employee.job_title?.name} />
+            <Info label="区域" value={employee.region?.name ?? employee.region?.code} />
+            <Info label="雇佣类型" value={employee.employment_type?.name} />
             <Info label="入职日期" value={employee.hire_date} />
             <Info label="正式日期" value={employee.hire_date ? calculateConfirmDate(employee.hire_date) : employee.probation_confirm_date} />
-          </DetailSection>
-
-          <DetailSection title="薪资资料">
-            <Info label="银行" value={employee.bank_name} />
-            <Info label="银行户口" value={employee.bank_account} />
-            <Info label="基本薪资" value={formatMoney(employee.base_salary)} />
-          </DetailSection>
-
-          <DetailSection title="班次资料">
             <Info label="上班时间" value={formatTime(employee.start_work_time)} />
             <Info label="下班时间" value={formatTime(employee.end_work_time)} />
+            <Info label="状态" value={statusLabels[employee.status]} />
+          </DetailSection>
+
+          <DetailSection title="银行资料">
+            <Info label="银行" value={employee.bank_name} />
+            <Info label="银行户口" value={employee.bank_account} />
+          </DetailSection>
+
+          <DetailSection title="敏感资料">
+            <Info label="身份证号码" value={employee.identity_number} />
+            <Info label="基本薪资" value={formatMoney(employee.base_salary)} />
           </DetailSection>
         </div>
-    </SystemModal>
+      </SystemModal>
+
+      {previewOpen ? (
+        <SystemModal title={employee.full_name} subtitle="头像预览" ariaLabel="头像预览" className="profile-preview-modal" onClose={() => setPreviewOpen(false)}>
+          {employee.avatar_url ? <img src={employee.avatar_url} alt={employee.full_name + ' 头像'} /> : <EmployeeAvatar employee={employee} large />}
+        </SystemModal>
+      ) : null}
+    </>
   );
 }
 
@@ -305,7 +321,6 @@ type StaffFormModalProps = {
   saving: boolean;
   error: string;
   message: string;
-  isSuperAdmin: boolean;
   onChange: (values: EmployeeFormValues) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -318,7 +333,6 @@ function StaffFormModal({
   saving,
   error,
   message,
-  isSuperAdmin,
   onChange,
   onClose,
   onSubmit,
@@ -343,18 +357,28 @@ function StaffFormModal({
     >
         <form id="staff-form" onSubmit={onSubmit}>
           <div className="form-grid">
+            <FormSectionTitle title="基本资料" />
             <TextField label="姓名" value={values.full_name} onChange={(value) => onChange({ ...values, full_name: value })} required />
             <TextField label="昵称" value={values.nickname} onChange={(value) => onChange({ ...values, nickname: value })} />
-            <TextField label="头像 URL" value={values.avatar_url} onChange={(value) => onChange({ ...values, avatar_url: value })} />
             <TextField label="电话" value={values.phone} onChange={(value) => onChange({ ...values, phone: value })} />
             <TextField label="邮箱" type="email" value={values.email} onChange={(value) => onChange({ ...values, email: value })} />
-            <TextField label="员工编号" value={values.employee_code} onChange={(value) => onChange({ ...values, employee_code: value })} />
             <TextField label="生日" type="date" value={values.birthday} onChange={(value) => onChange({ ...values, birthday: value })} />
-            <TextField label="身份证号" value={values.identity_number} onChange={(value) => onChange({ ...values, identity_number: value })} />
             <TextField label="地址" value={values.address} onChange={(value) => onChange({ ...values, address: value })} />
-            <TextField label="银行" value={values.bank_name} onChange={(value) => onChange({ ...values, bank_name: value })} />
-            <TextField label="银行户口" value={values.bank_account} onChange={(value) => onChange({ ...values, bank_account: value })} />
-            <TextField label="基本薪资" type="number" value={values.base_salary} onChange={(value) => onChange({ ...values, base_salary: value })} />
+
+            <FormSectionTitle title="工作资料" />
+            <TextField label="员工编号" value={values.employee_code} onChange={(value) => onChange({ ...values, employee_code: value })} />
+
+            <label className="form-field">
+              <span>职称</span>
+              <select value={values.job_title_id} onChange={(event) => onChange({ ...values, job_title_id: event.target.value })}>
+                <option value="">未选择</option>
+                {options.jobTitles.map((title) => (
+                  <option key={title.id} value={title.id}>
+                    {title.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <label className="form-field">
               <span>区域</span>
@@ -380,17 +404,10 @@ function StaffFormModal({
               </select>
             </label>
 
-            <label className="form-field">
-              <span>职位</span>
-              <select value={values.job_title_id} onChange={(event) => onChange({ ...values, job_title_id: event.target.value })}>
-                <option value="">未选择</option>
-                {options.jobTitles.map((title) => (
-                  <option key={title.id} value={title.id}>
-                    {title.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <TextField label="入职日期" type="date" value={values.hire_date} onChange={(value) => onChange({ ...values, hire_date: value })} />
+            <ReadOnlyField label="正式日期" value={calculateConfirmDate(values.hire_date)} />
+            <TextField label="上班时间" type="time" value={values.start_work_time} onChange={(value) => onChange({ ...values, start_work_time: value })} />
+            <TextField label="下班时间" type="time" value={values.end_work_time} onChange={(value) => onChange({ ...values, end_work_time: value })} />
 
             <label className="form-field">
               <span>状态</span>
@@ -401,23 +418,13 @@ function StaffFormModal({
               </select>
             </label>
 
-            <TextField label="入职日期" type="date" value={values.hire_date} onChange={(value) => onChange({ ...values, hire_date: value })} />
-            <ReadOnlyField label="正式日期" value={calculateConfirmDate(values.hire_date)} />
-            <TextField label="上班时间" type="time" value={values.start_work_time} onChange={(value) => onChange({ ...values, start_work_time: value })} />
-            <TextField label="下班时间" type="time" value={values.end_work_time} onChange={(value) => onChange({ ...values, end_work_time: value })} />
+            <FormSectionTitle title="银行资料" />
+            <TextField label="银行" value={values.bank_name} onChange={(value) => onChange({ ...values, bank_name: value })} />
+            <TextField label="银行户口" value={values.bank_account} onChange={(value) => onChange({ ...values, bank_account: value })} />
 
-            <label className="form-field checkbox-field">
-              <span>是否需要考勤</span>
-              <label className="inline-check">
-                <input
-                  type="checkbox"
-                  checked={values.require_attendance}
-                  disabled={!isSuperAdmin}
-                  onChange={(event) => onChange({ ...values, require_attendance: event.target.checked })}
-                />
-                <strong>{values.require_attendance ? '需要考勤' : '不需要考勤'}</strong>
-              </label>
-            </label>
+            <FormSectionTitle title="敏感资料" />
+            <TextField label="身份证号码" value={values.identity_number} onChange={(value) => onChange({ ...values, identity_number: value })} />
+            <TextField label="基本薪资" type="number" value={values.base_salary} onChange={(value) => onChange({ ...values, base_salary: value })} />
           </div>
 
           {error ? <p className="form-alert">{error}</p> : null}
@@ -434,6 +441,10 @@ function DetailSection({ title, children }: { title: string; children: ReactNode
       <div className="detail-list">{children}</div>
     </section>
   );
+}
+
+function FormSectionTitle({ title }: { title: string }) {
+  return <h4 className="form-section-title">{title}</h4>;
 }
 
 function EmployeeAvatar({ employee, large = false }: { employee: EmployeeListItem; large?: boolean }) {
