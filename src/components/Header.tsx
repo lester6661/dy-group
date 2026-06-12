@@ -11,7 +11,9 @@ export function Header() {
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [nickname, setNickname] = useState('');
   const initials = profile?.full_name?.slice(0, 1).toUpperCase() ?? 'D';
+  const displayName = nickname || profile?.full_name || 'DY 用户';
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -23,6 +25,34 @@ export function Header() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadNickname() {
+      if (!profile?.id) {
+        setNickname('');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('employees')
+        .select('nickname')
+        .eq('profile_id', profile.id)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (mounted && !error) {
+        setNickname(data?.nickname?.trim() ?? '');
+      }
+    }
+
+    void loadNickname();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.id]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -56,7 +86,7 @@ export function Header() {
               {profile?.avatar_url ? <img src={profile.avatar_url} alt="个人头像" /> : initials}
             </span>
             <span className="avatar-meta">
-              <strong>{profile?.full_name ?? 'DY 用户'}</strong>
+              <strong>{displayName}</strong>
               <small>账号菜单</small>
             </span>
           </button>

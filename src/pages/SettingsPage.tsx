@@ -44,6 +44,8 @@ const emptyForm: SettingsFormValues = {
   name: '',
   company_english_name: '',
   company_registration_no: '',
+  company_instagram: '',
+  company_facebook: '',
   sort_order: 0,
   is_active: true,
 };
@@ -158,6 +160,8 @@ export function SettingsPage() {
       name: record.name,
       company_english_name: 'company_english_name' in record ? record.company_english_name ?? '' : '',
       company_registration_no: 'company_registration_no' in record ? record.company_registration_no ?? '' : '',
+      company_instagram: 'company_instagram' in record ? record.company_instagram ?? '' : '',
+      company_facebook: 'company_facebook' in record ? record.company_facebook ?? '' : '',
       sort_order: record.sort_order,
       is_active: record.is_active,
     });
@@ -228,6 +232,8 @@ export function SettingsPage() {
                     <th>名称</th>
                     {activeModule.key === 'regions' ? <th>公司英文名称</th> : null}
                     {activeModule.key === 'regions' ? <th>公司注册号</th> : null}
+                    {activeModule.key === 'regions' ? <th>公司 IG</th> : null}
+                    {activeModule.key === 'regions' ? <th>公司 FB</th> : null}
                     <th>排序</th>
                     <th>状态</th>
                     <th>操作</th>
@@ -242,6 +248,8 @@ export function SettingsPage() {
                       </td>
                       {activeModule.key === 'regions' ? <td>{'company_english_name' in record ? record.company_english_name || '-' : '-'}</td> : null}
                       {activeModule.key === 'regions' ? <td>{'company_registration_no' in record ? record.company_registration_no || '-' : '-'}</td> : null}
+                      {activeModule.key === 'regions' ? <td>{'company_instagram' in record ? record.company_instagram || '-' : '-'}</td> : null}
+                      {activeModule.key === 'regions' ? <td>{'company_facebook' in record ? record.company_facebook || '-' : '-'}</td> : null}
                       <td>{record.sort_order}</td>
                       <td>
                         <span className={record.is_active ? 'status-pill status-active' : 'status-pill status-inactive'}>
@@ -359,6 +367,24 @@ function SettingsFormModal({
                   value={formValues.company_registration_no ?? ''}
                   onChange={(event) => onChange({ ...formValues, company_registration_no: event.target.value })}
                   placeholder="例如 202401047280 (1593126-M)"
+                />
+              </label>
+
+              <label className="form-field">
+                <span>公司 IG</span>
+                <input
+                  value={formValues.company_instagram ?? ''}
+                  onChange={(event) => onChange({ ...formValues, company_instagram: event.target.value })}
+                  placeholder="例如 @dygroup"
+                />
+              </label>
+
+              <label className="form-field">
+                <span>公司 FB</span>
+                <input
+                  value={formValues.company_facebook ?? ''}
+                  onChange={(event) => onChange({ ...formValues, company_facebook: event.target.value })}
+                  placeholder="例如 DY Group"
                 />
               </label>
             </>

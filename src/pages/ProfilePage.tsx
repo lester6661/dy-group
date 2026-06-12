@@ -19,8 +19,6 @@ type ProfileForm = {
 
 type ContactKind = 'whatsapp' | 'wechat' | 'instagram' | 'facebook';
 
-const companyInstagram = '@dygroup';
-const companyFacebook = 'DY Group';
 const wechatStorageKey = 'dy-group-business-card-wechat';
 const avatarOriginalStorageKey = 'dy-group-avatar-original-url';
 const avatarCropSize = 320;
@@ -63,8 +61,11 @@ export function ProfilePage() {
   const avatarPreviewUrl = avatarOriginalUrl || avatarUrl;
   const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
   const cardWechat = wechat.trim() || '未设置';
+  const companyChineseName = employee?.region?.name ?? '东娱传媒';
   const companyEnglishName = employee?.region?.company_english_name ?? '';
   const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
+  const companyInstagram = employee?.region?.company_instagram ?? '';
+  const companyFacebook = employee?.region?.company_facebook ?? '';
   const cropBaseScale =
     cropImageSize.width && cropImageSize.height ? Math.max(avatarCropSize / cropImageSize.width, avatarCropSize / cropImageSize.height) : 1;
   const cropDisplayWidth = cropImageSize.width * cropBaseScale * cropZoom;
@@ -333,6 +334,9 @@ export function ProfilePage() {
         initials,
         companyEnglishName,
         companyRegistrationNo,
+        companyChineseName,
+        companyInstagram,
+        companyFacebook,
       });
 
       const link = document.createElement('a');
@@ -365,7 +369,7 @@ export function ProfilePage() {
           <div className="business-card-content">
             <div className="business-card-company">
               <img src={logoUrl} alt="DY Group" />
-              <strong>东娱传媒</strong>
+              <strong>{companyChineseName}</strong>
               {companyEnglishName ? <span>{companyEnglishName}</span> : null}
               {companyRegistrationNo ? <small>{companyRegistrationNo}</small> : null}
             </div>
@@ -376,8 +380,8 @@ export function ProfilePage() {
               <div className="business-card-contact-grid">
                 <CardContact kind="whatsapp" label="Whatsapp" value={whatsapp} />
                 <CardContact kind="wechat" label="微信" value={cardWechat} />
-                <CardContact kind="instagram" label="公司 Instagram" value={companyInstagram} />
-                <CardContact kind="facebook" label="公司 Facebook" value={companyFacebook} />
+                <CardContact kind="instagram" label="公司 Instagram" value={companyInstagram || '-'} />
+                <CardContact kind="facebook" label="公司 Facebook" value={companyFacebook || '-'} />
               </div>
             </div>
           </div>
@@ -648,8 +652,11 @@ async function drawBusinessCard(
     wechat: string;
     avatarUrl: string | null | undefined;
     initials: string;
+    companyChineseName: string;
     companyEnglishName: string;
     companyRegistrationNo: string;
+    companyInstagram: string;
+    companyFacebook: string;
   },
 ) {
   const { canvas } = context;
@@ -669,7 +676,9 @@ async function drawBusinessCard(
 
   const logo = await loadImage(logoUrl);
   const isHorizontal = values.orientation === 'horizontal';
-  const companyCenterX = isHorizontal ? canvas.width * 0.255 : canvas.width / 2;
+  const leftGroupX = 90;
+  const leftGroupWidth = isHorizontal ? 800 : canvas.width - 244;
+  const companyCenterX = isHorizontal ? leftGroupX + leftGroupWidth / 2 : canvas.width / 2;
   const companyTop = isHorizontal ? 72 : 92;
 
   if (logo) {
@@ -680,7 +689,7 @@ async function drawBusinessCard(
   context.fillStyle = '#172033';
   context.textAlign = 'center';
   context.font = `bold ${isHorizontal ? 56 : 42}px "Microsoft YaHei", Arial`;
-  context.fillText('东娱传媒', companyCenterX, companyTop + (isHorizontal ? 170 : 138));
+  context.fillText(values.companyChineseName, companyCenterX, companyTop + (isHorizontal ? 170 : 138));
 
   context.fillStyle = '#172033';
   context.font = `bold ${isHorizontal ? 28 : 26}px Arial`;
@@ -714,8 +723,8 @@ async function drawBusinessCard(
   };
 
   if (values.orientation === 'horizontal') {
-    drawCardDetails(context, values, contactLogos, 96, 520, 820);
-    drawAvatar(context, values, image, 1010, 250, 460);
+    drawCardDetails(context, values, contactLogos, leftGroupX, 520, leftGroupWidth);
+    drawAvatar(context, values, image, 990, 224, 500);
     return;
   }
 
@@ -731,6 +740,8 @@ function drawCardDetails(
     jobTitle: string;
     whatsapp: string;
     wechat: string;
+    companyInstagram: string;
+    companyFacebook: string;
   },
   contactLogos: Record<ContactKind, HTMLImageElement | null>,
   x: number,
@@ -754,8 +765,8 @@ function drawCardDetails(
     const rows = [
       ['whatsapp', values.whatsapp],
       ['wechat', values.wechat],
-      ['instagram', companyInstagram],
-      ['facebook', companyFacebook],
+      ['instagram', values.companyInstagram || '-'],
+      ['facebook', values.companyFacebook || '-'],
     ] as const;
 
     rows.forEach(([kind, value], index) => {
@@ -787,8 +798,8 @@ function drawCardDetails(
 
   drawCanvasContactRow(context, 'whatsapp', values.whatsapp, contactLogos.whatsapp, x, contactTop, 330, false);
   drawCanvasContactRow(context, 'wechat', values.wechat, contactLogos.wechat, x, contactTop + 72, 330, false);
-  drawCanvasContactRow(context, 'instagram', companyInstagram, contactLogos.instagram, x + 500, contactTop, width - 500, false);
-  drawCanvasContactRow(context, 'facebook', companyFacebook, contactLogos.facebook, x + 500, contactTop + 72, width - 500, false);
+  drawCanvasContactRow(context, 'instagram', values.companyInstagram || '-', contactLogos.instagram, x + 500, contactTop, width - 500, false);
+  drawCanvasContactRow(context, 'facebook', values.companyFacebook || '-', contactLogos.facebook, x + 500, contactTop + 72, width - 500, false);
 }
 
 function drawCanvasContactRow(
