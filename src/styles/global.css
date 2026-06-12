@@ -2371,19 +2371,20 @@ button.leave-chip:disabled {
   max-height: 44px;
   color: #ffffff;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e83e8c, #7c3aed);
   box-shadow: 0 8px 18px rgba(16, 25, 40, 0.12);
 }
 
-.business-card-app-icon img {
+.business-card-app-icon svg {
   display: block;
-  width: 36px;
-  min-width: 36px;
-  max-width: 36px;
-  height: 36px;
-  min-height: 36px;
-  max-height: 36px;
-  object-fit: contain;
+  width: 24px;
+  min-width: 24px;
+  max-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  flex: 0 0 24px;
 }
 
 .business-card-actions {
