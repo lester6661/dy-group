@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Edit3, Plus, RefreshCw, Settings2, ShieldCheck, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { SystemModal } from '../components/SystemModal';
 import { type SettingsFormValues, type SettingsModuleKey, type SettingsRecord, settingsService } from '../services/settings.service';
 import { type EmployeeListItem, type StaffOptions, staffService } from '../services/staff.service';
@@ -41,6 +42,21 @@ const modules: SettingsModule[] = [
   },
 ];
 
+const settingsTabAliases: Record<string, SettingsModule['key']> = {
+  regions: 'regions',
+  job_titles: 'job_titles',
+  positions: 'job_titles',
+  employment_types: 'employment_types',
+  permissions: 'permissions',
+};
+
+const settingsTabParams: Record<SettingsModule['key'], string> = {
+  regions: 'regions',
+  job_titles: 'positions',
+  employment_types: 'employment_types',
+  permissions: 'permissions',
+};
+
 const emptyForm: SettingsFormValues = {
   code: '',
   name: '',
@@ -72,13 +88,28 @@ type PermissionModalTarget =
   | { type: 'special'; title: string; subtitle: string }
   | { type: 'employee'; employee: EmployeeListItem };
 
-const defaultSpecialPermissionNames = ['???', '?????'];
+type PermissionTabKey = 'jobTitles' | 'special' | 'employees';
+
+const permissionTabAliases: Record<string, PermissionTabKey> = {
+  job_titles: 'jobTitles',
+  positions: 'jobTitles',
+  special: 'special',
+  employees: 'employees',
+};
+
+const permissionTabParams: Record<PermissionTabKey, string> = {
+  jobTitles: 'positions',
+  special: 'special',
+  employees: 'employees',
+};
+
+const defaultSpecialPermissionNames = ['管理员', '高级管理员'];
 const employeeStatusLabels: Record<string, string> = {
-  active: '??',
-  probation: '???',
-  inactive: '??',
-  suspended: '??',
-  left: '??',
+  active: '在职',
+  probation: '试用期',
+  inactive: '停职',
+  suspended: '停职',
+  left: '离职',
 };
 const employeeStatusOrder: Record<string, number> = {
   active: 0,
@@ -90,7 +121,8 @@ const employeeStatusOrder: Record<string, number> = {
 const reservedPermissionKeys = new Set(['settings']);
 
 export function SettingsPage() {
-  const [activeModuleKey, setActiveModuleKey] = useState<SettingsModule['key']>('regions');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeModuleKey, setActiveModuleKey] = useState<SettingsModule['key']>(() => getSettingsTabFromParams(searchParams));
   const [records, setRecords] = useState<SettingsRecord[]>([]);
   const [editingRecord, setEditingRecord] = useState<SettingsRecord | null>(null);
   const [formValues, setFormValues] = useState<SettingsFormValues>(emptyForm);
@@ -115,6 +147,14 @@ export function SettingsPage() {
       setError('');
     }
   }, [activeModuleKey]);
+
+  useEffect(() => {
+    const nextTab = getSettingsTabFromParams(searchParams);
+    if (nextTab !== activeModuleKey) {
+      setActiveModuleKey(nextTab);
+      closeForm();
+    }
+  }, [searchParams]);
 
   async function loadSettings(moduleKey = activeModuleKey) {
     if (moduleKey === 'permissions') {
@@ -207,6 +247,7 @@ export function SettingsPage() {
 
   function handleModuleChange(moduleKey: SettingsModule['key']) {
     setActiveModuleKey(moduleKey);
+    setSearchParams({ tab: settingsTabParams[moduleKey] });
     closeForm();
   }
 
@@ -451,7 +492,8 @@ function SettingsFormModal({
 }
 
 function PermissionManagementPanel() {
-  const [activeTab, setActiveTab] = useState<'jobTitles' | 'special' | 'employees'>('jobTitles');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<PermissionTabKey>(() => getPermissionTabFromParams(searchParams));
   const [jobTitles, setJobTitles] = useState<SettingsRecord[]>([]);
   const [staffOptions, setStaffOptions] = useState<StaffOptions>({ regions: [], employmentTypes: [], jobTitles: [] });
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
@@ -481,6 +523,14 @@ function PermissionManagementPanel() {
     void loadPermissionContext();
   }, []);
 
+  useEffect(() => {
+    const nextTab = getPermissionTabFromParams(searchParams);
+    if (nextTab !== activeTab) {
+      setActiveTab(nextTab);
+      closePermissionModal();
+    }
+  }, [searchParams]);
+
   async function loadPermissionContext() {
     setLoading(true);
     setError('');
@@ -495,7 +545,7 @@ function PermissionManagementPanel() {
       setEmployees(staffList);
       setStaffOptions(options);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : '???????????');
+      setError(loadError instanceof Error ? loadError.message : '读取权限管理资料失败。');
     } finally {
       setLoading(false);
     }
@@ -525,7 +575,7 @@ function PermissionManagementPanel() {
 
   function handleSaveSpecialPermission() {
     const trimmedName = newSpecialName.trim();
-    if (modalTarget?.type === 'special' && modalTarget.title === '??????' && trimmedName && !specialPermissions.includes(trimmedName)) {
+    if (modalTarget?.type === 'special' && modalTarget.title === '新增特殊权限' && trimmedName && !specialPermissions.includes(trimmedName)) {
       setSpecialPermissions((current) => [...current, trimmedName]);
     }
 
@@ -544,19 +594,25 @@ function PermissionManagementPanel() {
     setOwnedSpecialPermissions((current) => (checked ? [...new Set([...current, name])] : current.filter((item) => item !== name)));
   }
 
+  function handlePermissionTabChange(tabKey: PermissionTabKey) {
+    setActiveTab(tabKey);
+    setSearchParams({ tab: 'permissions', permission_tab: permissionTabParams[tabKey] });
+    closePermissionModal();
+  }
+
   return (
     <div className="permission-management-panel">
       {error ? <p className="form-alert">{error}</p> : null}
 
-      <div className="permission-subtabs" role="tablist" aria-label="??????">
-        <button className={activeTab === 'jobTitles' ? 'permission-subtab active' : 'permission-subtab'} type="button" onClick={() => setActiveTab('jobTitles')}>
-          ????
+      <div className="permission-subtabs" role="tablist" aria-label="权限管理分类">
+        <button className={activeTab === 'jobTitles' ? 'permission-subtab active' : 'permission-subtab'} type="button" onClick={() => handlePermissionTabChange('jobTitles')}>
+          职称权限
         </button>
-        <button className={activeTab === 'special' ? 'permission-subtab active' : 'permission-subtab'} type="button" onClick={() => setActiveTab('special')}>
-          ????
+        <button className={activeTab === 'special' ? 'permission-subtab active' : 'permission-subtab'} type="button" onClick={() => handlePermissionTabChange('special')}>
+          特殊权限
         </button>
-        <button className={activeTab === 'employees' ? 'permission-subtab active' : 'permission-subtab'} type="button" onClick={() => setActiveTab('employees')}>
-          ??????
+        <button className={activeTab === 'employees' ? 'permission-subtab active' : 'permission-subtab'} type="button" onClick={() => handlePermissionTabChange('employees')}>
+          工作人员权限
         </button>
       </div>
 
@@ -564,13 +620,13 @@ function PermissionManagementPanel() {
         <section className="permission-section-panel">
           <div className="list-header">
             <div>
-              <span>????</span>
-              <h3>{jobTitles.length} ???</h3>
+              <span>职称权限</span>
+              <h3>{jobTitles.length} 个职称</h3>
             </div>
             <ShieldCheck size={22} />
           </div>
           {loading ? (
-            <div className="table-state">????????...</div>
+            <div className="table-state">正在读取职称权限...</div>
           ) : (
             <div className="permission-card-grid compact">
               {jobTitles.map((jobTitle) => (
@@ -578,10 +634,10 @@ function PermissionManagementPanel() {
                   className="permission-template-card"
                   type="button"
                   key={jobTitle.id}
-                  onClick={() => openPermissionModal({ type: 'jobTitle', title: jobTitle.name, subtitle: '??????' })}
+                  onClick={() => openPermissionModal({ type: 'jobTitle', title: jobTitle.name, subtitle: '职称基础权限' })}
                 >
                   <strong>{jobTitle.name}</strong>
-                  <span>??????</span>
+                  <span>设置默认权限</span>
                 </button>
               ))}
             </div>
@@ -593,16 +649,16 @@ function PermissionManagementPanel() {
         <section className="permission-section-panel">
           <div className="list-header">
             <div>
-              <span>????</span>
-              <h3>???????????</h3>
+              <span>特殊权限</span>
+              <h3>批量开启或关闭权限模板</h3>
             </div>
             <button
               className="secondary-action"
               type="button"
-              onClick={() => openPermissionModal({ type: 'special', title: '??????', subtitle: '??????' })}
+              onClick={() => openPermissionModal({ type: 'special', title: '新增特殊权限', subtitle: '特殊权限模板' })}
             >
               <Plus size={17} />
-              <span>??????</span>
+              <span>新增特殊权限</span>
             </button>
           </div>
           <div className="permission-card-grid compact">
@@ -611,10 +667,10 @@ function PermissionManagementPanel() {
                 className="permission-template-card"
                 type="button"
                 key={permissionName}
-                onClick={() => openPermissionModal({ type: 'special', title: permissionName, subtitle: '??????' })}
+                onClick={() => openPermissionModal({ type: 'special', title: permissionName, subtitle: '特殊权限模板' })}
               >
                 <strong>{permissionName}</strong>
-                <span>??????</span>
+                <span>设置包含权限</span>
               </button>
             ))}
           </div>
@@ -625,29 +681,29 @@ function PermissionManagementPanel() {
         <section className="permission-section-panel">
           <div className="list-header">
             <div>
-              <span>??????</span>
-              <h3>{sortedEmployees.length} ???</h3>
+              <span>工作人员权限</span>
+              <h3>{sortedEmployees.length} 位员工</h3>
             </div>
             <button className="secondary-action" type="button" onClick={loadPermissionContext} disabled={loading}>
               <RefreshCw size={17} />
-              <span>??</span>
+              <span>刷新</span>
             </button>
           </div>
           {loading ? (
-            <div className="table-state">????????...</div>
+            <div className="table-state">正在读取工作人员...</div>
           ) : sortedEmployees.length === 0 ? (
-            <div className="table-state">?????????</div>
+            <div className="table-state">暂无工作人员资料。</div>
           ) : (
             <div className="staff-table-wrap">
               <table className="staff-table staff-simple-table">
                 <thead>
                   <tr>
-                    <th>??</th>
-                    <th>??</th>
-                    <th>??</th>
-                    <th>??</th>
-                    <th>??</th>
-                    <th>????</th>
+                    <th>状态</th>
+                    <th>头像</th>
+                    <th>名字</th>
+                    <th>昵称</th>
+                    <th>职称</th>
+                    <th>雇佣类型</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -682,42 +738,42 @@ function PermissionManagementPanel() {
       {modalTarget ? (
         <SystemModal
           title={modalTarget.type === 'employee' ? modalTarget.employee.full_name : modalTarget.title}
-          subtitle={modalTarget.type === 'employee' ? '????' : modalTarget.subtitle}
-          ariaLabel="????"
+          subtitle={modalTarget.type === 'employee' ? '权限详情' : modalTarget.subtitle}
+          ariaLabel="权限设置"
           wide
           onClose={closePermissionModal}
           footer={
             <>
               <button className="secondary-button compact-button" type="button" onClick={closePermissionModal}>
-                ??
+                关闭
               </button>
               <button className="primary-button compact-button" type="button" onClick={modalTarget.type === 'special' ? handleSaveSpecialPermission : closePermissionModal}>
-                ????
+                保存模板
               </button>
             </>
           }
         >
-          {modalTarget.type === 'special' && modalTarget.title === '??????' ? (
+          {modalTarget.type === 'special' && modalTarget.title === '新增特殊权限' ? (
             <label className="form-field permission-name-field">
-              <span>??????</span>
-              <input value={newSpecialName} onChange={(event) => setNewSpecialName(event.target.value)} placeholder="???????" />
+              <span>特殊权限名称</span>
+              <input value={newSpecialName} onChange={(event) => setNewSpecialName(event.target.value)} placeholder="例如：区域主管" />
             </label>
           ) : null}
 
           {modalTarget.type === 'employee' ? (
             <div className="employee-permission-sections">
-              <PermissionBlock title="????">
+              <PermissionBlock title="考勤设置">
                 <div className="segmented-choice">
                   <button className={attendanceRequired ? 'active' : ''} type="button" onClick={() => setAttendanceRequired(true)}>
-                    ??
+                    需要
                   </button>
                   <button className={!attendanceRequired ? 'active' : ''} type="button" onClick={() => setAttendanceRequired(false)}>
-                    ???
+                    不需要
                   </button>
                 </div>
               </PermissionBlock>
 
-              <PermissionBlock title="????">
+              <PermissionBlock title="管理区域">
                 <div className="permission-check-grid">
                   {staffOptions.regions.map((region) => (
                     <label className="permission-check" key={region.id}>
@@ -728,7 +784,7 @@ function PermissionManagementPanel() {
                 </div>
               </PermissionBlock>
 
-              <PermissionBlock title="??????">
+              <PermissionBlock title="拥有特殊权限">
                 <div className="permission-check-grid">
                   {specialPermissions.map((permissionName) => (
                     <label className="permission-check" key={permissionName}>
@@ -745,7 +801,7 @@ function PermissionManagementPanel() {
             </div>
           ) : null}
 
-          <PermissionBlock title={modalTarget.type === 'employee' ? '??????' : '????'}>
+          <PermissionBlock title={modalTarget.type === 'employee' ? '个人权限调整' : '权限项目'}>
             <PermissionMatrix items={permissionItems} permissions={modalPermissions} onChange={handlePermissionChange} />
           </PermissionBlock>
         </SystemModal>
@@ -775,9 +831,9 @@ function PermissionMatrix({
   return (
     <div className="permission-matrix">
       <div className="permission-matrix-head">
-        <span>????</span>
-        <span>??</span>
-        <span>??</span>
+        <span>项目名称</span>
+        <span>查阅</span>
+        <span>使用</span>
       </div>
       {items.map((item) => {
         const access = permissions[item.key] ?? { view: false, use: false };
@@ -877,12 +933,12 @@ function createDefaultPermissionState(items: PermissionItem[], target: Permissio
 }
 
 function getDefaultPermissionKeys(name: string) {
-  if (name.includes('HR')) return ['???', 'staff', 'registration-review', 'leave-review', 'attendance-management'];
-  if (name.includes('?????')) return ['??', '???', '??', '???'];
-  if (name.includes('???')) return ['??', '???', '??', '???'];
-  if (name.includes('??')) return ['???', 'agent'];
-  if (name.includes('??')) return ['??', 'designer'];
-  if (name.includes('??')) return ['??', 'scout'];
+  if (name.includes('HR')) return ['人事部', 'staff', 'registration-review', 'leave-review', 'attendance-management'];
+  if (name.includes('高级管理员')) return ['星探', '经纪人', '美工', '人事部'];
+  if (name.includes('管理员')) return ['星探', '经纪人', '美工', '人事部'];
+  if (name.includes('经纪')) return ['经纪人', 'agent'];
+  if (name.includes('美工')) return ['美工', 'designer'];
+  if (name.includes('星探')) return ['星探', 'scout'];
   return [];
 }
 
@@ -932,6 +988,14 @@ function getPermissionCheckState(item: PermissionItem, items: PermissionItem[], 
 
 function getStaffStatus(status: string | null | undefined) {
   return status || 'active';
+}
+
+function getSettingsTabFromParams(searchParams: URLSearchParams): SettingsModule['key'] {
+  return settingsTabAliases[searchParams.get('tab') ?? ''] ?? 'regions';
+}
+
+function getPermissionTabFromParams(searchParams: URLSearchParams): PermissionTabKey {
+  return permissionTabAliases[searchParams.get('permission_tab') ?? ''] ?? 'jobTitles';
 }
 
 function getSettingName(moduleKey: SettingsModule['key']) {
