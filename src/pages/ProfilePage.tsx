@@ -61,7 +61,7 @@ export function ProfilePage() {
   const avatarPreviewUrl = avatarOriginalUrl || avatarUrl;
   const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
   const cardWechat = wechat.trim() || '未设置';
-  const companyChineseName = employee?.region?.name ?? '东娱传媒';
+  const companyChineseName = '东娱传媒';
   const companyEnglishName = employee?.region?.company_english_name ?? '';
   const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
   const companyInstagram = employee?.region?.company_instagram ?? '';
@@ -837,7 +837,8 @@ function drawCanvasAppIcon(
   size: number,
 ) {
   if (logo) {
-    drawContainImage(context, logo, x, y, size, size);
+    const logoSize = 44;
+    drawContainImage(context, logo, x + (size - logoSize) / 2, y + (size - logoSize) / 2, logoSize, logoSize);
     return;
   }
 

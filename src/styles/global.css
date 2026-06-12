@@ -2330,6 +2330,7 @@ button.leave-chip:disabled {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-height: 44px;
   min-width: 0;
 }
 
@@ -2352,15 +2353,22 @@ button.leave-chip:disabled {
   color: #111827;
   font-size: clamp(15px, 1.5vw, 20px);
   font-weight: 500;
+  line-height: 1;
+  text-align: left;
   white-space: nowrap;
 }
 
 .business-card-app-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
   color: #ffffff;
   overflow: hidden;
   border-radius: 10px;
@@ -2370,7 +2378,11 @@ button.leave-chip:disabled {
 .business-card-app-icon img {
   display: block;
   width: 36px;
+  min-width: 36px;
+  max-width: 36px;
   height: 36px;
+  min-height: 36px;
+  max-height: 36px;
   object-fit: contain;
 }
 
