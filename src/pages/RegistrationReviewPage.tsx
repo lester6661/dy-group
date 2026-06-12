@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { CheckCircle2, Search, UserCheck, X, XCircle } from 'lucide-react';
+import { CheckCircle2, Search, UserCheck, XCircle } from 'lucide-react';
+import { SystemModal } from '../components/SystemModal';
 import {
   type PendingRegistration,
   type RegistrationApprovalValues,
@@ -179,133 +180,156 @@ export function RegistrationReviewPage() {
       </div>
 
       {selectedRegistration ? (
-        <div className="modal-backdrop" role="presentation">
-          <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="注册审核详情">
-            <div className="modal-header">
-              <div>
-                <span>审核详情</span>
-                <h3>{selectedRegistration.full_name}</h3>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setSelectedRegistration(null)} aria-label="关闭">
-                <X size={18} />
+        <SystemModal
+          title={selectedRegistration.full_name}
+          subtitle="审核详情"
+          ariaLabel="注册审核详情"
+          onClose={() => setSelectedRegistration(null)}
+          footer={
+            <>
+              <button className="secondary-button compact-button" type="button" onClick={() => setSelectedRegistration(null)}>
+                关闭
               </button>
-            </div>
-
+              <button className="primary-button compact-button" type="button" onClick={handleApprove} disabled={submitting}>
+                <CheckCircle2 size={18} />
+                <span>{submitting ? '处理中...' : '审核通过'}</span>
+              </button>
+              <button className="secondary-button compact-button danger-text-button" type="submit" form="registration-reject-form" disabled={submitting}>
+                <XCircle size={18} />
+                <span>{submitting ? '处理中...' : '审核拒绝'}</span>
+              </button>
+            </>
+          }
+        >
             <div className="review-badge">
               <UserCheck size={16} />
               <span>待审核</span>
             </div>
 
-            <div className="detail-list">
-              <div>
-                <span>姓名</span>
-                <strong>{selectedRegistration.full_name}</strong>
+            <section className="employee-detail-section">
+              <h4>基础资料</h4>
+              <div className="detail-list">
+                <div>
+                  <span>姓名</span>
+                  <strong>{selectedRegistration.full_name}</strong>
+                </div>
+                <div>
+                  <span>邮箱</span>
+                  <strong>{selectedRegistration.email}</strong>
+                </div>
+                <div>
+                  <span>电话</span>
+                  <strong>{selectedRegistration.phone || '-'}</strong>
+                </div>
+                <div>
+                  <span>注册时间</span>
+                  <strong>{formatDateTime(selectedRegistration.created_at)}</strong>
+                </div>
               </div>
-              <div>
-                <span>邮箱</span>
-                <strong>{selectedRegistration.email}</strong>
+            </section>
+
+            <section className="employee-detail-section">
+              <h4>工作资料</h4>
+              <div className="approval-form-grid single">
+                <label className="form-field">
+                  <span>区域</span>
+                  <select
+                    value={approvalValues.region_id}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, region_id: event.target.value })}
+                    required
+                  >
+                    <option value="">请选择</option>
+                    {options.regions.map((region) => (
+                      <option key={region.id} value={region.id}>
+                        {region.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="form-field">
+                  <span>职称</span>
+                  <select
+                    value={approvalValues.job_title_id}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, job_title_id: event.target.value })}
+                    required
+                  >
+                    <option value="">请选择</option>
+                    {options.jobTitles.map((title) => (
+                      <option key={title.id} value={title.id}>
+                        {title.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="form-field">
+                  <span>雇佣类型</span>
+                  <select
+                    value={approvalValues.employment_type_id}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, employment_type_id: event.target.value })}
+                    required
+                  >
+                    <option value="">请选择</option>
+                    {options.employmentTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="form-field">
+                  <span>入职日期</span>
+                  <input
+                    type="date"
+                    value={approvalValues.hire_date}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, hire_date: event.target.value })}
+                    required
+                  />
+                </label>
               </div>
-              <div>
-                <span>电话</span>
-                <strong>{selectedRegistration.phone || '-'}</strong>
+            </section>
+
+            <section className="employee-detail-section">
+              <h4>薪资资料</h4>
+              <div className="detail-list">
+                <div>
+                  <span>薪资资料</span>
+                  <strong>审核通过后由工作人员资料维护</strong>
+                </div>
               </div>
-              <div>
-                <span>注册时间</span>
-                <strong>{formatDateTime(selectedRegistration.created_at)}</strong>
+            </section>
+
+            <section className="employee-detail-section">
+              <h4>班次资料</h4>
+              <div className="approval-form-grid single">
+                <label className="form-field">
+                  <span>上班时间</span>
+                  <input
+                    type="time"
+                    value={approvalValues.start_work_time}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, start_work_time: event.target.value })}
+                    required
+                  />
+                </label>
+
+                <label className="form-field">
+                  <span>下班时间</span>
+                  <input
+                    type="time"
+                    value={approvalValues.end_work_time}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, end_work_time: event.target.value })}
+                    required
+                  />
+                </label>
               </div>
-            </div>
-
-            <div className="approval-form-grid single">
-              <label className="form-field">
-                <span>区域</span>
-                <select
-                  value={approvalValues.region_id}
-                  onChange={(event) => setApprovalValues({ ...approvalValues, region_id: event.target.value })}
-                  required
-                >
-                  <option value="">请选择</option>
-                  {options.regions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="form-field">
-                <span>职称</span>
-                <select
-                  value={approvalValues.job_title_id}
-                  onChange={(event) => setApprovalValues({ ...approvalValues, job_title_id: event.target.value })}
-                  required
-                >
-                  <option value="">请选择</option>
-                  {options.jobTitles.map((title) => (
-                    <option key={title.id} value={title.id}>
-                      {title.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="form-field">
-                <span>雇佣类型</span>
-                <select
-                  value={approvalValues.employment_type_id}
-                  onChange={(event) => setApprovalValues({ ...approvalValues, employment_type_id: event.target.value })}
-                  required
-                >
-                  <option value="">请选择</option>
-                  {options.employmentTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="form-field">
-                <span>入职日期</span>
-                <input
-                  type="date"
-                  value={approvalValues.hire_date}
-                  onChange={(event) => setApprovalValues({ ...approvalValues, hire_date: event.target.value })}
-                  required
-                />
-              </label>
-
-              <label className="form-field">
-                <span>上班时间</span>
-                <input
-                  type="time"
-                  value={approvalValues.start_work_time}
-                  onChange={(event) => setApprovalValues({ ...approvalValues, start_work_time: event.target.value })}
-                  required
-                />
-              </label>
-
-              <label className="form-field">
-                <span>下班时间</span>
-                <input
-                  type="time"
-                  value={approvalValues.end_work_time}
-                  onChange={(event) => setApprovalValues({ ...approvalValues, end_work_time: event.target.value })}
-                  required
-                />
-              </label>
-            </div>
+            </section>
 
             {error ? <p className="form-alert">{error}</p> : null}
             {message ? <p className="form-success">{message}</p> : null}
 
-            <div className="review-actions">
-              <button className="primary-button" type="button" onClick={handleApprove} disabled={submitting}>
-                <CheckCircle2 size={18} />
-                <span>{submitting ? '处理中...' : '审核通过'}</span>
-              </button>
-            </div>
-
-            <form className="reject-form" onSubmit={handleReject}>
+            <form id="registration-reject-form" className="reject-form" onSubmit={handleReject}>
               <label className="form-field">
                 <span>拒绝原因</span>
                 <textarea
@@ -315,14 +339,8 @@ export function RegistrationReviewPage() {
                   required
                 />
               </label>
-
-              <button className="secondary-button danger-text-button" type="submit" disabled={submitting}>
-                <XCircle size={18} />
-                <span>{submitting ? '处理中...' : '审核拒绝'}</span>
-              </button>
             </form>
-          </div>
-        </div>
+        </SystemModal>
       ) : null}
     </section>
   );

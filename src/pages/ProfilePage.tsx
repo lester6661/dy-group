@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Camera, Lock, ShieldCheck, UserRound, X } from 'lucide-react';
+import { Camera, Lock, ShieldCheck, UserRound } from 'lucide-react';
+import { SystemModal } from '../components/SystemModal';
 import { profileService, type MyProfileData } from '../services/profile.service';
 
 type ProfileForm = {
@@ -219,20 +220,9 @@ export function ProfilePage() {
       </div>
 
       {previewOpen && avatarUrl ? (
-        <div className="modal-backdrop" role="presentation">
-          <div className="modal-panel profile-preview-modal" role="dialog" aria-modal="true" aria-label="头像预览">
-            <div className="modal-header">
-              <div>
-                <span>头像预览</span>
-                <h3>{displayName}</h3>
-              </div>
-              <button className="icon-button" type="button" onClick={() => setPreviewOpen(false)} aria-label="关闭">
-                <X size={18} />
-              </button>
-            </div>
-            <img src={avatarUrl} alt="头像大图" />
-          </div>
-        </div>
+        <SystemModal title={displayName} subtitle="头像预览" ariaLabel="头像预览" className="profile-preview-modal" onClose={() => setPreviewOpen(false)}>
+          <img src={avatarUrl} alt="头像大图" />
+        </SystemModal>
       ) : null}
     </section>
   );

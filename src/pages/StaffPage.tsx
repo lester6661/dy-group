@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Edit3, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { Edit3, Plus, RefreshCw, Search } from 'lucide-react';
+import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import { type EmployeeFormValues, type EmployeeListItem, type StaffOptions, staffService } from '../services/staff.service';
 import type { EmployeeStatus } from '../types/database';
@@ -237,21 +238,29 @@ function EmployeeDetailModal({
   onEdit: () => void;
 }) {
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="员工详情">
-        <div className="modal-header">
-          <div className="employee-detail-title">
-            <EmployeeAvatar employee={employee} large />
-            <div>
-              <span>员工详情</span>
-              <h3>{employee.full_name}</h3>
-            </div>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
-            <X size={18} />
+    <SystemModal
+      title={employee.full_name}
+      subtitle="员工详情"
+      ariaLabel="员工详情"
+      onClose={onClose}
+      footer={
+        canManageStaff ? (
+          <>
+            <button className="secondary-button compact-button" type="button" onClick={onClose}>
+              关闭
+            </button>
+            <button className="primary-button compact-button" type="button" onClick={onEdit}>
+              <Edit3 size={16} />
+              <span>编辑资料</span>
+            </button>
+          </>
+        ) : (
+          <button className="secondary-button compact-button" type="button" onClick={onClose}>
+            关闭
           </button>
-        </div>
-
+        )
+      }
+    >
         <div className="employee-detail-sections">
           <DetailSection title="基础资料">
             <div className="detail-avatar-row">
@@ -285,17 +294,7 @@ function EmployeeDetailModal({
             <Info label="下班时间" value={formatTime(employee.end_work_time)} />
           </DetailSection>
         </div>
-
-        {canManageStaff ? (
-          <div className="row-actions modal-actions-row">
-            <button className="primary-button compact-button" type="button" onClick={onEdit}>
-              <Edit3 size={16} />
-              <span>编辑资料</span>
-            </button>
-          </div>
-        ) : null}
-      </div>
-    </div>
+    </SystemModal>
   );
 }
 
@@ -325,19 +324,24 @@ function StaffFormModal({
   onSubmit,
 }: StaffFormModalProps) {
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="工作人员资料">
-        <div className="modal-header">
-          <div>
-            <span>{editingEmployee ? '编辑资料' : '新增员工'}</span>
-            <h3>{editingEmployee ? editingEmployee.full_name : '员工资料'}</h3>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
-            <X size={18} />
+    <SystemModal
+      title={editingEmployee ? editingEmployee.full_name : '员工资料'}
+      subtitle={editingEmployee ? '编辑资料' : '新增员工'}
+      ariaLabel="工作人员资料"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="secondary-button compact-button" type="button" onClick={onClose}>
+            关闭
           </button>
-        </div>
-
-        <form onSubmit={onSubmit}>
+          <button className="primary-button compact-button" type="submit" form="staff-form" disabled={saving}>
+            <Plus size={18} />
+            <span>{saving ? '保存中...' : editingEmployee ? '保存修改' : '新增员工'}</span>
+          </button>
+        </>
+      }
+    >
+        <form id="staff-form" onSubmit={onSubmit}>
           <div className="form-grid">
             <TextField label="姓名" value={values.full_name} onChange={(value) => onChange({ ...values, full_name: value })} required />
             <TextField label="昵称" value={values.nickname} onChange={(value) => onChange({ ...values, nickname: value })} />
@@ -418,14 +422,8 @@ function StaffFormModal({
 
           {error ? <p className="form-alert">{error}</p> : null}
           {message ? <p className="form-success">{message}</p> : null}
-
-          <button className="primary-button" type="submit" disabled={saving}>
-            <Plus size={18} />
-            <span>{saving ? '保存中...' : editingEmployee ? '保存修改' : '新增员工'}</span>
-          </button>
         </form>
-      </div>
-    </div>
+    </SystemModal>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Camera, Coffee, Clock, FileClock, LogIn, LogOut, X } from 'lucide-react';
+import { Camera, Coffee, Clock, FileClock, LogIn, LogOut } from 'lucide-react';
+import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import { type AttendanceRecordItem, attendanceService, getPublicIpAddress } from '../services/attendance.service';
 import type { AttendancePunchType } from '../types/database';
@@ -273,51 +274,49 @@ function AttendanceRecordsModal({
   onClose: () => void;
 }) {
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-panel wide" role="dialog" aria-modal="true" aria-label="查看打卡记录">
-        <div className="modal-header">
-          <div>
-            <span>打卡</span>
-            <h3>查看打卡记录</h3>
-          </div>
-          <div className="row-actions">
-            <button className="secondary-action" type="button" onClick={onRefresh} disabled={loading}>
-              刷新
-            </button>
-            <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="table-state compact">正在读取打卡记录...</div>
-        ) : records.length === 0 ? (
-          <div className="table-state compact">暂无打卡记录。</div>
-        ) : (
-          <div className="staff-table-wrap">
-            <table className="staff-table">
-              <thead>
-                <tr>
-                  <th>类型</th>
-                  <th>时间</th>
-                  <th>照片</th>
+    <SystemModal
+      title="查看打卡记录"
+      subtitle="打卡"
+      ariaLabel="查看打卡记录"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="secondary-button compact-button" type="button" onClick={onClose}>
+            关闭
+          </button>
+          <button className="primary-button compact-button" type="button" onClick={onRefresh} disabled={loading}>
+            刷新
+          </button>
+        </>
+      }
+    >
+      {loading ? (
+        <div className="table-state compact">正在读取打卡记录...</div>
+      ) : records.length === 0 ? (
+        <div className="table-state compact">暂无打卡记录。</div>
+      ) : (
+        <div className="staff-table-wrap">
+          <table className="staff-table">
+            <thead>
+              <tr>
+                <th>类型</th>
+                <th>时间</th>
+                <th>照片</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((record) => (
+                <tr key={record.id}>
+                  <td>{punchTypeLabels[record.punch_type]}</td>
+                  <td>{new Date(record.punched_at).toLocaleString('zh-CN')}</td>
+                  <td>已拍照</td>
                 </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record.id}>
-                    <td>{punchTypeLabels[record.punch_type]}</td>
-                    <td>{new Date(record.punched_at).toLocaleString('zh-CN')}</td>
-                    <td>已拍照</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </SystemModal>
   );
 }
 

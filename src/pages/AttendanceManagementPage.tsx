@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
+import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import {
   AttendanceEmployee,
@@ -201,77 +202,94 @@ export function AttendanceManagementPage() {
         )}
       </div>
 
-      {showAbnormalCenter ? <AbnormalEmployeeCenter records={abnormalRecords} /> : null}
-      {selectedSummary ? <EmployeeDetail summary={selectedSummary} /> : null}
+      {showAbnormalCenter ? <AbnormalEmployeeCenter records={abnormalRecords} onClose={() => setShowAbnormalCenter(false)} /> : null}
+      {selectedSummary ? <EmployeeDetail summary={selectedSummary} onClose={() => setSelectedEmployeeId('')} /> : null}
     </section>
   );
 }
 
-function EmployeeDetail({ summary }: { summary: EmployeeAttendanceSummary }) {
+function EmployeeDetail({ summary, onClose }: { summary: EmployeeAttendanceSummary; onClose: () => void }) {
   return (
-    <div className="staff-list-panel attendance-detail-panel">
-      <div className="list-header">
-        <div>
-          <span>员工考勤详情</span>
-          <h3>{summary.employee.full_name}</h3>
-        </div>
-      </div>
+    <SystemModal
+      title={summary.employee.full_name}
+      subtitle="员工考勤详情"
+      ariaLabel="员工考勤详情"
+      onClose={onClose}
+      footer={
+        <button className="secondary-button compact-button" type="button" onClick={onClose}>
+          关闭
+        </button>
+      }
+    >
+      <div className="employee-detail-sections">
+        <section className="employee-detail-section">
+          <h4>基础资料</h4>
+          <div className="detail-list">
+            <div><span>员工姓名</span><strong>{summary.employee.full_name}</strong></div>
+            <div><span>员工编号</span><strong>{summary.employee.employee_code ?? '-'}</strong></div>
+            <div><span>区域</span><strong>{summary.employee.region?.code ?? '-'}</strong></div>
+          </div>
+        </section>
 
-      <div className="detail-list">
-        <div><span>员工姓名</span><strong>{summary.employee.full_name}</strong></div>
-        <div><span>员工编号</span><strong>{summary.employee.employee_code ?? '-'}</strong></div>
-        <div><span>区域</span><strong>{summary.employee.region?.code ?? '-'}</strong></div>
-      </div>
+        <section className="employee-detail-section">
+          <h4>工作资料</h4>
+          <div className="leave-stats-grid">
+            <StatCard label="迟到次数" value={summary.lateCount} />
+            <StatCard label="早退次数" value={summary.earlyLeaveCount} />
+            <StatCard label="旷工次数" value={summary.absentCount} />
+            <StatCard label="超时休息次数" value={summary.overtimeBreakCount} />
+          </div>
+        </section>
 
-      <div className="leave-stats-grid">
-        <StatCard label="迟到次数" value={summary.lateCount} />
-        <StatCard label="早退次数" value={summary.earlyLeaveCount} />
-        <StatCard label="旷工次数" value={summary.absentCount} />
-        <StatCard label="超时休息次数" value={summary.overtimeBreakCount} />
-      </div>
+        <section className="employee-detail-section">
+          <h4>薪资资料</h4>
+          <div className="leave-stats-grid">
+            <StatCard label="年假次数" value={summary.leaveCounts.annual} />
+            <StatCard label="病假次数" value={summary.leaveCounts.medical} />
+            <StatCard label="无薪假次数" value={summary.leaveCounts.unpaid} />
+            <StatCard label="换休次数" value={summary.leaveCounts.replacement} />
+          </div>
+        </section>
 
-      <div className="leave-stats-grid">
-        <StatCard label="年假次数" value={summary.leaveCounts.annual} />
-        <StatCard label="病假次数" value={summary.leaveCounts.medical} />
-        <StatCard label="无薪假次数" value={summary.leaveCounts.unpaid} />
-        <StatCard label="换休次数" value={summary.leaveCounts.replacement} />
+        <section className="employee-detail-section">
+          <h4>班次资料</h4>
+          <div className="staff-table-wrap">
+            <table className="staff-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>上班时间</th>
+                  <th>开始休息</th>
+                  <th>结束休息</th>
+                  <th>下班时间</th>
+                  <th>工作时长</th>
+                  <th>休息时长</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.dailyRecords.map((record) => (
+                  <tr key={record.date}>
+                    <td>{record.date}</td>
+                    <td>{formatRecordTime(record.clockIn)}</td>
+                    <td>{formatRecordTime(record.breakStart)}</td>
+                    <td>{formatRecordTime(record.breakEnd)}</td>
+                    <td>{formatRecordTime(record.clockOut)}</td>
+                    <td>{record.workHours === null ? '-' : `${record.workHours.toFixed(1)} 小时`}</td>
+                    <td>{record.breakMinutes ? `${record.breakMinutes} 分钟` : '-'}</td>
+                    <td>{record.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
-
-      <div className="staff-table-wrap">
-        <table className="staff-table">
-          <thead>
-            <tr>
-              <th>日期</th>
-              <th>上班时间</th>
-              <th>开始休息</th>
-              <th>结束休息</th>
-              <th>下班时间</th>
-              <th>工作时长</th>
-              <th>休息时长</th>
-              <th>状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            {summary.dailyRecords.map((record) => (
-              <tr key={record.date}>
-                <td>{record.date}</td>
-                <td>{formatRecordTime(record.clockIn)}</td>
-                <td>{formatRecordTime(record.breakStart)}</td>
-                <td>{formatRecordTime(record.breakEnd)}</td>
-                <td>{formatRecordTime(record.clockOut)}</td>
-                <td>{record.workHours === null ? '-' : `${record.workHours.toFixed(1)} 小时`}</td>
-                <td>{record.breakMinutes ? `${record.breakMinutes} 分钟` : '-'}</td>
-                <td>{record.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </SystemModal>
   );
 }
 
-function AbnormalEmployeeCenter({ records }: { records: AbnormalRecord[] }) {
+function AbnormalEmployeeCenter({ records, onClose }: { records: AbnormalRecord[]; onClose: () => void }) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const groupedEmployees = useMemo(() => {
     const map = new Map<string, { employee: AttendanceEmployee; records: AbnormalRecord[] }>();
@@ -287,120 +305,118 @@ function AbnormalEmployeeCenter({ records }: { records: AbnormalRecord[] }) {
   const selected = groupedEmployees.find((item) => item.employee.id === selectedEmployeeId) ?? null;
 
   return (
-    <div className="staff-list-panel attendance-detail-panel">
-      <div className="list-header">
-        <div>
-          <span>异常打卡中心</span>
-          <h3>{selected ? `${selected.employee.full_name} 的异常记录` : `${records.length} 次异常`}</h3>
-        </div>
-        {selected ? (
-          <button className="secondary-action" type="button" onClick={() => setSelectedEmployeeId('')}>
-            返回员工列表
+    <SystemModal
+      title={selected ? `${selected.employee.full_name} 的异常记录` : `${records.length} 次异常`}
+      subtitle="异常打卡中心"
+      ariaLabel="异常打卡中心"
+      onClose={onClose}
+      footer={
+        <>
+          {selected ? (
+            <button className="secondary-button compact-button" type="button" onClick={() => setSelectedEmployeeId('')}>
+              返回员工列表
+            </button>
+          ) : null}
+          <button className="primary-button compact-button" type="button" onClick={onClose}>
+            关闭
           </button>
-        ) : null}
+        </>
+      }
+    >
+      <div className="employee-detail-sections">
+        <section className="employee-detail-section">
+          <h4>基础资料</h4>
+          <div className="detail-list">
+            <div>
+              <span>异常员工</span>
+              <strong>{selected ? selected.employee.full_name : `${groupedEmployees.length} 位员工`}</strong>
+            </div>
+            <div>
+              <span>异常次数</span>
+              <strong>{selected ? selected.records.length : records.length}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="employee-detail-section">
+          <h4>工作资料</h4>
+          {records.length === 0 ? (
+            <div className="table-state">当前周期暂无异常打卡。</div>
+          ) : selected ? (
+            <div className="staff-table-wrap">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>日期</th>
+                    <th>异常类型</th>
+                    <th>原因</th>
+                    <th>打卡时间</th>
+                    <th>备注</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selected.records.map((record) => (
+                    <tr key={record.id}>
+                      <td>{toDateKey(new Date(record.punchedAt))}</td>
+                      <td>{record.type}</td>
+                      <td>{record.type}</td>
+                      <td>{new Date(record.punchedAt).toLocaleString('zh-CN')}</td>
+                      <td className="device-cell">GPS：{record.gps} / IP：{record.ip} / 设备：{record.deviceInfo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="staff-table-wrap">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>员工姓名</th>
+                    <th>异常次数</th>
+                    <th>查看</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupedEmployees.map((item) => (
+                    <tr key={item.employee.id}>
+                      <td><strong>{item.employee.full_name}</strong></td>
+                      <td>异常 {item.records.length} 次</td>
+                      <td>
+                        <button className="secondary-button compact-button" type="button" onClick={() => setSelectedEmployeeId(item.employee.id)}>
+                          <Eye size={16} />
+                          <span>查看详情</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="employee-detail-section">
+          <h4>薪资资料</h4>
+          <div className="detail-list">
+            <div>
+              <span>薪资处理</span>
+              <strong>按 HR 审核结果处理</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="employee-detail-section">
+          <h4>班次资料</h4>
+          <div className="detail-list">
+            <div>
+              <span>异常来源</span>
+              <strong>打卡时间、GPS、IP、设备</strong>
+            </div>
+          </div>
+        </section>
       </div>
-
-      {records.length === 0 ? (
-        <div className="table-state">当前周期暂无异常打卡。</div>
-      ) : selected ? (
-        <div className="staff-table-wrap">
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>日期</th>
-                <th>异常类型</th>
-                <th>原因</th>
-                <th>打卡时间</th>
-                <th>备注</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selected.records.map((record) => (
-                <tr key={record.id}>
-                  <td>{toDateKey(new Date(record.punchedAt))}</td>
-                  <td>{record.type}</td>
-                  <td>{record.type}</td>
-                  <td>{new Date(record.punchedAt).toLocaleString('zh-CN')}</td>
-                  <td className="device-cell">GPS：{record.gps} / IP：{record.ip} / 设备：{record.deviceInfo}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="staff-table-wrap">
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>员工姓名</th>
-                <th>异常次数</th>
-                <th>查看</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupedEmployees.map((item) => (
-                <tr key={item.employee.id}>
-                  <td><strong>{item.employee.full_name}</strong></td>
-                  <td>异常 {item.records.length} 次</td>
-                  <td>
-                    <button className="secondary-button compact-button" type="button" onClick={() => setSelectedEmployeeId(item.employee.id)}>
-                      <Eye size={16} />
-                      <span>查看详情</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AbnormalCenter({ records }: { records: AbnormalRecord[] }) {
-  return (
-    <div className="staff-list-panel attendance-detail-panel">
-      <div className="list-header">
-        <div>
-          <span>异常打卡详情</span>
-          <h3>{records.length} 条异常</h3>
-        </div>
-      </div>
-
-      {records.length === 0 ? (
-        <div className="table-state">当前周期暂无异常打卡。</div>
-      ) : (
-        <div className="staff-table-wrap">
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>员工姓名</th>
-                <th>异常类型</th>
-                <th>异常时间</th>
-                <th>GPS</th>
-                <th>IP</th>
-                <th>设备信息</th>
-                <th>打卡照片</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((record) => (
-                <tr key={record.id}>
-                  <td><strong>{record.employee.full_name}</strong></td>
-                  <td>{record.type}</td>
-                  <td>{new Date(record.punchedAt).toLocaleString('zh-CN')}</td>
-                  <td>{record.gps}</td>
-                  <td>{record.ip}</td>
-                  <td className="device-cell">{record.deviceInfo}</td>
-                  <td>{record.photoPath ? '已拍照' : '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    </SystemModal>
   );
 }
 

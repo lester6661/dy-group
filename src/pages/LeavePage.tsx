@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { CalendarCheck2, FileClock, Plus, Wand2, X } from 'lucide-react';
+import { CalendarCheck2, FileClock, Plus, Wand2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import {
   type LeaveFormValues,
@@ -394,19 +395,25 @@ function LeaveRequestModal({
   const isReplacement = values.leave_type === 'replacement';
 
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-panel" role="dialog" aria-modal="true" aria-label="提交请假申请">
-        <div className="modal-header">
-          <div>
-            <span>请假&休假</span>
-            <h3>提交申请</h3>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
-            <X size={18} />
+    <SystemModal
+      title="提交申请"
+      subtitle="请假&休假"
+      ariaLabel="提交请假申请"
+      wide={false}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="secondary-button compact-button" type="button" onClick={onClose}>
+            关闭
           </button>
-        </div>
-
-        <form onSubmit={onSubmit}>
+          <button className="primary-button compact-button" type="submit" form="leave-request-form" disabled={saving}>
+            <Plus size={18} />
+            <span>{saving ? '提交中...' : '提交申请'}</span>
+          </button>
+        </>
+      }
+    >
+        <form id="leave-request-form" onSubmit={onSubmit}>
           <div className="form-grid single">
             <label className="form-field">
               <span>假期类型</span>
@@ -481,14 +488,8 @@ function LeaveRequestModal({
 
           {error ? <p className="form-alert">{error}</p> : null}
           {message ? <p className="form-success">{message}</p> : null}
-
-          <button className="primary-button" type="submit" disabled={saving}>
-            <Plus size={18} />
-            <span>{saving ? '提交中...' : '提交申请'}</span>
-          </button>
         </form>
-      </div>
-    </div>
+    </SystemModal>
   );
 }
 
