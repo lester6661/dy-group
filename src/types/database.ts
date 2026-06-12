@@ -6,6 +6,8 @@ export type AppRole = 'super_admin' | 'admin' | 'hr' | 'manager' | 'staff';
 export type LeaveType = 'annual' | 'medical' | 'unpaid' | 'replacement';
 export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected';
 export type AttendancePunchType = 'clock_in' | 'break_start' | 'break_end' | 'clock_out';
+export type ScheduleEventType = 'meeting' | 'training' | 'shooting' | 'live' | 'visit' | 'other';
+export type ScheduleEventStatus = 'active' | 'cancelled';
 
 export type Profile = {
   id: string;
@@ -151,6 +153,21 @@ export type RestDay = {
   cycle_month: number;
   source: 'manual' | 'auto';
   status: 'confirmed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+};
+
+export type ScheduleEvent = {
+  id: string;
+  profile_id: string;
+  title: string;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  note: string | null;
+  event_type: ScheduleEventType;
+  status: ScheduleEventStatus;
   created_at: string;
   updated_at: string;
 };
@@ -319,6 +336,21 @@ export type Database = {
           },
           {
             foreignKeyName: 'rest_days_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      schedule_events: {
+        Row: ScheduleEvent;
+        Insert: Pick<ScheduleEvent, 'profile_id' | 'title' | 'event_date'> &
+          Partial<Pick<ScheduleEvent, 'id' | 'start_time' | 'end_time' | 'location' | 'note' | 'event_type' | 'status' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<ScheduleEvent, 'id' | 'profile_id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'schedule_events_profile_id_fkey';
             columns: ['profile_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';

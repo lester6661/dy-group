@@ -1605,6 +1605,87 @@ a {
   margin-top: 18px;
 }
 
+.itinerary-page {
+  display: grid;
+  gap: 18px;
+}
+
+.itinerary-month-field {
+  min-width: 220px;
+  margin-bottom: 0;
+}
+
+.itinerary-calendar-grid .itinerary-day {
+  cursor: pointer;
+}
+
+.itinerary-calendar-grid .itinerary-day:hover {
+  border-color: rgba(31, 122, 140, 0.32);
+  background: #ffffff;
+}
+
+.schedule-event-chip {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.schedule-event-chip strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event-chip span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.schedule-event-chip:hover {
+  box-shadow: 0 8px 18px rgba(16, 25, 40, 0.08);
+}
+
+.event-type-meeting {
+  border-color: rgba(31, 122, 140, 0.24);
+  background: #e9f5f7;
+}
+
+.event-type-training {
+  border-color: rgba(23, 96, 58, 0.22);
+  background: #e8f7ee;
+}
+
+.event-type-shooting {
+  border-color: rgba(139, 47, 117, 0.22);
+  background: #fde7f6;
+}
+
+.event-type-live {
+  border-color: rgba(122, 77, 11, 0.22);
+  background: #fff4dc;
+}
+
+.event-type-visit {
+  border-color: rgba(109, 40, 217, 0.2);
+  background: #f1e8ff;
+}
+
+.event-type-other {
+  border-color: rgba(88, 102, 122, 0.2);
+  background: #eef2f7;
+}
+
 .leave-calendar-legend {
   display: flex;
   flex-wrap: wrap;
