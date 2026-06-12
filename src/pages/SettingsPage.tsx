@@ -504,6 +504,7 @@ function PermissionManagementPanel() {
   const [managedRegionIds, setManagedRegionIds] = useState<string[]>([]);
   const [ownedSpecialPermissions, setOwnedSpecialPermissions] = useState<string[]>([]);
   const [newSpecialName, setNewSpecialName] = useState('');
+  const [initialPermissionSnapshot, setInitialPermissionSnapshot] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingPermissions, setSavingPermissions] = useState(false);
   const [message, setMessage] = useState('');
@@ -520,6 +521,18 @@ function PermissionManagementPanel() {
       }),
     [employees],
   );
+  const currentPermissionSnapshot = useMemo(
+    () =>
+      createPermissionSnapshot({
+        permissions: modalPermissions,
+        attendanceRequired,
+        managedRegionIds,
+        ownedSpecialPermissions,
+        specialName: getCurrentSpecialPermissionName(modalTarget, newSpecialName),
+      }),
+    [attendanceRequired, managedRegionIds, modalPermissions, modalTarget, newSpecialName, ownedSpecialPermissions],
+  );
+  const isDirty = Boolean(modalTarget) && currentPermissionSnapshot !== initialPermissionSnapshot;
 
   useEffect(() => {
     void loadPermissionContext();
@@ -556,6 +569,20 @@ function PermissionManagementPanel() {
     }
   }
 
+  function applyPermissionDraft(input: {
+    permissions: PermissionState;
+    attendanceRequired: boolean;
+    managedRegionIds: string[];
+    ownedSpecialPermissions: string[];
+    specialName: string;
+  }) {
+    setModalPermissions(input.permissions);
+    setAttendanceRequired(input.attendanceRequired);
+    setManagedRegionIds(input.managedRegionIds);
+    setOwnedSpecialPermissions(input.ownedSpecialPermissions);
+    setInitialPermissionSnapshot(createPermissionSnapshot(input));
+  }
+
   async function openPermissionModal(target: PermissionModalTarget) {
     setError('');
     setMessage('');
@@ -567,35 +594,47 @@ function PermissionManagementPanel() {
 
       if (target.type === 'jobTitle') {
         const savedPermissions = await permissionManagementService.getJobTitlePermissions(target.id);
-        setModalPermissions(mergePermissionState(defaultPermissions, savedPermissions));
-        setAttendanceRequired(true);
-        setManagedRegionIds([]);
-        setOwnedSpecialPermissions([]);
+        applyPermissionDraft({
+          permissions: mergePermissionState(defaultPermissions, savedPermissions),
+          attendanceRequired: true,
+          managedRegionIds: [],
+          ownedSpecialPermissions: [],
+          specialName: '',
+        });
         return;
       }
 
       if (target.type === 'special' && target.title !== '新增特殊权限') {
         const savedPermissions = await permissionManagementService.getSpecialPermissionTemplatePermissions(target.title);
-        setModalPermissions(mergePermissionState(defaultPermissions, savedPermissions));
-        setAttendanceRequired(true);
-        setManagedRegionIds([]);
-        setOwnedSpecialPermissions([]);
+        applyPermissionDraft({
+          permissions: mergePermissionState(defaultPermissions, savedPermissions),
+          attendanceRequired: true,
+          managedRegionIds: [],
+          ownedSpecialPermissions: [],
+          specialName: target.title,
+        });
         return;
       }
 
       if (target.type === 'employee') {
         const savedProfile = await permissionManagementService.getEmployeePermissions(target.employee.id);
-        setModalPermissions(mergePermissionState(defaultPermissions, savedProfile.permissions));
-        setAttendanceRequired(savedProfile.requireAttendance);
-        setManagedRegionIds(savedProfile.regionIds);
-        setOwnedSpecialPermissions(savedProfile.specialPermissionNames);
+        applyPermissionDraft({
+          permissions: mergePermissionState(defaultPermissions, savedProfile.permissions),
+          attendanceRequired: savedProfile.requireAttendance,
+          managedRegionIds: savedProfile.regionIds,
+          ownedSpecialPermissions: savedProfile.specialPermissionNames,
+          specialName: '',
+        });
         return;
       }
 
-      setModalPermissions(defaultPermissions);
-      setAttendanceRequired(true);
-      setManagedRegionIds([]);
-      setOwnedSpecialPermissions([]);
+      applyPermissionDraft({
+        permissions: defaultPermissions,
+        attendanceRequired: true,
+        managedRegionIds: [],
+        ownedSpecialPermissions: [],
+        specialName: '',
+      });
     } catch (loadError) {
       setModalTarget(null);
       setError(loadError instanceof Error ? loadError.message : '读取权限模板失败。');
@@ -606,10 +645,11 @@ function PermissionManagementPanel() {
     setModalTarget(null);
     setModalPermissions({});
     setNewSpecialName('');
+    setInitialPermissionSnapshot('');
   }
 
   async function handleSavePermissions() {
-    if (!modalTarget) return;
+    if (!modalTarget || !isDirty) return;
 
     setSavingPermissions(true);
     setError('');
@@ -622,7 +662,15 @@ function PermissionManagementPanel() {
 
       if (modalTarget.type === 'special') {
         const templateName = modalTarget.title === '新增特殊权限' ? newSpecialName.trim() : modalTarget.title;
-        await permissionManagementService.saveSpecialPermissionTemplate(templateName, modalPermissions);
+        const savedTemplate = await permissionManagementService.saveSpecialPermissionTemplate(templateName, modalPermissions);
+        setSpecialPermissionTemplates((current) => {
+          const existingIndex = current.findIndex((template) => template.id === savedTemplate.id || template.name === savedTemplate.name);
+          if (existingIndex === -1) return [...current, savedTemplate];
+
+          return current.map((template, index) => (index === existingIndex ? savedTemplate : template));
+        });
+        setModalTarget({ type: 'special', title: savedTemplate.name, subtitle: '特殊权限模板' });
+        setNewSpecialName('');
       }
 
       if (modalTarget.type === 'employee') {
@@ -634,11 +682,23 @@ function PermissionManagementPanel() {
           specialPermissionTemplates,
           permissions: modalPermissions,
         });
+        setEmployees((current) =>
+          current.map((employee) =>
+            employee.id === modalTarget.employee.id ? { ...employee, require_attendance: attendanceRequired } : employee,
+          ),
+        );
       }
 
       setMessage('权限设置已保存。');
-      closePermissionModal();
-      await loadPermissionContext(true);
+      setInitialPermissionSnapshot(
+        createPermissionSnapshot({
+          permissions: modalPermissions,
+          attendanceRequired,
+          managedRegionIds,
+          ownedSpecialPermissions,
+          specialName: modalTarget.type === 'special' ? getCurrentSpecialPermissionName(modalTarget, newSpecialName) : '',
+        }),
+      );
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '保存权限设置失败。');
     } finally {
@@ -812,7 +872,7 @@ function PermissionManagementPanel() {
               <button className="secondary-button compact-button" type="button" onClick={closePermissionModal}>
                 关闭
               </button>
-              <button className="primary-button compact-button" type="button" onClick={() => void handleSavePermissions()} disabled={savingPermissions}>
+              <button className="primary-button compact-button" type="button" onClick={() => void handleSavePermissions()} disabled={savingPermissions || !isDirty}>
                 {savingPermissions ? '保存中...' : '保存模板'}
               </button>
             </>
@@ -1021,6 +1081,38 @@ function mergePermissionState(defaultState: PermissionState, savedState: Permiss
     state[key] = savedState[key] ?? defaultState[key];
     return state;
   }, {});
+}
+
+function createPermissionSnapshot(input: {
+  permissions: PermissionState;
+  attendanceRequired: boolean;
+  managedRegionIds: string[];
+  ownedSpecialPermissions: string[];
+  specialName: string;
+}) {
+  const permissions = Object.keys(input.permissions)
+    .sort()
+    .reduce<PermissionState>((state, key) => {
+      const access = input.permissions[key] ?? { view: false, use: false };
+      state[key] = {
+        view: access.view,
+        use: access.view && access.use,
+      };
+      return state;
+    }, {});
+
+  return JSON.stringify({
+    permissions,
+    attendanceRequired: input.attendanceRequired,
+    managedRegionIds: [...input.managedRegionIds].sort(),
+    ownedSpecialPermissions: [...input.ownedSpecialPermissions].sort(),
+    specialName: input.specialName.trim(),
+  });
+}
+
+function getCurrentSpecialPermissionName(target: PermissionModalTarget | null, newSpecialName: string) {
+  if (target?.type !== 'special') return '';
+  return target.title === '新增特殊权限' ? newSpecialName : target.title;
 }
 
 function getDefaultPermissionKeys(name: string) {

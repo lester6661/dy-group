@@ -247,7 +247,6 @@ function rowsToPermissionState(rows: PermissionRow[]): PermissionState {
 
 function permissionStateToRows(permissions: PermissionState): PermissionRow[] {
   return Object.entries(permissions)
-    .filter(([, access]) => access.view || access.use)
     .map(([permissionKey, access]) => ({
       permission_key: permissionKey,
       can_view: access.view,
