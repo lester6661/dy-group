@@ -2372,11 +2372,10 @@ button.leave-chip:disabled {
   color: #ffffff;
   overflow: hidden;
   border-radius: 12px;
-  background: linear-gradient(135deg, #e83e8c, #7c3aed);
   box-shadow: 0 8px 18px rgba(16, 25, 40, 0.12);
 }
 
-.business-card-app-icon svg {
+.business-card-app-icon img {
   display: block;
   width: 24px;
   min-width: 24px;

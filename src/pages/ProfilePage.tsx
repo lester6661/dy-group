@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent, type ReactNode } from 'react';
-import { Camera, Download, Facebook, Instagram, Lock, MessageCircle, MessagesSquare, Pencil, ShieldCheck, UserRound } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent } from 'react';
+import { Camera, Download, Lock, Pencil, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
 import logoUrl from '../assets/logo.png';
+import whatsappIconUrl from '../assets/icons/whatsapp.svg';
+import wechatIconUrl from '../assets/icons/wechat.svg';
+import instagramIconUrl from '../assets/icons/instagram.svg';
+import facebookIconUrl from '../assets/icons/facebook.svg';
 
 type ProfileForm = {
   phone: string;
@@ -586,18 +590,17 @@ function CardContact({
   label: string;
   value: string;
 }) {
-  const iconProps = { size: 24, width: 24, height: 24, strokeWidth: 2.4 };
-  const icons: Record<ContactKind, ReactNode> = {
-    whatsapp: <MessageCircle {...iconProps} />,
-    wechat: <MessagesSquare {...iconProps} />,
-    instagram: <Instagram {...iconProps} />,
-    facebook: <Facebook {...iconProps} />,
+  const icons: Record<ContactKind, string> = {
+    whatsapp: whatsappIconUrl,
+    wechat: wechatIconUrl,
+    instagram: instagramIconUrl,
+    facebook: facebookIconUrl,
   };
 
   return (
     <div className="business-card-contact-row">
       <span className={`business-card-app-icon ${kind}`} aria-label={label}>
-        {icons[kind]}
+        <img src={icons[kind]} alt="" />
       </span>
       <strong>{value}</strong>
     </div>
@@ -712,15 +715,21 @@ async function drawBusinessCard(
   context.fill();
 
   const image = values.avatarUrl ? await loadImage(values.avatarUrl) : null;
+  const contactLogos = {
+    whatsapp: await loadImage(whatsappIconUrl),
+    wechat: await loadImage(wechatIconUrl),
+    instagram: await loadImage(instagramIconUrl),
+    facebook: await loadImage(facebookIconUrl),
+  };
 
   if (values.orientation === 'horizontal') {
-    drawCardDetails(context, values, leftGroupX, 520, leftGroupWidth);
+    drawCardDetails(context, values, contactLogos, leftGroupX, 520, leftGroupWidth);
     drawAvatar(context, values, image, 990, 224, 500);
     return;
   }
 
   drawAvatar(context, values, image, 300, 440, 360);
-  drawCardDetails(context, values, 122, 920, 716);
+  drawCardDetails(context, values, contactLogos, 122, 920, 716);
 }
 
 function drawCardDetails(
@@ -734,6 +743,7 @@ function drawCardDetails(
     companyInstagram: string;
     companyFacebook: string;
   },
+  contactLogos: Record<ContactKind, HTMLImageElement | null>,
   x: number,
   y: number,
   width: number,
@@ -760,7 +770,7 @@ function drawCardDetails(
     ] as const;
 
     rows.forEach(([kind, value], index) => {
-      drawCanvasContactRow(context, kind, value, x + 48, y + 140 + index * 88, width - 96, true);
+      drawCanvasContactRow(context, kind, value, contactLogos[kind], x + 48, y + 140 + index * 88, width - 96, true);
     });
     return;
   }
@@ -786,16 +796,17 @@ function drawCardDetails(
   context.lineTo(dividerX, contactTop + 118);
   context.stroke();
 
-  drawCanvasContactRow(context, 'whatsapp', values.whatsapp, x, contactTop, 330, false);
-  drawCanvasContactRow(context, 'wechat', values.wechat, x, contactTop + 72, 330, false);
-  drawCanvasContactRow(context, 'instagram', values.companyInstagram || '-', x + 500, contactTop, width - 500, false);
-  drawCanvasContactRow(context, 'facebook', values.companyFacebook || '-', x + 500, contactTop + 72, width - 500, false);
+  drawCanvasContactRow(context, 'whatsapp', values.whatsapp, contactLogos.whatsapp, x, contactTop, 330, false);
+  drawCanvasContactRow(context, 'wechat', values.wechat, contactLogos.wechat, x, contactTop + 72, 330, false);
+  drawCanvasContactRow(context, 'instagram', values.companyInstagram || '-', contactLogos.instagram, x + 500, contactTop, width - 500, false);
+  drawCanvasContactRow(context, 'facebook', values.companyFacebook || '-', contactLogos.facebook, x + 500, contactTop + 72, width - 500, false);
 }
 
 function drawCanvasContactRow(
   context: CanvasRenderingContext2D,
   kind: ContactKind,
   value: string,
+  logo: HTMLImageElement | null,
   x: number,
   y: number,
   width: number,
@@ -810,7 +821,7 @@ function drawCanvasContactRow(
     context.stroke();
   }
 
-  drawCanvasAppIcon(context, kind, x, y - 30, 44);
+  drawCanvasAppIcon(context, kind, logo, x, y - 30, 44);
   context.fillStyle = '#111827';
   context.font = '30px Arial';
   context.textAlign = 'left';
@@ -820,10 +831,20 @@ function drawCanvasContactRow(
 function drawCanvasAppIcon(
   context: CanvasRenderingContext2D,
   kind: ContactKind,
+  logo: HTMLImageElement | null,
   x: number,
   y: number,
   size: number,
 ) {
+  if (logo) {
+    context.save();
+    roundedRect(context, x, y, size, size, 12);
+    context.clip();
+    drawContainImage(context, logo, x + 10, y + 10, 24, 24);
+    context.restore();
+    return;
+  }
+
   const gradient = context.createLinearGradient(x, y, x + size, y + size);
   if (kind === 'whatsapp' || kind === 'instagram') {
     gradient.addColorStop(0, '#f01384');
