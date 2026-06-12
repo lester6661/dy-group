@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent } from 'react';
 import { Camera, Download, Lock, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
@@ -15,6 +15,8 @@ type ProfileForm = {
 
 const companyInstagram = '@dygroup';
 const companyFacebook = 'DY Group';
+const avatarCropSize = 320;
+const avatarOutputSize = 800;
 
 export function ProfilePage() {
   const [profileData, setProfileData] = useState<MyProfileData | null>(null);
@@ -28,12 +30,17 @@ export function ProfilePage() {
   });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [downloadChoiceOpen, setDownloadChoiceOpen] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
+  const [cropImageSize, setCropImageSize] = useState({ width: 0, height: 0 });
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [downloadingCard, setDownloadingCard] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const cropDragRef = useRef<{ pointerId: number; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
 
   const employee = profileData?.employee;
   const profile = profileData?.profile;
@@ -43,10 +50,22 @@ export function ProfilePage() {
   const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
   const companyEnglishName = employee?.region?.company_english_name ?? '';
   const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
+  const cropBaseScale =
+    cropImageSize.width && cropImageSize.height ? Math.max(avatarCropSize / cropImageSize.width, avatarCropSize / cropImageSize.height) : 1;
+  const cropDisplayWidth = cropImageSize.width * cropBaseScale * cropZoom;
+  const cropDisplayHeight = cropImageSize.height * cropBaseScale * cropZoom;
 
   useEffect(() => {
     void loadProfile();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cropImageUrl) {
+        URL.revokeObjectURL(cropImageUrl);
+      }
+    };
+  }, [cropImageUrl]);
 
   async function loadProfile() {
     setLoading(true);
@@ -87,12 +106,36 @@ export function ProfilePage() {
     event.target.value = '';
     if (!file) return;
 
+    setError('');
+    setSuccess('');
+
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      setCropImageSize({ width: image.naturalWidth, height: image.naturalHeight });
+      setCropZoom(1);
+      setCropOffset({ x: 0, y: 0 });
+      setPreviewOpen(false);
+      setCropImageUrl(objectUrl);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      setError('无法读取这张图片，请重新选择。');
+    };
+    image.src = objectUrl;
+  }
+
+  async function handleSaveCroppedAvatar() {
+    if (!cropImageUrl || !cropImageSize.width || !cropImageSize.height) return;
+
     setUploading(true);
     setError('');
     setSuccess('');
 
     try {
-      const uploadedUrl = await profileService.uploadAvatar(file);
+      const avatarBlob = await createCroppedAvatarBlob(cropImageUrl, cropImageSize, cropZoom, cropOffset);
+      const avatarFile = new File([avatarBlob], `avatar-${Date.now()}.jpg`, { type: avatarBlob.type });
+      const uploadedUrl = await profileService.uploadAvatar(avatarFile);
       const nextForm = { ...form, avatar_url: uploadedUrl };
       await profileService.updateMyProfile(getUpdateValues(nextForm));
       setForm(nextForm);
@@ -105,12 +148,61 @@ export function ProfilePage() {
             }
           : current,
       );
+      closeAvatarCrop();
       setSuccess('头像已更新。');
     } catch (err) {
       setError(`头像上传失败：${err instanceof Error ? err.message : '未知错误'}`);
     } finally {
       setUploading(false);
     }
+  }
+
+  function closeAvatarCrop() {
+    setCropImageUrl(null);
+    setCropImageSize({ width: 0, height: 0 });
+    setCropZoom(1);
+    setCropOffset({ x: 0, y: 0 });
+    cropDragRef.current = null;
+  }
+
+  function handleCropPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!cropImageUrl) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    cropDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: cropOffset.x,
+      offsetY: cropOffset.y,
+    };
+  }
+
+  function handleCropPointerMove(event: PointerEvent<HTMLDivElement>) {
+    const drag = cropDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    setCropOffset(
+      clampCropOffset(
+        {
+          x: drag.offsetX + event.clientX - drag.startX,
+          y: drag.offsetY + event.clientY - drag.startY,
+        },
+        cropImageSize,
+        cropZoom,
+      ),
+    );
+  }
+
+  function handleCropPointerEnd(event: PointerEvent<HTMLDivElement>) {
+    if (cropDragRef.current?.pointerId === event.pointerId) {
+      cropDragRef.current = null;
+    }
+  }
+
+  function handleCropZoomChange(event: ChangeEvent<HTMLInputElement>) {
+    const nextZoom = Number(event.target.value);
+    setCropZoom(nextZoom);
+    setCropOffset((current) => clampCropOffset(current, cropImageSize, nextZoom));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -322,6 +414,51 @@ export function ProfilePage() {
         </SystemModal>
       ) : null}
 
+      {cropImageUrl ? (
+        <SystemModal
+          title="调整头像"
+          subtitle="拖动图片选择正方形范围，可放大或缩小"
+          ariaLabel="调整头像"
+          className="profile-crop-modal"
+          onClose={uploading ? () => undefined : closeAvatarCrop}
+          footer={
+            <>
+              <button className="secondary-action" type="button" onClick={closeAvatarCrop} disabled={uploading}>
+                取消
+              </button>
+              <button className="primary-button" type="button" onClick={handleSaveCroppedAvatar} disabled={uploading}>
+                {uploading ? '保存中...' : '保存头像'}
+              </button>
+            </>
+          }
+        >
+          <div className="avatar-crop-panel">
+            <div
+              className="avatar-crop-frame"
+              onPointerDown={handleCropPointerDown}
+              onPointerMove={handleCropPointerMove}
+              onPointerUp={handleCropPointerEnd}
+              onPointerCancel={handleCropPointerEnd}
+            >
+              <img
+                src={cropImageUrl}
+                alt="头像裁切预览"
+                draggable={false}
+                style={{
+                  width: `${cropDisplayWidth}px`,
+                  height: `${cropDisplayHeight}px`,
+                  transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
+                }}
+              />
+            </div>
+            <label className="avatar-crop-control">
+              <span>缩放</span>
+              <input type="range" min="1" max="3" step="0.01" value={cropZoom} onChange={handleCropZoomChange} disabled={uploading} />
+            </label>
+          </div>
+        </SystemModal>
+      ) : null}
+
       {downloadChoiceOpen ? (
         <SystemModal title="下载电子名片" subtitle="选择版式" ariaLabel="下载电子名片" wide={false} onClose={() => setDownloadChoiceOpen(false)}>
           <div className="business-card-download-options">
@@ -530,6 +667,68 @@ function drawAvatar(
   context.lineWidth = 3;
   roundedRect(context, x, y, size, size, 26);
   context.stroke();
+}
+
+async function createCroppedAvatarBlob(
+  imageUrl: string,
+  imageSize: { width: number; height: number },
+  zoom: number,
+  offset: { x: number; y: number },
+) {
+  const image = await loadImage(imageUrl);
+
+  if (!image) {
+    throw new Error('无法读取头像图片。');
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = avatarOutputSize;
+  canvas.height = avatarOutputSize;
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    throw new Error('无法处理头像图片。');
+  }
+
+  const baseScale = Math.max(avatarCropSize / imageSize.width, avatarCropSize / imageSize.height);
+  const displayWidth = imageSize.width * baseScale * zoom;
+  const displayHeight = imageSize.height * baseScale * zoom;
+  const outputScale = avatarOutputSize / avatarCropSize;
+  const drawX = (avatarCropSize / 2 + offset.x - displayWidth / 2) * outputScale;
+  const drawY = (avatarCropSize / 2 + offset.y - displayHeight / 2) * outputScale;
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, avatarOutputSize, avatarOutputSize);
+  context.drawImage(image, drawX, drawY, displayWidth * outputScale, displayHeight * outputScale);
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('头像图片生成失败。'));
+        }
+      },
+      'image/jpeg',
+      0.92,
+    );
+  });
+}
+
+function clampCropOffset(offset: { x: number; y: number }, imageSize: { width: number; height: number }, zoom: number) {
+  if (!imageSize.width || !imageSize.height) return offset;
+
+  const baseScale = Math.max(avatarCropSize / imageSize.width, avatarCropSize / imageSize.height);
+  const displayWidth = imageSize.width * baseScale * zoom;
+  const displayHeight = imageSize.height * baseScale * zoom;
+  const maxX = Math.max(0, (displayWidth - avatarCropSize) / 2);
+  const maxY = Math.max(0, (displayHeight - avatarCropSize) / 2);
+
+  return {
+    x: Math.min(maxX, Math.max(-maxX, offset.x)),
+    y: Math.min(maxY, Math.max(-maxY, offset.y)),
+  };
 }
 
 function loadImage(src: string) {
