@@ -22,6 +22,7 @@ type ContactKind = 'whatsapp' | 'wechat' | 'instagram' | 'facebook';
 const companyInstagram = '@dygroup';
 const companyFacebook = 'DY Group';
 const wechatStorageKey = 'dy-group-business-card-wechat';
+const avatarOriginalStorageKey = 'dy-group-avatar-original-url';
 const avatarCropSize = 320;
 const avatarOutputSize = 800;
 
@@ -39,7 +40,9 @@ export function ProfilePage() {
   const [downloadChoiceOpen, setDownloadChoiceOpen] = useState(false);
   const [contactEditOpen, setContactEditOpen] = useState(false);
   const [wechat, setWechat] = useState('');
+  const [avatarOriginalUrl, setAvatarOriginalUrl] = useState<string | null>(null);
   const [contactForm, setContactForm] = useState({ whatsapp: '', wechat: '' });
+  const [cropOriginalFile, setCropOriginalFile] = useState<File | null>(null);
   const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
   const [cropImageSize, setCropImageSize] = useState({ width: 0, height: 0 });
   const [cropZoom, setCropZoom] = useState(1);
@@ -57,6 +60,7 @@ export function ProfilePage() {
   const displayName = employee?.full_name || profile?.full_name || 'DY Group';
   const initials = useMemo(() => displayName.slice(0, 1).toUpperCase(), [displayName]);
   const avatarUrl = employee?.avatar_url || form.avatar_url;
+  const avatarPreviewUrl = avatarOriginalUrl || avatarUrl;
   const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
   const cardWechat = wechat.trim() || '未设置';
   const companyEnglishName = employee?.region?.company_english_name ?? '';
@@ -72,6 +76,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     setWechat(window.localStorage.getItem(wechatStorageKey) ?? '');
+    setAvatarOriginalUrl(window.localStorage.getItem(avatarOriginalStorageKey));
   }, []);
 
   useEffect(() => {
@@ -168,6 +173,7 @@ export function ProfilePage() {
       setCropImageSize({ width: image.naturalWidth, height: image.naturalHeight });
       setCropZoom(1);
       setCropOffset({ x: 0, y: 0 });
+      setCropOriginalFile(file);
       setPreviewOpen(false);
       setCropImageUrl(objectUrl);
     };
@@ -186,6 +192,7 @@ export function ProfilePage() {
     setSuccess('');
 
     try {
+      const originalUrl = cropOriginalFile ? await profileService.uploadAvatar(cropOriginalFile) : null;
       const avatarBlob = await createCroppedAvatarBlob(cropImageUrl, cropImageSize, cropZoom, cropOffset);
       const avatarFile = new File([avatarBlob], `avatar-${Date.now()}.jpg`, { type: avatarBlob.type });
       const uploadedUrl = await profileService.uploadAvatar(avatarFile);
@@ -201,6 +208,10 @@ export function ProfilePage() {
             }
           : current,
       );
+      if (originalUrl) {
+        window.localStorage.setItem(avatarOriginalStorageKey, originalUrl);
+        setAvatarOriginalUrl(originalUrl);
+      }
       closeAvatarCrop();
       setSuccess('头像已更新。');
     } catch (err) {
@@ -215,6 +226,7 @@ export function ProfilePage() {
     setCropImageSize({ width: 0, height: 0 });
     setCropZoom(1);
     setCropOffset({ x: 0, y: 0 });
+    setCropOriginalFile(null);
     cropDragRef.current = null;
   }
 
@@ -454,7 +466,7 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {previewOpen && avatarUrl ? (
+      {previewOpen && avatarPreviewUrl ? (
         <SystemModal
           title={displayName}
           subtitle="头像预览"
@@ -469,7 +481,7 @@ export function ProfilePage() {
             </label>
           }
         >
-          <img src={avatarUrl} alt="头像大图" />
+          <img src={avatarPreviewUrl} alt="头像原图" />
         </SystemModal>
       ) : null}
 
@@ -657,7 +669,7 @@ async function drawBusinessCard(
 
   const logo = await loadImage(logoUrl);
   const isHorizontal = values.orientation === 'horizontal';
-  const companyCenterX = isHorizontal ? canvas.width * 0.3 : canvas.width / 2;
+  const companyCenterX = isHorizontal ? canvas.width * 0.255 : canvas.width / 2;
   const companyTop = isHorizontal ? 72 : 92;
 
   if (logo) {
@@ -703,7 +715,7 @@ async function drawBusinessCard(
 
   if (values.orientation === 'horizontal') {
     drawCardDetails(context, values, contactLogos, 96, 520, 820);
-    drawAvatar(context, values, image, 1040, 252, 420);
+    drawAvatar(context, values, image, 1010, 250, 460);
     return;
   }
 
@@ -732,8 +744,11 @@ function drawCardDetails(
     context.font = 'bold 52px "Microsoft YaHei", Arial';
     context.fillText(values.name, centerX, y);
 
-    context.fillStyle = '#351098';
     context.font = 'bold 32px "Microsoft YaHei", Arial';
+    const verticalTitleGradient = context.createLinearGradient(centerX - 90, y + 34, centerX + 90, y + 64);
+    verticalTitleGradient.addColorStop(0, '#e83e8c');
+    verticalTitleGradient.addColorStop(1, '#7c3aed');
+    context.fillStyle = verticalTitleGradient;
     context.fillText(values.jobTitle, centerX, y + 58);
 
     const rows = [
@@ -754,8 +769,11 @@ function drawCardDetails(
   context.font = 'bold 56px "Microsoft YaHei", Arial';
   context.fillText(values.name, x, y);
 
-  context.fillStyle = '#351098';
   context.font = 'bold 30px "Microsoft YaHei", Arial';
+  const titleGradient = context.createLinearGradient(x, y + 34, x + 190, y + 64);
+  titleGradient.addColorStop(0, '#e83e8c');
+  titleGradient.addColorStop(1, '#7c3aed');
+  context.fillStyle = titleGradient;
   context.fillText(values.jobTitle, x, y + 58);
 
   const contactTop = y + 140;

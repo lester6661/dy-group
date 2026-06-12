@@ -2164,8 +2164,8 @@ button.leave-chip:disabled {
 .business-card-preview {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 500px) clamp(250px, 28%, 280px);
-  gap: clamp(44px, 7vw, 84px);
+  grid-template-columns: minmax(0, 500px) clamp(330px, 36%, 390px);
+  gap: clamp(48px, 8vw, 96px);
   align-items: center;
   aspect-ratio: 90 / 54;
   max-width: 980px;
@@ -2216,6 +2216,7 @@ button.leave-chip:disabled {
   gap: 5px;
   width: min(100%, 500px);
   text-align: center;
+  transform: translateX(-64px);
 }
 
 .business-card-company img {
@@ -2255,7 +2256,7 @@ button.leave-chip:disabled {
   display: grid;
   place-items: center;
   justify-self: end;
-  width: min(100%, 270px);
+  width: min(100%, 360px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -2292,9 +2293,13 @@ button.leave-chip:disabled {
 }
 
 .business-card-info > strong {
-  color: #351098;
+  width: fit-content;
+  color: transparent;
   font-size: clamp(18px, 2.3vw, 24px);
   font-weight: 700;
+  background: linear-gradient(135deg, #e83e8c, #7c3aed);
+  background-clip: text;
+  -webkit-background-clip: text;
 }
 
 .business-card-contact-grid {
@@ -2359,9 +2364,9 @@ button.leave-chip:disabled {
 
 .business-card-app-icon img {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
 }
 
 .business-card-actions {
@@ -2871,6 +2876,7 @@ button.leave-chip:disabled {
 
   .business-card-company {
     order: 1;
+    transform: none;
   }
 
   .business-card-info {
