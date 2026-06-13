@@ -18,7 +18,7 @@ export type SpecialPermissionTemplate = {
 export type EmployeePermissionProfile = {
   requireAttendance: boolean;
   regionIds: string[];
-  specialPermissionNames: string[];
+  specialPermissionAccess: PermissionState;
   permissions: PermissionState;
 };
 
@@ -142,7 +142,7 @@ export const permissionManagementService = {
       db.from('employee_permission_regions').select('region_id').eq('employee_id', employeeId),
       db
         .from('employee_special_permissions')
-        .select('special_permission_templates(name)')
+        .select('can_view, can_use, special_permission_templates(name)')
         .eq('employee_id', employeeId)
         .eq('is_enabled', true),
       db.from('employee_permission_overrides').select('permission_key, can_view, can_use').eq('employee_id', employeeId),
@@ -156,9 +156,7 @@ export const permissionManagementService = {
     return {
       requireAttendance: settingsResult.data?.require_attendance ?? true,
       regionIds: (regionsResult.data ?? []).map((row: { region_id: string }) => row.region_id),
-      specialPermissionNames: (specialResult.data ?? [])
-        .map((row: { special_permission_templates: { name: string } | null }) => row.special_permission_templates?.name)
-        .filter(Boolean) as string[],
+      specialPermissionAccess: rowsToSpecialPermissionAccess(specialResult.data ?? []),
       permissions: rowsToPermissionState(overridesResult.data ?? []),
     };
   },
@@ -167,7 +165,7 @@ export const permissionManagementService = {
     employeeId: string;
     requireAttendance: boolean;
     regionIds: string[];
-    specialPermissionNames: string[];
+    specialPermissionAccess: PermissionState;
     specialPermissionTemplates: SpecialPermissionTemplate[];
     permissions: PermissionState;
   }) {
@@ -203,13 +201,18 @@ export const permissionManagementService = {
     const { error: deleteSpecialError } = await db.from('employee_special_permissions').delete().eq('employee_id', input.employeeId);
     if (deleteSpecialError) throw deleteSpecialError;
 
-    const selectedTemplates = input.specialPermissionTemplates.filter((template) => input.specialPermissionNames.includes(template.name));
+    const selectedTemplates = input.specialPermissionTemplates.filter((template) => {
+      const access = input.specialPermissionAccess[template.name];
+      return Boolean(access?.view || access?.use);
+    });
     if (selectedTemplates.length > 0) {
       const { error } = await db.from('employee_special_permissions').insert(
         selectedTemplates.map((template) => ({
           employee_id: input.employeeId,
           special_permission_template_id: template.id,
           is_enabled: true,
+          can_view: Boolean(input.specialPermissionAccess[template.name]?.view),
+          can_use: Boolean(input.specialPermissionAccess[template.name]?.view && input.specialPermissionAccess[template.name]?.use),
           updated_at: now,
         })),
       );
@@ -241,6 +244,25 @@ function rowsToPermissionState(rows: PermissionRow[]): PermissionState {
       view: row.can_view,
       use: row.can_use,
     };
+    return state;
+  }, {});
+}
+
+function rowsToSpecialPermissionAccess(
+  rows: Array<{
+    can_view: boolean;
+    can_use: boolean;
+    special_permission_templates: { name: string } | null;
+  }>,
+): PermissionState {
+  return rows.reduce<PermissionState>((state, row) => {
+    const name = row.special_permission_templates?.name;
+    if (name) {
+      state[name] = {
+        view: row.can_view,
+        use: row.can_view && row.can_use,
+      };
+    }
     return state;
   }, {});
 }

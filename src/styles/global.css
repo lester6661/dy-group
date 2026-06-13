@@ -1564,7 +1564,8 @@ a {
 .permission-template-card {
   display: grid;
   gap: 8px;
-  min-height: 86px;
+  min-height: 62px;
+  align-content: center;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1586,6 +1587,35 @@ a {
 .permission-template-card span {
   color: var(--muted);
   font-size: 13px;
+}
+
+.special-permission-access-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.special-permission-access-head,
+.special-permission-access-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 88px 88px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  column-gap: 10px;
+}
+
+.special-permission-access-row:last-child {
+  border-bottom: 0;
+}
+
+.special-permission-access-head {
+  color: var(--muted);
+  background: var(--panel-soft);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .employee-permission-sections {
@@ -1669,6 +1699,11 @@ a {
   padding: 0 14px;
   border-bottom: 1px solid var(--border);
   column-gap: 10px;
+}
+
+.permission-matrix.batch .permission-matrix-head,
+.permission-matrix.batch .permission-matrix-row {
+  grid-template-columns: minmax(180px, 1fr) 88px;
 }
 
 .permission-matrix-row:last-child {

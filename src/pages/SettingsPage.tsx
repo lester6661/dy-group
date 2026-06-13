@@ -502,7 +502,8 @@ function PermissionManagementPanel() {
   const [modalPermissions, setModalPermissions] = useState<PermissionState>({});
   const [attendanceRequired, setAttendanceRequired] = useState(true);
   const [managedRegionIds, setManagedRegionIds] = useState<string[]>([]);
-  const [ownedSpecialPermissions, setOwnedSpecialPermissions] = useState<string[]>([]);
+  const [ownedSpecialPermissionAccess, setOwnedSpecialPermissionAccess] = useState<PermissionState>({});
+  const [specialTemplatePermissionMap, setSpecialTemplatePermissionMap] = useState<Record<string, PermissionState>>({});
   const [newSpecialName, setNewSpecialName] = useState('');
   const [initialPermissionSnapshot, setInitialPermissionSnapshot] = useState('');
   const [loading, setLoading] = useState(true);
@@ -527,10 +528,10 @@ function PermissionManagementPanel() {
         permissions: modalPermissions,
         attendanceRequired,
         managedRegionIds,
-        ownedSpecialPermissions,
+        ownedSpecialPermissionAccess,
         specialName: getCurrentSpecialPermissionName(modalTarget, newSpecialName),
       }),
-    [attendanceRequired, managedRegionIds, modalPermissions, modalTarget, newSpecialName, ownedSpecialPermissions],
+    [attendanceRequired, managedRegionIds, modalPermissions, modalTarget, newSpecialName, ownedSpecialPermissionAccess],
   );
   const isDirty = Boolean(modalTarget) && currentPermissionSnapshot !== initialPermissionSnapshot;
 
@@ -562,6 +563,13 @@ function PermissionManagementPanel() {
       setEmployees(staffList);
       setStaffOptions(options);
       setSpecialPermissionTemplates(specialTemplates);
+      const templateEntries = await Promise.all(
+        specialTemplates.map(async (template) => [
+          template.name,
+          await permissionManagementService.getSpecialPermissionTemplatePermissions(template.name),
+        ] as const),
+      );
+      setSpecialTemplatePermissionMap(Object.fromEntries(templateEntries));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : '读取权限管理资料失败。');
     } finally {
@@ -573,13 +581,13 @@ function PermissionManagementPanel() {
     permissions: PermissionState;
     attendanceRequired: boolean;
     managedRegionIds: string[];
-    ownedSpecialPermissions: string[];
+    ownedSpecialPermissionAccess: PermissionState;
     specialName: string;
   }) {
     setModalPermissions(input.permissions);
     setAttendanceRequired(input.attendanceRequired);
     setManagedRegionIds(input.managedRegionIds);
-    setOwnedSpecialPermissions(input.ownedSpecialPermissions);
+    setOwnedSpecialPermissionAccess(input.ownedSpecialPermissionAccess);
     setInitialPermissionSnapshot(createPermissionSnapshot(input));
   }
 
@@ -598,7 +606,7 @@ function PermissionManagementPanel() {
           permissions: mergePermissionState(defaultPermissions, savedPermissions),
           attendanceRequired: true,
           managedRegionIds: [],
-          ownedSpecialPermissions: [],
+          ownedSpecialPermissionAccess: {},
           specialName: '',
         });
         return;
@@ -610,7 +618,7 @@ function PermissionManagementPanel() {
           permissions: mergePermissionState(defaultPermissions, savedPermissions),
           attendanceRequired: true,
           managedRegionIds: [],
-          ownedSpecialPermissions: [],
+          ownedSpecialPermissionAccess: {},
           specialName: target.title,
         });
         return;
@@ -622,7 +630,7 @@ function PermissionManagementPanel() {
           permissions: mergePermissionState(defaultPermissions, savedProfile.permissions),
           attendanceRequired: savedProfile.requireAttendance,
           managedRegionIds: savedProfile.regionIds,
-          ownedSpecialPermissions: savedProfile.specialPermissionNames,
+          ownedSpecialPermissionAccess: savedProfile.specialPermissionAccess,
           specialName: '',
         });
         return;
@@ -632,7 +640,7 @@ function PermissionManagementPanel() {
         permissions: defaultPermissions,
         attendanceRequired: true,
         managedRegionIds: [],
-        ownedSpecialPermissions: [],
+        ownedSpecialPermissionAccess: {},
         specialName: '',
       });
     } catch (loadError) {
@@ -669,6 +677,7 @@ function PermissionManagementPanel() {
 
           return current.map((template, index) => (index === existingIndex ? savedTemplate : template));
         });
+        setSpecialTemplatePermissionMap((current) => ({ ...current, [savedTemplate.name]: modalPermissions }));
         setModalTarget({ type: 'special', title: savedTemplate.name, subtitle: '特殊权限模板' });
         setNewSpecialName('');
       }
@@ -678,7 +687,7 @@ function PermissionManagementPanel() {
           employeeId: modalTarget.employee.id,
           requireAttendance: attendanceRequired,
           regionIds: managedRegionIds,
-          specialPermissionNames: ownedSpecialPermissions,
+          specialPermissionAccess: ownedSpecialPermissionAccess,
           specialPermissionTemplates,
           permissions: modalPermissions,
         });
@@ -695,7 +704,7 @@ function PermissionManagementPanel() {
           permissions: modalPermissions,
           attendanceRequired,
           managedRegionIds,
-          ownedSpecialPermissions,
+          ownedSpecialPermissionAccess,
           specialName: modalTarget.type === 'special' ? getCurrentSpecialPermissionName(modalTarget, newSpecialName) : '',
         }),
       );
@@ -710,12 +719,35 @@ function PermissionManagementPanel() {
     setModalPermissions((current) => updatePermissionTree(current, permissionItems, permissionKey, field, checked));
   }
 
+  function handleSpecialBatchChange(permissionKey: string, checked: boolean) {
+    setModalPermissions((current) => updateSpecialBatchTree(current, permissionItems, permissionKey, checked));
+  }
+
   function toggleManagedRegion(regionId: string, checked: boolean) {
     setManagedRegionIds((current) => (checked ? [...new Set([...current, regionId])] : current.filter((id) => id !== regionId)));
   }
 
-  function toggleSpecialPermission(name: string, checked: boolean) {
-    setOwnedSpecialPermissions((current) => (checked ? [...new Set([...current, name])] : current.filter((item) => item !== name)));
+  function toggleSpecialPermission(name: string, field: keyof PermissionAccess, checked: boolean) {
+    setOwnedSpecialPermissionAccess((current) => {
+      const currentAccess = current[name] ?? { view: false, use: false };
+      const nextAccess = { ...currentAccess, [field]: checked };
+      if (field === 'view' && !checked) nextAccess.use = false;
+      if (field === 'use' && checked) nextAccess.view = true;
+
+      const next = { ...current };
+      if (nextAccess.view || nextAccess.use) {
+        next[name] = nextAccess;
+      } else {
+        delete next[name];
+      }
+      return next;
+    });
+
+    const templatePermissions = specialTemplatePermissionMap[name] ?? {};
+    const titlePermissions =
+      modalTarget?.type === 'employee' ? createDefaultPermissionState(permissionItems, { type: 'employee', employee: modalTarget.employee }) : {};
+
+    setModalPermissions((current) => applySpecialPermissionSync(current, templatePermissions, titlePermissions, field, checked));
   }
 
   function handlePermissionTabChange(tabKey: PermissionTabKey) {
@@ -743,13 +775,6 @@ function PermissionManagementPanel() {
 
       {activeTab === 'jobTitles' ? (
         <section className="permission-section-panel">
-          <div className="list-header">
-            <div>
-              <span>职称权限</span>
-              <h3>{jobTitles.length} 个职称</h3>
-            </div>
-            <ShieldCheck size={22} />
-          </div>
           {loading ? (
             <div className="table-state">正在读取职称权限...</div>
           ) : (
@@ -762,7 +787,6 @@ function PermissionManagementPanel() {
                   onClick={() => void openPermissionModal({ type: 'jobTitle', id: jobTitle.id, title: jobTitle.name, subtitle: '职称基础权限' })}
                 >
                   <strong>{jobTitle.name}</strong>
-                  <span>设置默认权限</span>
                 </button>
               ))}
             </div>
@@ -773,10 +797,7 @@ function PermissionManagementPanel() {
       {activeTab === 'special' ? (
         <section className="permission-section-panel">
           <div className="list-header">
-            <div>
-              <span>特殊权限</span>
-              <h3>批量开启或关闭权限模板</h3>
-            </div>
+            <div />
             <button
               className="secondary-action"
               type="button"
@@ -795,7 +816,6 @@ function PermissionManagementPanel() {
                 onClick={() => void openPermissionModal({ type: 'special', title: permissionTemplate.name, subtitle: '特殊权限模板' })}
               >
                 <strong>{permissionTemplate.name}</strong>
-                <span>设置包含权限</span>
               </button>
             ))}
           </div>
@@ -910,16 +930,27 @@ function PermissionManagementPanel() {
               </PermissionBlock>
 
               <PermissionBlock title="拥有特殊权限">
-                <div className="permission-check-grid">
+                <div className="special-permission-access-list">
+                  <div className="special-permission-access-head">
+                    <span>特殊权限名称</span>
+                    <span>查阅</span>
+                    <span>使用</span>
+                  </div>
                   {specialPermissionTemplates.map((permissionTemplate) => (
-                    <label className="permission-check" key={permissionTemplate.id}>
-                      <input
-                        checked={ownedSpecialPermissions.includes(permissionTemplate.name)}
-                        type="checkbox"
-                        onChange={(event) => toggleSpecialPermission(permissionTemplate.name, event.target.checked)}
-                      />
+                    <div className="special-permission-access-row" key={permissionTemplate.id}>
                       <span>{permissionTemplate.name}</span>
-                    </label>
+                      <input
+                        checked={Boolean(ownedSpecialPermissionAccess[permissionTemplate.name]?.view)}
+                        type="checkbox"
+                        onChange={(event) => toggleSpecialPermission(permissionTemplate.name, 'view', event.target.checked)}
+                      />
+                      <input
+                        checked={Boolean(ownedSpecialPermissionAccess[permissionTemplate.name]?.use)}
+                        disabled={!ownedSpecialPermissionAccess[permissionTemplate.name]?.view}
+                        type="checkbox"
+                        onChange={(event) => toggleSpecialPermission(permissionTemplate.name, 'use', event.target.checked)}
+                      />
+                    </div>
                   ))}
                 </div>
               </PermissionBlock>
@@ -927,7 +958,11 @@ function PermissionManagementPanel() {
           ) : null}
 
           <PermissionBlock title={modalTarget.type === 'employee' ? '个人权限调整' : '权限项目'}>
-            <PermissionMatrix items={permissionItems} permissions={modalPermissions} onChange={handlePermissionChange} />
+            {modalTarget.type === 'special' ? (
+              <PermissionBatchMatrix items={permissionItems} permissions={modalPermissions} onChange={handleSpecialBatchChange} />
+            ) : (
+              <PermissionMatrix items={permissionItems} permissions={modalPermissions} onChange={handlePermissionChange} />
+            )}
           </PermissionBlock>
         </SystemModal>
       ) : null}
@@ -979,6 +1014,41 @@ function PermissionMatrix({
               indeterminate={useStateValue === 'mixed'}
               disabled={item.disabled || !access.view}
               onChange={(checked) => onChange(item.key, 'use', checked)}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PermissionBatchMatrix({
+  items,
+  permissions,
+  onChange,
+}: {
+  items: PermissionItem[];
+  permissions: PermissionState;
+  onChange: (permissionKey: string, checked: boolean) => void;
+}) {
+  return (
+    <div className="permission-matrix batch">
+      <div className="permission-matrix-head">
+        <span>权限项目</span>
+        <span>批量</span>
+      </div>
+      {items.map((item) => {
+        const checked = Boolean(permissions[item.key]?.view || permissions[item.key]?.use);
+        const batchState = getPermissionCheckState(item, items, permissions, 'view');
+
+        return (
+          <div className={'permission-matrix-row level-' + item.level} key={item.key}>
+            <span>{item.name}</span>
+            <IndeterminateCheckbox
+              checked={checked}
+              indeterminate={batchState === 'mixed'}
+              disabled={item.disabled}
+              onChange={(nextChecked) => onChange(item.key, nextChecked)}
             />
           </div>
         );
@@ -1087,7 +1157,7 @@ function createPermissionSnapshot(input: {
   permissions: PermissionState;
   attendanceRequired: boolean;
   managedRegionIds: string[];
-  ownedSpecialPermissions: string[];
+  ownedSpecialPermissionAccess: PermissionState;
   specialName: string;
 }) {
   const permissions = Object.keys(input.permissions)
@@ -1105,7 +1175,16 @@ function createPermissionSnapshot(input: {
     permissions,
     attendanceRequired: input.attendanceRequired,
     managedRegionIds: [...input.managedRegionIds].sort(),
-    ownedSpecialPermissions: [...input.ownedSpecialPermissions].sort(),
+    ownedSpecialPermissionAccess: Object.keys(input.ownedSpecialPermissionAccess)
+      .sort()
+      .reduce<PermissionState>((state, key) => {
+        const access = input.ownedSpecialPermissionAccess[key] ?? { view: false, use: false };
+        state[key] = {
+          view: access.view,
+          use: access.view && access.use,
+        };
+        return state;
+      }, {}),
     specialName: input.specialName.trim(),
   });
 }
@@ -1143,6 +1222,68 @@ function updatePermissionTree(state: PermissionState, items: PermissionItem[], k
   if (targetItem?.parentKey) {
     syncParentPermission(next, items, targetItem.parentKey, field);
   }
+
+  return next;
+}
+
+function updateSpecialBatchTree(state: PermissionState, items: PermissionItem[], key: string, checked: boolean): PermissionState {
+  const next = { ...state };
+  const targetItem = items.find((item) => item.key === key);
+  const childItems = items.filter((item) => item.parentKey === key);
+  const affectedItems = targetItem?.parentKey ? [targetItem] : [targetItem, ...childItems].filter(Boolean);
+
+  affectedItems.forEach((item) => {
+    if (!item) return;
+    next[item.key] = {
+      view: checked,
+      use: checked,
+    };
+  });
+
+  if (targetItem?.parentKey) {
+    syncParentPermission(next, items, targetItem.parentKey, 'view');
+    syncParentPermission(next, items, targetItem.parentKey, 'use');
+  }
+
+  return next;
+}
+
+function applySpecialPermissionSync(
+  state: PermissionState,
+  templatePermissions: PermissionState,
+  titlePermissions: PermissionState,
+  field: keyof PermissionAccess,
+  checked: boolean,
+) {
+  const next = { ...state };
+
+  Object.entries(templatePermissions).forEach(([permissionKey, access]) => {
+    if (!access.view && !access.use) return;
+
+    const current = next[permissionKey] ?? { view: false, use: false };
+    const titleAccess = titlePermissions[permissionKey] ?? { view: false, use: false };
+
+    if (checked) {
+      next[permissionKey] = {
+        view: true,
+        use: field === 'use' ? true : current.use,
+      };
+      return;
+    }
+
+    if (field === 'view') {
+      next[permissionKey] = {
+        view: titleAccess.view,
+        use: titleAccess.use,
+      };
+      return;
+    }
+
+    next[permissionKey] = {
+      view: current.view || titleAccess.view,
+      use: titleAccess.use,
+    };
+  });
 
   return next;
 }
