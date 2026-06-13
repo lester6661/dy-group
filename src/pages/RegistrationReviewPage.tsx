@@ -9,12 +9,14 @@ import {
 import { type StaffOptions, staffService } from '../services/staff.service';
 
 const defaultApprovalValues: RegistrationApprovalValues = {
-  region_id: '',
   employment_type_id: '',
   job_title_id: '',
+  employee_status: 'probation',
   hire_date: '',
   start_work_time: '09:00',
   end_work_time: '18:00',
+  require_attendance: true,
+  base_salary: '',
 };
 
 export function RegistrationReviewPage() {
@@ -91,14 +93,14 @@ export function RegistrationReviewPage() {
 
     try {
       if (
-        !approvalValues.region_id ||
         !approvalValues.employment_type_id ||
         !approvalValues.job_title_id ||
+        !approvalValues.employee_status ||
         !approvalValues.hire_date ||
         !approvalValues.start_work_time ||
         !approvalValues.end_work_time
       ) {
-        throw new Error('请完整填写区域、职称、雇佣类型、入职日期、上班时间与下班时间。');
+        throw new Error('请完整填写职称、雇佣类型、状态、入职日期、上班时间与下班时间。');
       }
 
       await registrationReviewService.approveRegistration(selectedRegistration.id, approvalValues);
@@ -214,12 +216,32 @@ export function RegistrationReviewPage() {
                   <strong>{selectedRegistration.full_name}</strong>
                 </div>
                 <div>
+                  <span>昵称</span>
+                  <strong>{selectedRegistration.nickname || '-'}</strong>
+                </div>
+                <div>
+                  <span>性别</span>
+                  <strong>{formatGender(selectedRegistration.gender)}</strong>
+                </div>
+                <div>
+                  <span>生日</span>
+                  <strong>{selectedRegistration.birthday || '-'}</strong>
+                </div>
+                <div>
+                  <span>身份证号码</span>
+                  <strong>{selectedRegistration.identity_number || '-'}</strong>
+                </div>
+                <div>
+                  <span>手机号码</span>
+                  <strong>{selectedRegistration.phone || '-'}</strong>
+                </div>
+                <div>
                   <span>邮箱</span>
                   <strong>{selectedRegistration.email}</strong>
                 </div>
                 <div>
-                  <span>电话</span>
-                  <strong>{selectedRegistration.phone || '-'}</strong>
+                  <span>申请区域</span>
+                  <strong>{selectedRegistration.region?.code ?? '-'}</strong>
                 </div>
                 <div>
                   <span>注册时间</span>
@@ -231,22 +253,6 @@ export function RegistrationReviewPage() {
             <section className="employee-detail-section">
               <h4>工作资料</h4>
               <div className="approval-form-grid single">
-                <label className="form-field">
-                  <span>区域</span>
-                  <select
-                    value={approvalValues.region_id}
-                    onChange={(event) => setApprovalValues({ ...approvalValues, region_id: event.target.value })}
-                    required
-                  >
-                    <option value="">请选择</option>
-                    {options.regions.map((region) => (
-                      <option key={region.id} value={region.id}>
-                        {region.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
                 <label className="form-field">
                   <span>职称</span>
                   <select
@@ -280,6 +286,20 @@ export function RegistrationReviewPage() {
                 </label>
 
                 <label className="form-field">
+                  <span>状态</span>
+                  <select
+                    value={approvalValues.employee_status}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, employee_status: event.target.value as RegistrationApprovalValues['employee_status'] })}
+                    required
+                  >
+                    <option value="probation">试用期</option>
+                    <option value="active">在职</option>
+                    <option value="inactive">停职</option>
+                    <option value="left">离职</option>
+                  </select>
+                </label>
+
+                <label className="form-field">
                   <span>入职日期</span>
                   <input
                     type="date"
@@ -288,16 +308,33 @@ export function RegistrationReviewPage() {
                     required
                   />
                 </label>
+
+                <div className="detail-list full-field">
+                  <div>
+                    <span>员工编号</span>
+                    <strong>审核通过后系统自动生成</strong>
+                  </div>
+                  <div>
+                    <span>正式日期</span>
+                    <strong>{approvalValues.hire_date ? calculateConfirmDate(approvalValues.hire_date) : '选择入职日期后自动计算'}</strong>
+                  </div>
+                </div>
               </div>
             </section>
 
             <section className="employee-detail-section">
               <h4>薪资资料</h4>
-              <div className="detail-list">
-                <div>
-                  <span>薪资资料</span>
-                  <strong>审核通过后由工作人员资料维护</strong>
-                </div>
+              <div className="approval-form-grid single">
+                <label className="form-field">
+                  <span>基本薪资</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={approvalValues.base_salary}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, base_salary: event.target.value })}
+                  />
+                </label>
               </div>
             </section>
 
@@ -322,6 +359,15 @@ export function RegistrationReviewPage() {
                     onChange={(event) => setApprovalValues({ ...approvalValues, end_work_time: event.target.value })}
                     required
                   />
+                </label>
+
+                <label className="toggle-field full-field">
+                  <input
+                    type="checkbox"
+                    checked={approvalValues.require_attendance}
+                    onChange={(event) => setApprovalValues({ ...approvalValues, require_attendance: event.target.checked })}
+                  />
+                  <span>需要考勤</span>
                 </label>
               </div>
             </section>
@@ -354,4 +400,19 @@ function formatDateTime(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function formatGender(value: string | null | undefined) {
+  if (value === 'male') return '男';
+  if (value === 'female') return '女';
+  return value || '-';
+}
+
+function calculateConfirmDate(hireDate: string) {
+  const date = new Date(`${hireDate}T00:00:00`);
+  date.setMonth(date.getMonth() + 3);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

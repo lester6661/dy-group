@@ -512,8 +512,9 @@ function StaffFormModal({
             <label className="form-field">
               <span>状态</span>
               <select value={values.status} onChange={(event) => onChange({ ...values, status: event.target.value as EmployeeStatus })}>
+                <option value="probation">试用期</option>
                 <option value="active">在职</option>
-                <option value="inactive">停用</option>
+                <option value="inactive">停职</option>
                 <option value="left">离职</option>
               </select>
             </label>

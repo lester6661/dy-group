@@ -119,6 +119,12 @@ const employeeSelect = `
 
 export const staffService = {
   async listEmployees() {
+    const { error: confirmError } = await supabase.rpc('auto_confirm_probation_employees');
+
+    if (confirmError) {
+      throw confirmError;
+    }
+
     const { data, error } = await supabase
       .from('employees')
       .select(employeeSelect)

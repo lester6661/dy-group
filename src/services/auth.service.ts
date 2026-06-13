@@ -2,9 +2,14 @@ import { supabase } from '../lib/supabase';
 
 export type RegisterPayload = {
   fullName: string;
+  nickname: string;
+  gender: string;
+  birthday: string;
+  identityNumber: string;
   phone?: string;
   email: string;
   password: string;
+  regionCode: string;
 };
 
 export const authService = {
@@ -21,7 +26,12 @@ export const authService = {
       options: {
         data: {
           full_name: payload.fullName,
+          nickname: payload.nickname,
+          gender: payload.gender,
+          birthday: payload.birthday,
+          identity_number: payload.identityNumber,
           phone: payload.phone ?? '',
+          region_code: payload.regionCode,
         },
       },
     });

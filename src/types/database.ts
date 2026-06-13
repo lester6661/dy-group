@@ -1,7 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type ProfileStatus = 'pending_review' | 'approved' | 'rejected' | 'suspended';
-export type EmployeeStatus = 'active' | 'inactive' | 'left';
+export type EmployeeStatus = 'probation' | 'active' | 'inactive' | 'left';
 export type AppRole = 'super_admin' | 'admin' | 'hr' | 'manager' | 'staff';
 export type LeaveType = 'annual' | 'medical' | 'unpaid' | 'replacement';
 export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected';
@@ -13,7 +13,11 @@ export type Profile = {
   id: string;
   email: string;
   full_name: string;
+  nickname: string | null;
   phone: string | null;
+  gender: string | null;
+  birthday: string | null;
+  identity_number: string | null;
   avatar_url: string | null;
   role: AppRole;
   status: ProfileStatus;
@@ -189,7 +193,11 @@ export type Database = {
       profiles: {
         Row: Profile;
         Insert: Pick<Profile, 'id' | 'email' | 'full_name'> & {
+          nickname?: string | null;
           phone?: string | null;
+          gender?: string | null;
+          birthday?: string | null;
+          identity_number?: string | null;
           avatar_url?: string | null;
           review_note?: string | null;
           reviewed_by?: string | null;
@@ -387,14 +395,20 @@ export type Database = {
       approve_registration_with_employee: {
         Args: {
           profile_id: string;
-          region_id: string;
           employment_type_id: string;
           job_title_id: string;
+          employee_status: EmployeeStatus;
           hire_date: string;
           start_work_time: string;
           end_work_time: string;
+          require_attendance: boolean;
+          base_salary?: number | null;
         };
         Returns: void;
+      };
+      auto_confirm_probation_employees: {
+        Args: Record<string, never>;
+        Returns: number;
       };
       reject_registration: {
         Args: {
