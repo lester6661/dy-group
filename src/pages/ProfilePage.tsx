@@ -68,8 +68,8 @@ export function ProfilePage() {
   const companyFacebook = employee?.region?.company_facebook ?? '';
   const businessCardContacts = [
     { kind: 'whatsapp' as const, label: 'Whatsapp', value: whatsapp },
-    { kind: 'wechat' as const, label: '微信', value: cardWechat },
     { kind: 'instagram' as const, label: '公司 Instagram', value: companyInstagram },
+    { kind: 'wechat' as const, label: '微信', value: cardWechat },
     { kind: 'facebook' as const, label: '公司 Facebook', value: companyFacebook },
   ].filter((contact) => contact.value.trim());
   const cropBaseScale =
@@ -769,8 +769,8 @@ function drawCardDetails(
 
     const rows = [
       ['whatsapp', values.whatsapp],
-      ['wechat', values.wechat],
       ['instagram', values.companyInstagram],
+      ['wechat', values.wechat],
       ['facebook', values.companyFacebook],
     ].filter(([, value]) => value.trim()) as Array<[ContactKind, string]>;
 
