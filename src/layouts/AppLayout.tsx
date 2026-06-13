@@ -22,7 +22,7 @@ export function AppLayout() {
         onNavigate={() => setMobileSidebarOpen(false)}
       />
       <div className="app-main">
-        <Header onOpenMobileMenu={() => setMobileSidebarOpen(true)} />
+        <Header onOpenMobileMenu={() => setMobileSidebarOpen((current) => !current)} />
         <main className="content-area">
           <Outlet />
         </main>

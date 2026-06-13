@@ -1528,6 +1528,10 @@ a {
   background: linear-gradient(135deg, #e83e8c, #7c3aed);
 }
 
+.settings-tab-short {
+  display: none;
+}
+
 .permission-placeholder {
   display: grid;
   gap: 8px;
@@ -3427,6 +3431,10 @@ button.leave-chip:disabled {
     margin-left: auto;
   }
 
+  .avatar-menu-panel {
+    z-index: 90;
+  }
+
   .search-box {
     display: none;
   }
@@ -3489,6 +3497,11 @@ button.leave-chip:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .schedule-filter-panel {
+    position: relative;
+    z-index: 20;
+  }
+
   .staff-table-wrap {
     width: 100%;
     max-width: 100%;
@@ -3498,6 +3511,71 @@ button.leave-chip:disabled {
 
   .staff-table {
     min-width: 640px;
+  }
+
+  .staff-table th,
+  .staff-table td,
+  .staff-table td strong,
+  .staff-table td span,
+  .text-link-button,
+  .status-pill {
+    white-space: nowrap;
+  }
+
+  .staff-table td strong,
+  .staff-table td span,
+  .text-link-button {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .staff-simple-table th,
+  .staff-simple-table td {
+    font-size: 12px;
+  }
+
+  .filter-dropdown[open] {
+    z-index: 80;
+  }
+
+  .filter-dropdown-panel {
+    z-index: 85;
+  }
+
+  .schedule-calendar-panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .schedule-calendar-panel .leave-calendar-grid {
+    min-width: 720px;
+    grid-template-columns: repeat(7, minmax(96px, 1fr));
+  }
+
+  .itinerary-calendar-grid .leave-calendar-weekday {
+    display: none;
+  }
+
+  .attendance-management-page .attendance-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .abnormal-banner {
+    min-height: 48px;
+    padding: 10px 14px;
+  }
+
+  .abnormal-cycle-count {
+    margin: 8px 0 12px;
+  }
+
+  .attendance-detail-col {
+    display: none;
+  }
+
+  .settings-tab-short {
+    display: none;
   }
 
   .modal-backdrop {
@@ -3678,7 +3756,26 @@ button.leave-chip:disabled {
 
   .attendance-filters,
   .schedule-v2-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .attendance-filters {
     grid-template-columns: 1fr;
+  }
+
+  .attendance-management-page .attendance-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-filters .form-field,
+  .schedule-v2-filters .form-field {
+    min-width: 0;
+  }
+
+  .attendance-filters .form-field span,
+  .schedule-v2-filters .form-field span {
+    font-size: 12px;
   }
 
   .schedule-filter-panel,
@@ -3708,6 +3805,108 @@ button.leave-chip:disabled {
 
   .staff-simple-table {
     min-width: 520px;
+  }
+
+  .leave-page > .leave-stats-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .leave-page > .leave-stats-grid .leave-stat-card {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 8px 10px;
+  }
+
+  .leave-page > .leave-stats-grid .leave-stat-card svg {
+    display: none;
+  }
+
+  .leave-page > .leave-stats-grid .leave-stat-card span,
+  .leave-page > .leave-stats-grid .leave-stat-card strong {
+    font-size: 13px;
+  }
+
+  .leave-page > .leave-stats-grid .leave-stat-card span::after {
+    content: "";
+  }
+
+  .settings-tabs {
+    gap: 8px;
+  }
+
+  .settings-tab {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .settings-tab svg,
+  .settings-tab-full {
+    display: none;
+  }
+
+  .settings-tab-short {
+    display: inline;
+  }
+
+  .settings-page > .staff-list-panel > .list-header > div:first-child,
+  .permission-section-panel > .list-header > div:first-child {
+    display: none;
+  }
+
+  .permission-subtabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .permission-subtab {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .permission-block {
+    overflow-x: auto;
+    padding: 10px;
+  }
+
+  .permission-matrix,
+  .special-permission-access-list {
+    min-width: 360px;
+    overflow: visible;
+  }
+
+  .permission-matrix-head,
+  .permission-matrix-row,
+  .special-permission-access-head,
+  .special-permission-access-row {
+    grid-template-columns: minmax(180px, 1fr) 64px 64px;
+    padding: 0 10px;
+    column-gap: 0;
+  }
+
+  .permission-matrix.batch .permission-matrix-head,
+  .permission-matrix.batch .permission-matrix-row {
+    grid-template-columns: minmax(180px, 1fr) 64px;
+  }
+
+  .permission-matrix-head span,
+  .permission-matrix-row span,
+  .special-permission-access-head span,
+  .special-permission-access-row span {
+    white-space: nowrap;
+  }
+
+  .permission-matrix-head span:not(:first-child),
+  .permission-matrix-row input,
+  .special-permission-access-head span:not(:first-child),
+  .special-permission-access-row input {
+    justify-self: center;
   }
 
   .table-search {

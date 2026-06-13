@@ -164,25 +164,36 @@ export function AttendanceManagementPage() {
             <table className="staff-table">
               <thead>
                 <tr>
-                  <th>员工姓名</th>
-                  <th>迟到次数</th>
-                  <th>早退次数</th>
-                  <th>旷工次数</th>
-                  <th>超时休息次数</th>
-                  <th>异常打卡次数</th>
-                  <th>查看详情</th>
+                  <th>昵称</th>
+                  <th>迟到</th>
+                  <th>早退</th>
+                  <th>旷工</th>
+                  <th>超时</th>
+                  <th>异常</th>
+                  <th className="attendance-detail-col">查看详情</th>
                 </tr>
               </thead>
               <tbody>
                 {summaries.map((summary) => (
                   <tr key={summary.employee.id}>
-                    <td><strong>{summary.employee.full_name}</strong></td>
+                    <td>
+                      <button
+                        className="text-link-button"
+                        type="button"
+                        onClick={() => {
+                          setSelectedEmployeeId(summary.employee.id);
+                          setShowAbnormalCenter(false);
+                        }}
+                      >
+                        {getEmployeeDisplayName(summary.employee)}
+                      </button>
+                    </td>
                     <td>{summary.lateCount}</td>
                     <td>{summary.earlyLeaveCount}</td>
                     <td>{summary.absentCount}</td>
                     <td>{summary.overtimeBreakCount}</td>
                     <td>{summary.abnormalPunchCount}</td>
-                    <td>
+                    <td className="attendance-detail-col">
                       <button
                         className="secondary-button compact-button"
                         type="button"
@@ -212,7 +223,7 @@ export function AttendanceManagementPage() {
 function EmployeeDetail({ summary, onClose }: { summary: EmployeeAttendanceSummary; onClose: () => void }) {
   return (
     <SystemModal
-      title={summary.employee.full_name}
+      title={getEmployeeDisplayName(summary.employee)}
       subtitle="员工考勤详情"
       ariaLabel="员工考勤详情"
       onClose={onClose}
@@ -226,7 +237,7 @@ function EmployeeDetail({ summary, onClose }: { summary: EmployeeAttendanceSumma
         <section className="employee-detail-section">
           <h4>基础资料</h4>
           <div className="detail-list">
-            <div><span>员工姓名</span><strong>{summary.employee.full_name}</strong></div>
+            <div><span>昵称</span><strong>{getEmployeeDisplayName(summary.employee)}</strong></div>
             <div><span>员工编号</span><strong>{summary.employee.employee_code ?? '-'}</strong></div>
             <div><span>区域</span><strong>{summary.employee.region?.code ?? '-'}</strong></div>
           </div>
@@ -307,7 +318,7 @@ function AbnormalEmployeeCenter({ records, onClose }: { records: AbnormalRecord[
 
   return (
     <SystemModal
-      title={selected ? `${selected.employee.full_name} 的异常记录` : `${records.length} 次异常`}
+      title={selected ? `${getEmployeeDisplayName(selected.employee)} 的异常记录` : `${records.length} 次异常`}
       subtitle="异常打卡中心"
       ariaLabel="异常打卡中心"
       onClose={onClose}
@@ -381,7 +392,7 @@ function AbnormalEmployeeCenter({ records, onClose }: { records: AbnormalRecord[
                 <tbody>
                   {groupedEmployees.map((item) => (
                     <tr key={item.employee.id}>
-                      <td><strong>{item.employee.full_name}</strong></td>
+                      <td><strong>{getEmployeeDisplayName(item.employee)}</strong></td>
                       <td>异常 {item.records.length} 次</td>
                       <td>
                         <button className="secondary-button compact-button" type="button" onClick={() => setSelectedEmployeeId(item.employee.id)}>
@@ -429,6 +440,10 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function getEmployeeDisplayName(employee: Pick<AttendanceEmployee, 'full_name' | 'nickname'>) {
+  return employee.nickname?.trim() || employee.full_name;
 }
 
 function buildSummaries(

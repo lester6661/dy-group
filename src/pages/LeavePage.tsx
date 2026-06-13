@@ -317,10 +317,10 @@ export function LeavePage() {
           {message ? <p className="form-success">{message}</p> : null}
 
           <div className="leave-stats-grid">
-            <StatCard label="全部申请" value={stats.total} />
-            <StatCard label="审核中" value={stats.pending} />
-            <StatCard label="已通过" value={stats.approved} />
-            <StatCard label="已拒绝" value={stats.rejected} />
+            <StatCard label="申请" value={stats.total} />
+            <StatCard label="审核" value={stats.pending} />
+            <StatCard label="通过" value={stats.approved} />
+            <StatCard label="拒绝" value={stats.rejected} />
           </div>
 
           <div className="staff-list-panel">

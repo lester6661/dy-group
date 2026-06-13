@@ -12,6 +12,7 @@ export type AttendanceEmployee = Pick<
   Employee,
   | 'id'
   | 'full_name'
+  | 'nickname'
   | 'employee_code'
   | 'region_id'
   | 'profile_id'
@@ -57,6 +58,7 @@ type EmployeeRowWithRelations = Pick<
   Employee,
   | 'id'
   | 'full_name'
+  | 'nickname'
   | 'employee_code'
   | 'region_id'
   | 'profile_id'
@@ -78,6 +80,7 @@ export const attendanceManagementService = {
         `
         id,
         full_name,
+        nickname,
         employee_code,
         profile_id,
         region_id,
@@ -168,6 +171,7 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): AttendanceEmployee {
   return {
     id: row.id,
     full_name: row.full_name,
+    nickname: row.nickname,
     employee_code: row.employee_code,
     profile_id: row.profile_id,
     region_id: row.region_id,

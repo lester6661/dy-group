@@ -271,7 +271,8 @@ export function SettingsPage() {
             onClick={() => handleModuleChange(moduleItem.key)}
           >
             <Settings2 size={17} />
-            <span>{moduleItem.title}</span>
+            <span className="settings-tab-full">{moduleItem.title}</span>
+            <span className="settings-tab-short">{getMobileSettingsTitle(moduleItem.key)}</span>
           </button>
         ))}
       </div>
@@ -1331,4 +1332,11 @@ function getSettingName(moduleKey: SettingsModule['key']) {
 
 function getCreateButtonText(moduleKey: SettingsModule['key']) {
   return `新增${getSettingName(moduleKey)}`;
+}
+
+function getMobileSettingsTitle(moduleKey: SettingsModule['key']) {
+  if (moduleKey === 'regions') return '区域';
+  if (moduleKey === 'job_titles') return '职称';
+  if (moduleKey === 'employment_types') return '雇佣';
+  return '权限';
 }
