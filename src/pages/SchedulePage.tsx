@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import { type CalendarLeaveType, type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
@@ -64,6 +64,13 @@ export function SchedulePage() {
     );
   }, [employeeOptions, employeeSearch]);
   const activeEmployeeIds = selectedEmployeeIds.length > 0 ? selectedEmployeeIds : employeeOptions.map((employee) => employee.id);
+  const leaveTypeSummary = useMemo(() => {
+    if (selectedLeaveTypes.length === leaveTypeOptions.length) return '全部假别';
+    if (selectedLeaveTypes.length === 1) return leaveTypeLabels[selectedLeaveTypes[0]];
+    if (selectedLeaveTypes.length === 2) return selectedLeaveTypes.map((type) => leaveTypeLabels[type]).join('、');
+
+    return `已选 ${selectedLeaveTypes.length} 项`;
+  }, [selectedLeaveTypes]);
   const filteredLeaves = useMemo(
     () =>
       leaves.filter(
@@ -245,18 +252,26 @@ export function SchedulePage() {
 
           <div className="form-field schedule-filter-box">
             <span>假别</span>
-            <div className="leave-type-filter">
-              {leaveTypeOptions.map((type) => (
-                <label className="leave-type-filter-item" key={type}>
-                  <input
-                    type="checkbox"
-                    checked={selectedLeaveTypes.includes(type)}
-                    onChange={() => toggleLeaveType(type)}
-                  />
-                  <span className={`leave-chip leave-type-${type}`}>{leaveTypeLabels[type]}</span>
-                </label>
-              ))}
-            </div>
+            <details className="filter-dropdown">
+              <summary>
+                <span>{leaveTypeSummary}</span>
+                <ChevronDown size={16} />
+              </summary>
+              <div className="filter-dropdown-panel filter-dropdown-panel-compact">
+                <div className="filter-check-list filter-check-list-compact">
+                  {leaveTypeOptions.map((type) => (
+                    <label className="filter-check-row" key={type}>
+                      <input
+                        type="checkbox"
+                        checked={selectedLeaveTypes.includes(type)}
+                        onChange={() => toggleLeaveType(type)}
+                      />
+                      <span>{leaveTypeLabels[type]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </details>
           </div>
         </div>
 
