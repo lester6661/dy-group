@@ -26,7 +26,6 @@ export function SchedulePage() {
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<CalendarLeaveType[]>(leaveTypeOptions);
   const [peopleFilterOpen, setPeopleFilterOpen] = useState(false);
-  const [leaveTypeFilterOpen, setLeaveTypeFilterOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveCalendarItem | null>(null);
   const [cancellingLeave, setCancellingLeave] = useState<LeaveCalendarItem | null>(null);
@@ -86,13 +85,7 @@ export function SchedulePage() {
 
     return '所有人';
   }, [activeEmployeeIds, employeeOptions, selectedEmployeeIds.length]);
-  const leaveTypeSummary = useMemo(() => {
-    if (selectedLeaveTypes.length === leaveTypeOptions.length) return '全部假别';
-    if (selectedLeaveTypes.length === 1) return leaveTypeLabels[selectedLeaveTypes[0]];
-    if (selectedLeaveTypes.length === 2) return selectedLeaveTypes.map((type) => leaveTypeLabels[type]).join('、');
-
-    return `已选 ${selectedLeaveTypes.length} 项`;
-  }, [selectedLeaveTypes]);
+  const leaveTypeFilterValue = selectedLeaveTypes.length === leaveTypeOptions.length ? '' : selectedLeaveTypes[0];
   const filteredLeaves = useMemo(
     () =>
       leaves.filter(
@@ -160,16 +153,6 @@ export function SchedulePage() {
       : [...currentIds, employeeId];
 
     setSelectedEmployeeIds(nextIds.length === employeeOptions.length ? [] : nextIds);
-  }
-
-  function toggleLeaveType(type: CalendarLeaveType) {
-    setSelectedLeaveTypes((current) => {
-      if (current.includes(type)) {
-        return current.length === 1 ? current : current.filter((item) => item !== type);
-      }
-
-      return [...current, type];
-    });
   }
 
   function openCancelModal(leave: LeaveCalendarItem) {
@@ -244,10 +227,20 @@ export function SchedulePage() {
 
           <div className="form-field schedule-filter-box">
             <span>假别</span>
-            <button className="filter-modal-trigger" type="button" onClick={() => setLeaveTypeFilterOpen(true)}>
-              <span>{leaveTypeSummary}</span>
-              <ChevronDown size={16} />
-            </button>
+            <select
+              value={leaveTypeFilterValue}
+              onChange={(event) => {
+                const nextValue = event.target.value as CalendarLeaveType | '';
+                setSelectedLeaveTypes(nextValue ? [nextValue] : leaveTypeOptions);
+              }}
+            >
+              <option value="">全部假别</option>
+              {leaveTypeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {leaveTypeLabels[type]}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -349,28 +342,6 @@ export function SchedulePage() {
                 </label>
               ))
             )}
-          </div>
-        </SystemModal>
-      ) : null}
-
-      {leaveTypeFilterOpen ? (
-        <SystemModal
-          title="假别"
-          ariaLabel="选择假别"
-          onClose={() => setLeaveTypeFilterOpen(false)}
-          footer={<button className="secondary-button compact-button" type="button" onClick={() => setLeaveTypeFilterOpen(false)}>关闭</button>}
-        >
-          <div className="filter-check-list modal-filter-list">
-            {leaveTypeOptions.map((type) => (
-              <label className="filter-check-row" key={type}>
-                <input
-                  type="checkbox"
-                  checked={selectedLeaveTypes.includes(type)}
-                  onChange={() => toggleLeaveType(type)}
-                />
-                <span>{leaveTypeLabels[type]}</span>
-              </label>
-            ))}
           </div>
         </SystemModal>
       ) : null}
