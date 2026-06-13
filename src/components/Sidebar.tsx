@@ -7,9 +7,10 @@ import logoUrl from '../assets/logo.png';
 type SidebarProps = {
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  onNavigate?: () => void;
 };
 
-export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
+export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: SidebarProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     工作工具: true,
   });
@@ -61,7 +62,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
       <nav className="nav" aria-label="主菜单">
         {standaloneItems.map((item) => (
-          <SidebarLink key={item.path} item={item} collapsed={collapsed} nested={false} />
+          <SidebarLink key={item.path} item={item} collapsed={collapsed} nested={false} onNavigate={onNavigate} />
         ))}
 
         {Object.entries(groupedSections).map(([sectionName, groups]) => {
@@ -108,7 +109,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
                         {groupExpanded && !onlyDisabledPlaceholder ? (
                           <div className="nav-group-body">
                             {items.map((item) => (
-                              <SidebarLink key={item.path} item={item} collapsed={collapsed} nested />
+                              <SidebarLink key={item.path} item={item} collapsed={collapsed} nested onNavigate={onNavigate} />
                             ))}
                           </div>
                         ) : null}
@@ -129,10 +130,12 @@ function SidebarLink({
   item,
   collapsed,
   nested,
+  onNavigate,
 }: {
   item: (typeof menuItems)[number];
   collapsed: boolean;
   nested: boolean;
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
 
@@ -149,6 +152,7 @@ function SidebarLink({
     <NavLink
       to={item.path}
       title={collapsed ? item.label : undefined}
+      onClick={onNavigate}
       className={({ isActive }) => {
         const baseClass = nested ? 'nav-link nested' : 'nav-link';
         return isActive ? `${baseClass} active` : baseClass;

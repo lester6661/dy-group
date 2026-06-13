@@ -5,7 +5,11 @@ import { useCurrentPage } from '../hooks/useCurrentPage';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 
-export function Header() {
+type HeaderProps = {
+  onOpenMobileMenu?: () => void;
+};
+
+export function Header({ onOpenMobileMenu }: HeaderProps) {
   const currentPage = useCurrentPage();
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +66,7 @@ export function Header() {
   return (
     <header className="topbar">
       <div className="topbar-title">
-        <button className="icon-button mobile-menu-button" type="button" aria-label="打开菜单">
+        <button className="icon-button mobile-menu-button" type="button" aria-label="打开菜单" onClick={onOpenMobileMenu}>
           <Menu size={20} />
         </button>
         <div>
