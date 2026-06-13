@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Edit3, Plus, Trash2 } from 'lucide-react';
+import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import {
   type ScheduleEventFormValues,
@@ -150,7 +151,7 @@ export function ItineraryPage() {
       <div className="view-tabs-row">
         <label className="form-field itinerary-month-field">
           <span>月份</span>
-          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          <MonthSelect value={month} onChange={setMonth} />
         </label>
 
         <button className="secondary-action" type="button" onClick={() => openCreate()}>
@@ -226,7 +227,7 @@ export function ItineraryPage() {
 
       {selectedDate ? (
         <SystemModal
-          title={`${formatChineseDate(selectedDate)} 行程`}
+          title={`${formatDateLabel(selectedDate)} 行程`}
           ariaLabel="当天行程"
           onClose={() => setSelectedDate(null)}
           footer={
@@ -495,9 +496,13 @@ function formatTime(value: string | null | undefined, fallback = '-') {
   return value ? value.slice(0, 5) : fallback;
 }
 
-function formatChineseDate(date: string) {
+function formatDateLabel(date: string) {
   const value = new Date(`${date}T00:00:00`);
-  return `${value.getFullYear()}年${value.getMonth() + 1}月${value.getDate()}日`;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(value);
 }
 
 function getDefaultCreateDate(startDate: string, endDate: string) {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { CalendarCheck2, FileClock, Plus, Wand2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -575,7 +576,7 @@ function RestDayPlanner({
         <div className="attendance-filters">
           <label className="form-field">
             <span>排休月份</span>
-            <input type="month" value={cycle} onChange={(event) => setCycle(event.target.value)} />
+            <MonthSelect value={cycle} onChange={setCycle} />
           </label>
           <div className="rest-cycle-summary">
             <span>排休周期</span>

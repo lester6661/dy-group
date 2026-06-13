@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
+import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import { type CalendarLeaveType, type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
@@ -193,7 +194,7 @@ export function SchedulePage() {
         <div className="attendance-filters schedule-v2-filters">
           <label className="form-field">
             <span>月份</span>
-            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+            <MonthSelect value={month} onChange={setMonth} />
           </label>
 
           <label className="form-field">
@@ -341,7 +342,7 @@ export function SchedulePage() {
 
       {selectedDay ? (
         <SystemModal
-          title={`${formatChineseDay(selectedDay)}休假名单`}
+          title={`${formatDateLabel(selectedDay)}休假名单`}
           ariaLabel="休假名单"
           onClose={() => setSelectedDay(null)}
           footer={<button className="secondary-button compact-button" type="button" onClick={() => setSelectedDay(null)}>关闭</button>}
@@ -500,9 +501,13 @@ function formatDayMonth(date: string) {
   return `${String(value.getDate()).padStart(2, '0')}/${value.getMonth() + 1}`;
 }
 
-function formatChineseDay(date: string) {
+function formatDateLabel(date: string) {
   const value = new Date(`${date}T00:00:00`);
-  return `${value.getMonth() + 1}月${value.getDate()}日`;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(value);
 }
 
 function formatDateTime(value: string | null | undefined) {

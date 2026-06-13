@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
+import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -124,7 +125,7 @@ export function AttendanceManagementPage() {
       <div className="attendance-filters">
         <label className="form-field">
           <span>考勤月份</span>
-          <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          <MonthSelect value={month} onChange={setMonth} />
         </label>
 
         <label className="form-field">
