@@ -2230,6 +2230,30 @@ a {
   display: none;
 }
 
+.filter-modal-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.filter-modal-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .filter-dropdown-panel {
   position: absolute;
   z-index: 90;
@@ -2276,6 +2300,15 @@ a {
 
 .filter-check-list-compact {
   max-height: 210px;
+  margin-top: 0;
+}
+
+.modal-filter-search {
+  margin-bottom: 10px;
+}
+
+.modal-filter-list {
+  max-height: min(52vh, 420px);
   margin-top: 0;
 }
 
@@ -3522,6 +3555,10 @@ button.leave-chip:disabled {
     grid-template-columns: 1fr;
   }
 
+  .attendance-filters.schedule-v2-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .schedule-v2-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3827,6 +3864,7 @@ button.leave-chip:disabled {
   }
 
   .schedule-v2-filters .filter-dropdown summary,
+  .schedule-v2-filters .filter-modal-trigger,
   .schedule-v2-filters .form-field select,
   .schedule-v2-filters .form-field .month-select,
   .rest-planner .attendance-filters .form-field select,

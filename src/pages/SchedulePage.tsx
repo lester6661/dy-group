@@ -25,6 +25,8 @@ export function SchedulePage() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<CalendarLeaveType[]>(leaveTypeOptions);
+  const [peopleFilterOpen, setPeopleFilterOpen] = useState(false);
+  const [leaveTypeFilterOpen, setLeaveTypeFilterOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveCalendarItem | null>(null);
   const [cancellingLeave, setCancellingLeave] = useState<LeaveCalendarItem | null>(null);
@@ -234,72 +236,18 @@ export function SchedulePage() {
 
           <div className="form-field schedule-filter-box">
             <span>所有人</span>
-            <details className="filter-dropdown">
-              <summary>
-                <span>{peopleSummary}</span>
-                <ChevronDown size={16} />
-              </summary>
-              <div className="filter-dropdown-panel">
-                <label className="filter-search">
-                  <Search size={16} />
-                  <input
-                    type="search"
-                    placeholder="搜索姓名 / 昵称"
-                    value={employeeSearch}
-                    onChange={(event) => setEmployeeSearch(event.target.value)}
-                  />
-                </label>
-                <div className="filter-check-list">
-                  <label className="filter-check-row">
-                    <input
-                      type="checkbox"
-                      checked={selectedEmployeeIds.length === 0 || activeEmployeeIds.length === employeeOptions.length}
-                      onChange={() => setSelectedEmployeeIds([])}
-                    />
-                    <span>所有人</span>
-                  </label>
-                  {visibleEmployeeOptions.length === 0 ? (
-                    <span className="filter-empty">暂无人员</span>
-                  ) : (
-                    visibleEmployeeOptions.map((employee) => (
-                      <label className="filter-check-row" key={employee.id}>
-                        <input
-                          type="checkbox"
-                          checked={activeEmployeeIds.includes(employee.id)}
-                          onChange={() => toggleEmployee(employee.id)}
-                        />
-                        <span>{employee.name}</span>
-                        {employee.regionCode ? <em>{employee.regionCode}</em> : null}
-                      </label>
-                    ))
-                  )}
-                </div>
-              </div>
-            </details>
+            <button className="filter-modal-trigger" type="button" onClick={() => setPeopleFilterOpen(true)}>
+              <span>{peopleSummary}</span>
+              <ChevronDown size={16} />
+            </button>
           </div>
 
           <div className="form-field schedule-filter-box">
             <span>假别</span>
-            <details className="filter-dropdown">
-              <summary>
-                <span>{leaveTypeSummary}</span>
-                <ChevronDown size={16} />
-              </summary>
-              <div className="filter-dropdown-panel filter-dropdown-panel-compact">
-                <div className="filter-check-list filter-check-list-compact">
-                  {leaveTypeOptions.map((type) => (
-                    <label className="filter-check-row" key={type}>
-                      <input
-                        type="checkbox"
-                        checked={selectedLeaveTypes.includes(type)}
-                        onChange={() => toggleLeaveType(type)}
-                      />
-                      <span>{leaveTypeLabels[type]}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </details>
+            <button className="filter-modal-trigger" type="button" onClick={() => setLeaveTypeFilterOpen(true)}>
+              <span>{leaveTypeSummary}</span>
+              <ChevronDown size={16} />
+            </button>
           </div>
         </div>
 
@@ -360,6 +308,72 @@ export function SchedulePage() {
           </div>
         )}
       </div>
+
+      {peopleFilterOpen ? (
+        <SystemModal
+          title="所有人"
+          ariaLabel="选择人员"
+          onClose={() => setPeopleFilterOpen(false)}
+          footer={<button className="secondary-button compact-button" type="button" onClick={() => setPeopleFilterOpen(false)}>关闭</button>}
+        >
+          <label className="filter-search modal-filter-search">
+            <Search size={16} />
+            <input
+              type="search"
+              placeholder="搜索姓名 / 昵称"
+              value={employeeSearch}
+              onChange={(event) => setEmployeeSearch(event.target.value)}
+            />
+          </label>
+          <div className="filter-check-list modal-filter-list">
+            <label className="filter-check-row">
+              <input
+                type="checkbox"
+                checked={selectedEmployeeIds.length === 0 || activeEmployeeIds.length === employeeOptions.length}
+                onChange={() => setSelectedEmployeeIds([])}
+              />
+              <span>所有人</span>
+            </label>
+            {visibleEmployeeOptions.length === 0 ? (
+              <span className="filter-empty">暂无人员</span>
+            ) : (
+              visibleEmployeeOptions.map((employee) => (
+                <label className="filter-check-row" key={employee.id}>
+                  <input
+                    type="checkbox"
+                    checked={activeEmployeeIds.includes(employee.id)}
+                    onChange={() => toggleEmployee(employee.id)}
+                  />
+                  <span>{employee.name}</span>
+                  {employee.regionCode ? <em>{employee.regionCode}</em> : null}
+                </label>
+              ))
+            )}
+          </div>
+        </SystemModal>
+      ) : null}
+
+      {leaveTypeFilterOpen ? (
+        <SystemModal
+          title="假别"
+          ariaLabel="选择假别"
+          onClose={() => setLeaveTypeFilterOpen(false)}
+          footer={<button className="secondary-button compact-button" type="button" onClick={() => setLeaveTypeFilterOpen(false)}>关闭</button>}
+        >
+          <div className="filter-check-list modal-filter-list">
+            {leaveTypeOptions.map((type) => (
+              <label className="filter-check-row" key={type}>
+                <input
+                  type="checkbox"
+                  checked={selectedLeaveTypes.includes(type)}
+                  onChange={() => toggleLeaveType(type)}
+                />
+                <span>{leaveTypeLabels[type]}</span>
+              </label>
+            ))}
+          </div>
+        </SystemModal>
+      ) : null}
 
       {selectedDay ? (
         <SystemModal
