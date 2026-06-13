@@ -114,8 +114,7 @@ const employeeSelect = `
   updated_at,
   regions:region_id(id, code, name),
   employment_types:employment_type_id(id, name),
-  job_titles:job_title_id(id, name),
-  reviewer:reviewed_by(id, full_name, email)
+  job_titles:job_title_id(id, name)
 `;
 
 export const staffService = {
@@ -130,7 +129,10 @@ export const staffService = {
       throw error;
     }
 
-    return ((data ?? []) as unknown as EmployeeRowWithRelations[]).map(mapEmployeeRow);
+    const rows = (data ?? []) as unknown as EmployeeRowWithRelations[];
+    const reviewerMap = await getReviewerMap(rows);
+
+    return rows.map((row) => mapEmployeeRow(row, reviewerMap));
   },
 
   async getOptions(): Promise<StaffOptions> {
@@ -184,7 +186,20 @@ export const staffService = {
   },
 };
 
-function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
+async function getReviewerMap(rows: EmployeeRowWithRelations[]) {
+  const reviewerIds = Array.from(new Set(rows.map((row) => row.reviewed_by).filter(Boolean))) as string[];
+  if (reviewerIds.length === 0) return new Map<string, Pick<Profile, 'id' | 'full_name' | 'email'>>();
+
+  const { data, error } = await supabase.from('profiles').select('id, full_name, email').in('id', reviewerIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map((data ?? []).map((profile) => [profile.id, profile]));
+}
+
+function mapEmployeeRow(row: EmployeeRowWithRelations, reviewerMap: Map<string, Pick<Profile, 'id' | 'full_name' | 'email'>>): EmployeeListItem {
   return {
     id: row.id,
     full_name: row.full_name,
@@ -220,7 +235,7 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
     region: row.regions,
     employment_type: row.employment_types,
     job_title: row.job_titles,
-    reviewer: row.reviewer,
+    reviewer: row.reviewed_by ? reviewerMap.get(row.reviewed_by) ?? null : null,
   };
 }
 
