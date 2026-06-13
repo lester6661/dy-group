@@ -3817,6 +3817,21 @@ button.leave-chip:disabled {
     overflow-x: hidden;
   }
 
+  .staff-list-panel.schedule-calendar-panel {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding-bottom: 10px;
+  }
+
+  .staff-list-panel.schedule-calendar-panel .leave-calendar-grid {
+    width: max-content;
+    min-width: 776px;
+    grid-template-columns: repeat(7, 104px);
+  }
+
   .filter-dropdown-panel {
     left: 0;
     right: auto;
