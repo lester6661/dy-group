@@ -13,7 +13,7 @@ const leaveTypeLabels: Record<CalendarLeaveType, string> = {
   rest: '休假',
 };
 
-const cancellationReasons = ['员工取消申请', '录入错误', '重复申请', 'HR调整', '其他'] as const;
+const cancellationReasons = ['人员取消申请', '录入错误', '重复申请', 'HR调整', '其他'] as const;
 const leaveTypeOptions = Object.keys(leaveTypeLabels) as CalendarLeaveType[];
 
 export function SchedulePage() {
@@ -28,7 +28,7 @@ export function SchedulePage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedLeave, setSelectedLeave] = useState<LeaveCalendarItem | null>(null);
   const [cancellingLeave, setCancellingLeave] = useState<LeaveCalendarItem | null>(null);
-  const [cancelReason, setCancelReason] = useState<(typeof cancellationReasons)[number]>('员工取消申请');
+  const [cancelReason, setCancelReason] = useState<(typeof cancellationReasons)[number]>('人员取消申请');
   const [customCancelReason, setCustomCancelReason] = useState('');
   const [canCancelLeaves, setCanCancelLeaves] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export function SchedulePage() {
   );
   const employeeOptions = useMemo(() => {
     const map = new Map<string, { id: string; name: string; regionCode: string | null }>();
+    const currentDisplayName = getDisplayName(profile?.nickname, profile?.full_name);
 
     leaves.forEach((leave) => {
       map.set(leave.employee_id, {
@@ -53,8 +54,16 @@ export function SchedulePage() {
       });
     });
 
-    return [...map.values()].sort((first, second) => first.name.localeCompare(second.name, 'zh-CN'));
-  }, [leaves]);
+    return [...map.values()].sort((first, second) => {
+      const firstIsCurrent = currentDisplayName && first.name === currentDisplayName;
+      const secondIsCurrent = currentDisplayName && second.name === currentDisplayName;
+
+      if (firstIsCurrent && !secondIsCurrent) return -1;
+      if (!firstIsCurrent && secondIsCurrent) return 1;
+
+      return first.name.localeCompare(second.name, 'zh-CN');
+    });
+  }, [leaves, profile?.full_name, profile?.nickname]);
   const visibleEmployeeOptions = useMemo(() => {
     const keyword = employeeSearch.trim().toLowerCase();
     if (!keyword) return employeeOptions;
@@ -64,6 +73,17 @@ export function SchedulePage() {
     );
   }, [employeeOptions, employeeSearch]);
   const activeEmployeeIds = selectedEmployeeIds.length > 0 ? selectedEmployeeIds : employeeOptions.map((employee) => employee.id);
+  const peopleSummary = useMemo(() => {
+    if (selectedEmployeeIds.length === 0 || activeEmployeeIds.length === employeeOptions.length) {
+      return '所有人';
+    }
+
+    const selectedEmployees = employeeOptions.filter((employee) => activeEmployeeIds.includes(employee.id));
+    if (selectedEmployees.length === 1) return selectedEmployees[0].name;
+    if (selectedEmployees.length > 1) return `${selectedEmployees[0].name} +${selectedEmployees.length - 1}`;
+
+    return '所有人';
+  }, [activeEmployeeIds, employeeOptions, selectedEmployeeIds.length]);
   const leaveTypeSummary = useMemo(() => {
     if (selectedLeaveTypes.length === leaveTypeOptions.length) return '全部假别';
     if (selectedLeaveTypes.length === 1) return leaveTypeLabels[selectedLeaveTypes[0]];
@@ -153,7 +173,7 @@ export function SchedulePage() {
   function openCancelModal(leave: LeaveCalendarItem) {
     if (!canCancelLeaves) return;
 
-    setCancelReason('员工取消申请');
+    setCancelReason('人员取消申请');
     setCustomCancelReason('');
     setCancellingLeave(leave);
   }
@@ -213,10 +233,10 @@ export function SchedulePage() {
           </label>
 
           <div className="form-field schedule-filter-box">
-            <span>员工</span>
+            <span>所有人</span>
             <details className="filter-dropdown">
               <summary>
-                <span>{activeEmployeeIds.length === employeeOptions.length ? '全部员工' : `${activeEmployeeIds.length} 位员工`}</span>
+                <span>{peopleSummary}</span>
                 <ChevronDown size={16} />
               </summary>
               <div className="filter-dropdown-panel">
@@ -224,14 +244,22 @@ export function SchedulePage() {
                   <Search size={16} />
                   <input
                     type="search"
-                    placeholder="搜索员工"
+                    placeholder="搜索姓名 / 昵称"
                     value={employeeSearch}
                     onChange={(event) => setEmployeeSearch(event.target.value)}
                   />
                 </label>
                 <div className="filter-check-list">
+                  <label className="filter-check-row">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployeeIds.length === 0 || activeEmployeeIds.length === employeeOptions.length}
+                      onChange={() => setSelectedEmployeeIds([])}
+                    />
+                    <span>所有人</span>
+                  </label>
                   {visibleEmployeeOptions.length === 0 ? (
-                    <span className="filter-empty">暂无员工</span>
+                    <span className="filter-empty">暂无人员</span>
                   ) : (
                     visibleEmployeeOptions.map((employee) => (
                       <label className="filter-check-row" key={employee.id}>
@@ -379,7 +407,7 @@ export function SchedulePage() {
         >
           <DetailGrid
             items={[
-              ['员工', selectedLeave.employee_name],
+              ['人员', selectedLeave.employee_name],
               ['区域', selectedLeave.region_code],
               ['假别', leaveTypeLabels[selectedLeave.leave_type]],
               ['开始日期', selectedLeave.start_date],
@@ -513,6 +541,10 @@ function formatDateTime(value: string | null | undefined) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function getDisplayName(nickname?: string | null, fullName?: string | null) {
+  return nickname?.trim() || fullName?.trim() || '';
 }
 
 function getErrorMessage(error: unknown) {

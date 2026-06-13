@@ -3802,7 +3802,7 @@ button.leave-chip:disabled {
 
   .attendance-filters,
   .schedule-v2-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -3843,6 +3843,15 @@ button.leave-chip:disabled {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .schedule-v2-filters > :nth-child(3) {
+    order: 4;
+    grid-column: 1 / -1;
+  }
+
+  .schedule-v2-filters > :nth-child(4) {
+    order: 3;
   }
 
   .schedule-filter-panel,
