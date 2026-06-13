@@ -12,9 +12,13 @@ const emptyForm: EmployeeFormValues = {
   phone: '',
   email: '',
   employee_code: '',
+  gender: '',
   birthday: '',
   identity_number: '',
   address: '',
+  emergency_contact_name: '',
+  emergency_contact_phone: '',
+  emergency_contact_relationship: '',
   bank_name: '',
   bank_account: '',
   base_salary: '',
@@ -340,9 +344,11 @@ function EmployeeDetailModal({
           <DetailSection title="基本资料">
             <Info label="姓名" value={employee.full_name} />
             <Info label="昵称" value={employee.nickname} />
+            <Info label="性别" value={formatGender(employee.gender)} />
             <Info label="电话" value={employee.phone} />
             <Info label="邮箱" value={employee.email} />
             <Info label="生日" value={employee.birthday} />
+            <Info label="身份证号码" value={employee.identity_number} />
             <Info label="地址" value={employee.address} />
           </DetailSection>
 
@@ -361,6 +367,12 @@ function EmployeeDetailModal({
           <DetailSection title="银行资料">
             <Info label="银行" value={employee.bank_name} />
             <Info label="银行户口" value={employee.bank_account} />
+          </DetailSection>
+
+          <DetailSection title="紧急联络资料">
+            <Info label="紧急联络人" value={employee.emergency_contact_name} />
+            <Info label="紧急联络电话" value={employee.emergency_contact_phone} />
+            <Info label="关系" value={employee.emergency_contact_relationship} />
           </DetailSection>
 
           <DetailSection title="敏感资料">
@@ -425,13 +437,21 @@ function StaffFormModal({
             <FormSectionTitle title="基本资料" />
             <TextField label="姓名" value={values.full_name} onChange={(value) => onChange({ ...values, full_name: value })} required />
             <TextField label="昵称" value={values.nickname} onChange={(value) => onChange({ ...values, nickname: value })} />
+            <label className="form-field">
+              <span>性别</span>
+              <select value={values.gender} onChange={(event) => onChange({ ...values, gender: event.target.value })}>
+                <option value="">未选择</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </label>
             <TextField label="电话" value={values.phone} onChange={(value) => onChange({ ...values, phone: value })} />
             <TextField label="邮箱" type="email" value={values.email} onChange={(value) => onChange({ ...values, email: value })} />
             <TextField label="生日" type="date" value={values.birthday} onChange={(value) => onChange({ ...values, birthday: value })} />
             <TextField label="地址" value={values.address} onChange={(value) => onChange({ ...values, address: value })} />
 
             <FormSectionTitle title="工作资料" />
-            <TextField label="员工编号" value={values.employee_code} onChange={(value) => onChange({ ...values, employee_code: value })} />
+            <ReadOnlyField label="员工编号" value={values.employee_code || '系统自动生成'} />
 
             <label className="form-field">
               <span>职称</span>
@@ -486,6 +506,11 @@ function StaffFormModal({
             <FormSectionTitle title="银行资料" />
             <TextField label="银行" value={values.bank_name} onChange={(value) => onChange({ ...values, bank_name: value })} />
             <TextField label="银行户口" value={values.bank_account} onChange={(value) => onChange({ ...values, bank_account: value })} />
+
+            <FormSectionTitle title="紧急联络资料" />
+            <TextField label="紧急联络人" value={values.emergency_contact_name} onChange={(value) => onChange({ ...values, emergency_contact_name: value })} />
+            <TextField label="紧急联络电话" value={values.emergency_contact_phone} onChange={(value) => onChange({ ...values, emergency_contact_phone: value })} />
+            <TextField label="关系" value={values.emergency_contact_relationship} onChange={(value) => onChange({ ...values, emergency_contact_relationship: value })} />
 
             <FormSectionTitle title="敏感资料" />
             <TextField label="身份证号码" value={values.identity_number} onChange={(value) => onChange({ ...values, identity_number: value })} />
@@ -568,9 +593,13 @@ function toFormValues(employee: EmployeeListItem): EmployeeFormValues {
     phone: employee.phone ?? '',
     email: employee.email ?? '',
     employee_code: employee.employee_code ?? '',
+    gender: employee.gender ?? '',
     birthday: employee.birthday ?? '',
     identity_number: employee.identity_number ?? '',
     address: employee.address ?? '',
+    emergency_contact_name: employee.emergency_contact_name ?? '',
+    emergency_contact_phone: employee.emergency_contact_phone ?? '',
+    emergency_contact_relationship: employee.emergency_contact_relationship ?? '',
     bank_name: employee.bank_name ?? '',
     bank_account: employee.bank_account ?? '',
     base_salary: employee.base_salary === null ? '' : String(employee.base_salary),
@@ -605,6 +634,12 @@ function formatTime(value: string | null | undefined) {
 
 function formatMoney(value: number | null) {
   return value === null ? '-' : `RM ${value.toFixed(2)}`;
+}
+
+function formatGender(value: string | null | undefined) {
+  if (value === 'male') return '男';
+  if (value === 'female') return '女';
+  return value || '-';
 }
 
 function getErrorMessage(error: unknown) {

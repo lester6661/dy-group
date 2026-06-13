@@ -8,9 +8,13 @@ export type EmployeeFormValues = {
   phone: string;
   email: string;
   employee_code: string;
+  gender: string;
   birthday: string;
   identity_number: string;
   address: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  emergency_contact_relationship: string;
   bank_name: string;
   bank_account: string;
   base_salary: string;
@@ -32,9 +36,13 @@ export type EmployeeListItem = {
   phone: string | null;
   email: string | null;
   employee_code: string | null;
+  gender: string | null;
   birthday: string | null;
   identity_number: string | null;
   address: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relationship: string | null;
   bank_name: string | null;
   bank_account: string | null;
   base_salary: number | null;
@@ -72,9 +80,13 @@ const employeeSelect = `
   phone,
   email,
   employee_code,
+  gender,
   birthday,
   identity_number,
   address,
+  emergency_contact_name,
+  emergency_contact_phone,
+  emergency_contact_relationship,
   bank_name,
   bank_account,
   base_salary,
@@ -167,9 +179,13 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
     phone: row.phone,
     email: row.email,
     employee_code: row.employee_code,
+    gender: row.gender,
     birthday: row.birthday,
     identity_number: row.identity_number,
     address: row.address,
+    emergency_contact_name: row.emergency_contact_name,
+    emergency_contact_phone: row.emergency_contact_phone,
+    emergency_contact_relationship: row.emergency_contact_relationship,
     bank_name: row.bank_name,
     bank_account: row.bank_account,
     base_salary: row.base_salary,
@@ -196,9 +212,13 @@ function normalizeEmployeePayload(values: EmployeeFormValues) {
     phone: values.phone.trim() || null,
     email: values.email.trim() || null,
     employee_code: values.employee_code.trim() || null,
+    gender: values.gender || null,
     birthday: values.birthday || null,
     identity_number: values.identity_number.trim() || null,
     address: values.address.trim() || null,
+    emergency_contact_name: values.emergency_contact_name.trim() || null,
+    emergency_contact_phone: values.emergency_contact_phone.trim() || null,
+    emergency_contact_relationship: values.emergency_contact_relationship.trim() || null,
     bank_name: values.bank_name.trim() || null,
     bank_account: values.bank_account.trim() || null,
     base_salary: values.base_salary.trim() ? Number(values.base_salary) : null,

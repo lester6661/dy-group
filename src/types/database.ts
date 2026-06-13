@@ -67,9 +67,13 @@ export type Employee = {
   avatar_url: string | null;
   email: string | null;
   phone: string | null;
+  gender: string | null;
   birthday: string | null;
   identity_number: string | null;
   address: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relationship: string | null;
   bank_name: string | null;
   bank_account: string | null;
   base_salary: number | null;
@@ -220,7 +224,7 @@ export type Database = {
       };
       employees: {
         Row: Employee;
-        Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'nickname' | 'avatar_url' | 'email' | 'phone' | 'birthday' | 'identity_number' | 'address' | 'bank_name' | 'bank_account' | 'base_salary' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'deleted_at' | 'created_at' | 'updated_at'>> &
+        Insert: Partial<Pick<Employee, 'id' | 'employee_code' | 'nickname' | 'avatar_url' | 'email' | 'phone' | 'gender' | 'birthday' | 'identity_number' | 'address' | 'emergency_contact_name' | 'emergency_contact_phone' | 'emergency_contact_relationship' | 'bank_name' | 'bank_account' | 'base_salary' | 'region_id' | 'employment_type_id' | 'job_title_id' | 'status' | 'hire_date' | 'deleted_at' | 'created_at' | 'updated_at'>> &
           Pick<Employee, 'full_name'> & {
             profile_id?: string | null;
             start_work_time?: string | null;
