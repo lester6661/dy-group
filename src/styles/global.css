@@ -168,6 +168,43 @@
   gap: 18px;
 }
 
+.employee-identity-card {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(232, 62, 140, 0.08), rgba(124, 58, 237, 0.08));
+}
+
+.employee-identity-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+}
+
+.employee-identity-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--primary-dark);
+  font-size: 15px;
+}
+
+.employee-identity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.employee-identity-meta span {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.76);
+}
+
 .employee-detail-section {
   display: grid;
   gap: 10px;

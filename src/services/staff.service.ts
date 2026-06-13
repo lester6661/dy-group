@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { EmployeeStatus, EmploymentType, JobTitle, Region } from '../types/database';
+import type { EmployeeStatus, EmploymentType, JobTitle, Profile, Region } from '../types/database';
 
 export type EmployeeFormValues = {
   full_name: string;
@@ -17,6 +17,7 @@ export type EmployeeFormValues = {
   emergency_contact_relationship: string;
   bank_name: string;
   bank_account: string;
+  bank_account_name: string;
   base_salary: string;
   region_id: string;
   employment_type_id: string;
@@ -45,6 +46,7 @@ export type EmployeeListItem = {
   emergency_contact_relationship: string | null;
   bank_name: string | null;
   bank_account: string | null;
+  bank_account_name: string | null;
   base_salary: number | null;
   region_id: string | null;
   employment_type_id: string | null;
@@ -55,9 +57,14 @@ export type EmployeeListItem = {
   start_work_time: string | null;
   end_work_time: string | null;
   require_attendance: boolean;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
   region: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_type: Pick<EmploymentType, 'id' | 'name'> | null;
   job_title: Pick<JobTitle, 'id' | 'name'> | null;
+  reviewer: Pick<Profile, 'id' | 'full_name' | 'email'> | null;
 };
 
 export type StaffOptions = {
@@ -66,10 +73,11 @@ export type StaffOptions = {
   jobTitles: JobTitle[];
 };
 
-type EmployeeRowWithRelations = Omit<EmployeeListItem, 'region' | 'employment_type' | 'job_title'> & {
+type EmployeeRowWithRelations = Omit<EmployeeListItem, 'region' | 'employment_type' | 'job_title' | 'reviewer'> & {
   regions: Pick<Region, 'id' | 'code' | 'name'> | null;
   employment_types: Pick<EmploymentType, 'id' | 'name'> | null;
   job_titles: Pick<JobTitle, 'id' | 'name'> | null;
+  reviewer: Pick<Profile, 'id' | 'full_name' | 'email'> | null;
 };
 
 const employeeSelect = `
@@ -89,6 +97,7 @@ const employeeSelect = `
   emergency_contact_relationship,
   bank_name,
   bank_account,
+  bank_account_name,
   base_salary,
   region_id,
   employment_type_id,
@@ -99,9 +108,14 @@ const employeeSelect = `
   start_work_time,
   end_work_time,
   require_attendance,
+  reviewed_by,
+  reviewed_at,
+  created_at,
+  updated_at,
   regions:region_id(id, code, name),
   employment_types:employment_type_id(id, name),
-  job_titles:job_title_id(id, name)
+  job_titles:job_title_id(id, name),
+  reviewer:reviewed_by(id, full_name, email)
 `;
 
 export const staffService = {
@@ -188,6 +202,7 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
     emergency_contact_relationship: row.emergency_contact_relationship,
     bank_name: row.bank_name,
     bank_account: row.bank_account,
+    bank_account_name: row.bank_account_name,
     base_salary: row.base_salary,
     region_id: row.region_id,
     employment_type_id: row.employment_type_id,
@@ -198,9 +213,14 @@ function mapEmployeeRow(row: EmployeeRowWithRelations): EmployeeListItem {
     start_work_time: row.start_work_time,
     end_work_time: row.end_work_time,
     require_attendance: row.require_attendance,
+    reviewed_by: row.reviewed_by,
+    reviewed_at: row.reviewed_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
     region: row.regions,
     employment_type: row.employment_types,
     job_title: row.job_titles,
+    reviewer: row.reviewer,
   };
 }
 
@@ -221,6 +241,7 @@ function normalizeEmployeePayload(values: EmployeeFormValues) {
     emergency_contact_relationship: values.emergency_contact_relationship.trim() || null,
     bank_name: values.bank_name.trim() || null,
     bank_account: values.bank_account.trim() || null,
+    bank_account_name: values.bank_account_name.trim() || null,
     base_salary: values.base_salary.trim() ? Number(values.base_salary) : null,
     region_id: values.region_id || null,
     employment_type_id: values.employment_type_id || null,

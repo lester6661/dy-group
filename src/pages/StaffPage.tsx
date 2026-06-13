@@ -21,6 +21,7 @@ const emptyForm: EmployeeFormValues = {
   emergency_contact_relationship: '',
   bank_name: '',
   bank_account: '',
+  bank_account_name: '',
   base_salary: '',
   region_id: '',
   employment_type_id: '',
@@ -332,14 +333,22 @@ function EmployeeDetailModal({
         }
       >
         <div className="employee-detail-sections">
-          <DetailSection title="头像区">
+          <section className="employee-identity-card">
             <div className="detail-avatar-row">
               <button className="employee-avatar-preview-button" type="button" onClick={() => setPreviewOpen(true)}>
                 <EmployeeAvatar employee={employee} large />
               </button>
-              <Info label="姓名" value={employee.full_name} />
+              <div>
+                <h3>{employee.full_name}</h3>
+                <strong>{employee.employee_code || '未填写'}</strong>
+                <div className="employee-identity-meta">
+                  <span>{employee.job_title?.name || '未填写'}</span>
+                  <span>{employee.region?.name ?? employee.region?.code ?? '未填写'}</span>
+                  <span>{statusLabels[getEmployeeStatus(employee.status)] ?? statusLabels.active}</span>
+                </div>
+              </div>
             </div>
-          </DetailSection>
+          </section>
 
           <DetailSection title="基本资料">
             <Info label="姓名" value={employee.full_name} />
@@ -348,36 +357,42 @@ function EmployeeDetailModal({
             <Info label="电话" value={employee.phone} />
             <Info label="邮箱" value={employee.email} />
             <Info label="生日" value={employee.birthday} />
-            <Info label="身份证号码" value={employee.identity_number} />
             <Info label="地址" value={employee.address} />
           </DetailSection>
 
           <DetailSection title="工作资料">
-            <Info label="员工编号" value={employee.employee_code} />
             <Info label="职称" value={employee.job_title?.name} />
             <Info label="区域" value={employee.region?.name ?? employee.region?.code} />
             <Info label="雇佣类型" value={employee.employment_type?.name} />
+            <Info label="状态" value={statusLabels[getEmployeeStatus(employee.status)] ?? statusLabels.active} />
             <Info label="入职日期" value={employee.hire_date} />
             <Info label="正式日期" value={employee.hire_date ? calculateConfirmDate(employee.hire_date) : employee.probation_confirm_date} />
             <Info label="上班时间" value={formatTime(employee.start_work_time)} />
             <Info label="下班时间" value={formatTime(employee.end_work_time)} />
-            <Info label="状态" value={statusLabels[getEmployeeStatus(employee.status)] ?? statusLabels.active} />
           </DetailSection>
 
           <DetailSection title="银行资料">
             <Info label="银行" value={employee.bank_name} />
-            <Info label="银行户口" value={employee.bank_account} />
+            <Info label="户口号码" value={employee.bank_account} />
+            <Info label="户口姓名" value={employee.bank_account_name} />
           </DetailSection>
 
           <DetailSection title="紧急联络资料">
-            <Info label="紧急联络人" value={employee.emergency_contact_name} />
-            <Info label="紧急联络电话" value={employee.emergency_contact_phone} />
+            <Info label="联络人姓名" value={employee.emergency_contact_name} />
+            <Info label="联络电话" value={employee.emergency_contact_phone} />
             <Info label="关系" value={employee.emergency_contact_relationship} />
           </DetailSection>
 
           <DetailSection title="敏感资料">
             <Info label="身份证号码" value={employee.identity_number} />
             <Info label="基本薪资" value={formatMoney(employee.base_salary)} />
+          </DetailSection>
+
+          <DetailSection title="系统资料">
+            <Info label="注册时间" value={formatDateTime(employee.created_at)} />
+            <Info label="审核时间" value={formatDateTime(employee.reviewed_at)} />
+            <Info label="审核人" value={employee.reviewer?.full_name ?? employee.reviewer?.email} />
+            <Info label="最后更新时间" value={formatDateTime(employee.updated_at)} />
           </DetailSection>
         </div>
       </SystemModal>
@@ -505,11 +520,12 @@ function StaffFormModal({
 
             <FormSectionTitle title="银行资料" />
             <TextField label="银行" value={values.bank_name} onChange={(value) => onChange({ ...values, bank_name: value })} />
-            <TextField label="银行户口" value={values.bank_account} onChange={(value) => onChange({ ...values, bank_account: value })} />
+            <TextField label="户口号码" value={values.bank_account} onChange={(value) => onChange({ ...values, bank_account: value })} />
+            <TextField label="户口姓名" value={values.bank_account_name} onChange={(value) => onChange({ ...values, bank_account_name: value })} />
 
             <FormSectionTitle title="紧急联络资料" />
-            <TextField label="紧急联络人" value={values.emergency_contact_name} onChange={(value) => onChange({ ...values, emergency_contact_name: value })} />
-            <TextField label="紧急联络电话" value={values.emergency_contact_phone} onChange={(value) => onChange({ ...values, emergency_contact_phone: value })} />
+            <TextField label="联络人姓名" value={values.emergency_contact_name} onChange={(value) => onChange({ ...values, emergency_contact_name: value })} />
+            <TextField label="联络电话" value={values.emergency_contact_phone} onChange={(value) => onChange({ ...values, emergency_contact_phone: value })} />
             <TextField label="关系" value={values.emergency_contact_relationship} onChange={(value) => onChange({ ...values, emergency_contact_relationship: value })} />
 
             <FormSectionTitle title="敏感资料" />
@@ -550,7 +566,7 @@ function Info({ label, value }: { label: string; value: string | null | undefine
   return (
     <div>
       <span>{label}</span>
-      <strong>{value || '-'}</strong>
+      <strong>{value || '未填写'}</strong>
     </div>
   );
 }
@@ -602,6 +618,7 @@ function toFormValues(employee: EmployeeListItem): EmployeeFormValues {
     emergency_contact_relationship: employee.emergency_contact_relationship ?? '',
     bank_name: employee.bank_name ?? '',
     bank_account: employee.bank_account ?? '',
+    bank_account_name: employee.bank_account_name ?? '',
     base_salary: employee.base_salary === null ? '' : String(employee.base_salary),
     region_id: employee.region_id ?? '',
     employment_type_id: employee.employment_type_id ?? '',
@@ -629,17 +646,30 @@ function toDateKey(date: Date) {
 }
 
 function formatTime(value: string | null | undefined) {
-  return value ? value.slice(0, 5) : '-';
+  return value ? value.slice(0, 5) : '';
 }
 
 function formatMoney(value: number | null) {
-  return value === null ? '-' : `RM ${value.toFixed(2)}`;
+  return value === null ? '' : `RM ${value.toFixed(2)}`;
 }
 
 function formatGender(value: string | null | undefined) {
   if (value === 'male') return '男';
   if (value === 'female') return '女';
-  return value || '-';
+  return value || '';
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('zh-MY', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function getErrorMessage(error: unknown) {
