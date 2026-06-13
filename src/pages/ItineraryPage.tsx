@@ -10,8 +10,6 @@ import {
 } from '../services/schedule-event.service';
 import type { ScheduleEvent } from '../types/database';
 
-const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
-
 const emptyForm: ScheduleEventFormValues = {
   title: '',
   event_date: '',
@@ -168,12 +166,6 @@ export function ItineraryPage() {
           <div className="table-state">正在读取行程...</div>
         ) : (
           <div className="leave-calendar-grid itinerary-calendar-grid">
-            {weekdays.map((weekday) => (
-              <div className="leave-calendar-weekday" key={weekday}>
-                {weekday}
-              </div>
-            ))}
-
             {calendarCells.map((date, index) => {
               if (!date) {
                 return <div className="leave-calendar-empty" key={`empty-${index}`} />;

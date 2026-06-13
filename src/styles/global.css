@@ -2025,7 +2025,26 @@ a {
   position: relative;
   z-index: 1;
   margin-top: 18px;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.45) rgba(226, 232, 240, 0.8);
+}
+
+.schedule-calendar-panel::-webkit-scrollbar {
+  height: 10px;
+}
+
+.schedule-calendar-panel::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.9);
+}
+
+.schedule-calendar-panel::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ec4899, #7c3aed);
 }
 
 .itinerary-page {

@@ -14,7 +14,6 @@ const leaveTypeLabels: Record<CalendarLeaveType, string> = {
 };
 
 const cancellationReasons = ['员工取消申请', '录入错误', '重复申请', 'HR调整', '其他'] as const;
-const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 const leaveTypeOptions = Object.keys(leaveTypeLabels) as CalendarLeaveType[];
 
 export function SchedulePage() {
@@ -290,12 +289,6 @@ export function SchedulePage() {
           <div className="table-state">正在读取休假日历...</div>
         ) : (
           <div className="leave-calendar-grid">
-            {weekdays.map((weekday) => (
-              <div className="leave-calendar-weekday" key={weekday}>
-                {weekday}
-              </div>
-            ))}
-
             {calendarCells.map((date, index) => {
               if (!date) {
                 return <div className="leave-calendar-empty" key={`empty-${index}`} />;
