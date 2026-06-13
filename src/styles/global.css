@@ -3559,12 +3559,8 @@ button.leave-chip:disabled {
   }
 
   .schedule-calendar-panel .leave-calendar-grid {
-    min-width: 720px;
-    grid-template-columns: repeat(7, minmax(96px, 1fr));
-  }
-
-  .itinerary-calendar-grid .leave-calendar-weekday {
-    display: none;
+    min-width: 760px;
+    grid-template-columns: repeat(7, minmax(104px, 1fr));
   }
 
   .attendance-management-page .attendance-filters {
@@ -3771,7 +3767,7 @@ button.leave-chip:disabled {
 
   .attendance-filters,
   .schedule-v2-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(70px, 1fr));
     gap: 10px;
   }
 
@@ -3827,6 +3823,31 @@ button.leave-chip:disabled {
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 4px;
+  }
+
+  .rest-planner > .leave-stats-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .rest-planner > .leave-stats-grid .leave-stat-card {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 5px;
+    min-height: 36px;
+    padding: 8px 10px;
+  }
+
+  .rest-planner > .leave-stats-grid .leave-stat-card svg {
+    display: none;
+  }
+
+  .rest-planner > .leave-stats-grid .leave-stat-card span,
+  .rest-planner > .leave-stats-grid .leave-stat-card strong {
+    font-size: 13px;
   }
 
   .leave-page > .leave-stats-grid .leave-stat-card {
@@ -3933,11 +3954,16 @@ button.leave-chip:disabled {
   }
 
   .leave-calendar-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(7, minmax(104px, 1fr));
   }
 
   .leave-calendar-day {
     min-height: 128px;
+  }
+
+  .schedule-calendar-panel .leave-calendar-grid {
+    min-width: 760px;
+    grid-template-columns: repeat(7, minmax(104px, 1fr));
   }
 
   .attendance-meta-item {

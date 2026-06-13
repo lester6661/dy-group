@@ -18,7 +18,14 @@ export function AppLayout() {
       <button className="mobile-sidebar-backdrop" type="button" aria-label="关闭菜单" onClick={() => setMobileSidebarOpen(false)} />
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+        onToggleCollapsed={() => {
+          if (mobileSidebarOpen) {
+            setMobileSidebarOpen(false);
+            return;
+          }
+
+          setSidebarCollapsed((current) => !current);
+        }}
         onNavigate={() => setMobileSidebarOpen(false)}
       />
       <div className="app-main">
