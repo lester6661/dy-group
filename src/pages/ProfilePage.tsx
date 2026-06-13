@@ -59,13 +59,19 @@ export function ProfilePage() {
   const initials = useMemo(() => displayName.slice(0, 1).toUpperCase(), [displayName]);
   const avatarUrl = employee?.avatar_url || form.avatar_url;
   const avatarPreviewUrl = avatarOriginalUrl || avatarUrl;
-  const whatsapp = form.phone || employee?.phone || profile?.phone || '未设置';
-  const cardWechat = wechat.trim() || '未设置';
+  const whatsapp = form.phone || employee?.phone || profile?.phone || '';
+  const cardWechat = wechat.trim();
   const companyChineseName = '东娱传媒';
   const companyEnglishName = employee?.region?.company_english_name ?? '';
   const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
   const companyInstagram = employee?.region?.company_instagram ?? '';
   const companyFacebook = employee?.region?.company_facebook ?? '';
+  const businessCardContacts = [
+    { kind: 'whatsapp' as const, label: 'Whatsapp', value: whatsapp },
+    { kind: 'wechat' as const, label: '微信', value: cardWechat },
+    { kind: 'instagram' as const, label: '公司 Instagram', value: companyInstagram },
+    { kind: 'facebook' as const, label: '公司 Facebook', value: companyFacebook },
+  ].filter((contact) => contact.value.trim());
   const cropBaseScale =
     cropImageSize.width && cropImageSize.height ? Math.max(avatarCropSize / cropImageSize.width, avatarCropSize / cropImageSize.height) : 1;
   const cropDisplayWidth = cropImageSize.width * cropBaseScale * cropZoom;
@@ -378,10 +384,9 @@ export function ProfilePage() {
               <h2>{displayName}</h2>
               <strong>{employee?.job_title?.name ?? '未设置职称'}</strong>
               <div className="business-card-contact-grid">
-                <CardContact kind="whatsapp" label="Whatsapp" value={whatsapp} />
-                <CardContact kind="wechat" label="微信" value={cardWechat} />
-                <CardContact kind="instagram" label="公司 Instagram" value={companyInstagram || '-'} />
-                <CardContact kind="facebook" label="公司 Facebook" value={companyFacebook || '-'} />
+                {businessCardContacts.map((contact) => (
+                  <CardContact key={contact.kind} kind={contact.kind} label={contact.label} value={contact.value} />
+                ))}
               </div>
             </div>
           </div>
@@ -728,8 +733,8 @@ async function drawBusinessCard(
     return;
   }
 
-  drawAvatar(context, values, image, 300, 440, 360);
-  drawCardDetails(context, values, contactLogos, 122, 920, 716);
+  drawAvatar(context, values, image, 340, 420, 280);
+  drawCardDetails(context, values, contactLogos, 122, 780, 716);
 }
 
 function drawCardDetails(
@@ -765,12 +770,29 @@ function drawCardDetails(
     const rows = [
       ['whatsapp', values.whatsapp],
       ['wechat', values.wechat],
-      ['instagram', values.companyInstagram || '-'],
-      ['facebook', values.companyFacebook || '-'],
-    ] as const;
+      ['instagram', values.companyInstagram],
+      ['facebook', values.companyFacebook],
+    ].filter(([, value]) => value.trim()) as Array<[ContactKind, string]>;
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    const contactTop = y + 126;
+    const columnWidth = 308;
+    const dividerX = x + width / 2;
+    context.strokeStyle = '#d8dde7';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(dividerX, contactTop - 26);
+    context.lineTo(dividerX, contactTop + 116);
+    context.stroke();
 
     rows.forEach(([kind, value], index) => {
-      drawCanvasContactRow(context, kind, value, contactLogos[kind], x + 48, y + 140 + index * 88, width - 96, true);
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const rowX = column === 0 ? x + 34 : dividerX + 34;
+      drawCanvasContactRow(context, kind, value, contactLogos[kind], rowX, contactTop + row * 76, columnWidth, false);
     });
     return;
   }
