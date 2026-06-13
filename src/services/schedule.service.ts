@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import type { LeaveType, Region } from '../types/database';
 
+export type CalendarLeaveType = 'annual' | 'medical' | 'unpaid' | 'rest';
+
 export type LeaveCalendarItem = {
   leave_request_id: string;
   employee_id: string;
@@ -8,16 +10,37 @@ export type LeaveCalendarItem = {
   employee_code: string | null;
   region_id: string | null;
   region_code: string | null;
-  leave_type: LeaveType | 'rest';
+  leave_type: CalendarLeaveType;
+  source_type: LeaveType | 'rest';
   start_date: string;
   end_date: string;
   leave_date: string;
+  applicant_name: string | null;
+  reviewer_name: string | null;
+  reviewed_at: string | null;
   source?: 'manual' | 'auto';
 };
 
 export type LeaveCalendarMonthData = {
   leaves: LeaveCalendarItem[];
   regions: Region[];
+};
+
+type LeaveCalendarRpcRow = Omit<LeaveCalendarItem, 'leave_type' | 'source_type' | 'source'> & {
+  leave_type: LeaveType;
+};
+
+type RestDayRpcRow = {
+  rest_day_id: string;
+  employee_id: string;
+  profile_id: string;
+  employee_name: string;
+  employee_code: string | null;
+  region_id: string | null;
+  region_code: string | null;
+  rest_date: string;
+  source: 'manual' | 'auto';
+  status: 'confirmed' | 'cancelled';
 };
 
 export const scheduleService = {
@@ -72,10 +95,15 @@ export const scheduleService = {
       throw regionsResult.error;
     }
 
+    const approvedLeaves = ((leavesResult.data ?? []) as LeaveCalendarRpcRow[]).map((leave) => ({
+      ...leave,
+      leave_type: mapCalendarLeaveType(leave.leave_type),
+      source_type: leave.leave_type,
+    }));
     const restLeaves = [
-      ...(previousRestResult.data ?? []),
-      ...(restResult.data ?? []),
-      ...(nextRestResult.data ?? []),
+      ...((previousRestResult.data ?? []) as RestDayRpcRow[]),
+      ...((restResult.data ?? []) as RestDayRpcRow[]),
+      ...((nextRestResult.data ?? []) as RestDayRpcRow[]),
     ]
       .filter((restDay) => restDay.rest_date >= range.startDate && restDay.rest_date <= range.endDate)
       .map((restDay) => ({
@@ -86,22 +114,37 @@ export const scheduleService = {
         region_id: restDay.region_id,
         region_code: restDay.region_code,
         leave_type: 'rest' as const,
+        source_type: 'rest' as const,
         start_date: restDay.rest_date,
         end_date: restDay.rest_date,
         leave_date: restDay.rest_date,
+        applicant_name: restDay.employee_name,
+        reviewer_name: null,
+        reviewed_at: null,
         source: restDay.source,
       }));
 
     return {
-      leaves: dedupeLeaves([...((leavesResult.data ?? []) as LeaveCalendarItem[]), ...restLeaves]),
+      leaves: dedupeLeaves([...approvedLeaves, ...restLeaves]),
       regions: regionsResult.data ?? [],
     };
   },
 
-  async cancelLeaveCalendarItem(item: LeaveCalendarItem) {
+  async canCancelCalendarLeave() {
+    const { data, error } = await supabase.rpc('current_user_can_cancel_calendar_leave');
+
+    if (error) {
+      throw error;
+    }
+
+    return Boolean(data);
+  },
+
+  async cancelLeaveCalendarItem(item: LeaveCalendarItem, reason: string) {
     const { error } = await supabase.rpc('cancel_calendar_leave_item', {
       item_id: item.leave_request_id,
-      item_type: item.leave_type,
+      item_type: item.source_type,
+      cancel_reason: reason,
     });
 
     if (error) {
@@ -147,11 +190,19 @@ function getPreviousCycle(cycle: { year: number; month: number }) {
   return { year: cycle.year, month: cycle.month - 1 };
 }
 
+function mapCalendarLeaveType(type: LeaveType): CalendarLeaveType {
+  if (type === 'replacement') {
+    return 'rest';
+  }
+
+  return type;
+}
+
 function dedupeLeaves(leaves: LeaveCalendarItem[]) {
   const map = new Map<string, LeaveCalendarItem>();
 
   leaves.forEach((leave) => {
-    map.set(`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}:${leave.leave_type}`, leave);
+    map.set(`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}:${leave.source_type}`, leave);
   });
 
   return [...map.values()];

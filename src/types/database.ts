@@ -427,6 +427,9 @@ export type Database = {
           start_date: string;
           end_date: string;
           leave_date: string;
+          applicant_name: string | null;
+          reviewer_name: string | null;
+          reviewed_at: string | null;
         }[];
       };
       get_rest_day_calendar: {
@@ -464,10 +467,15 @@ export type Database = {
         };
         Returns: number;
       };
+      current_user_can_cancel_calendar_leave: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       cancel_calendar_leave_item: {
         Args: {
           item_id: string;
           item_type: string;
+          cancel_reason?: string | null;
         };
         Returns: void;
       };

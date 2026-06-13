@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ChevronDown, Search } from 'lucide-react';
+import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
-import { type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
-import type { LeaveType, Region } from '../types/database';
+import { type CalendarLeaveType, type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
+import type { Region } from '../types/database';
 
-const leaveTypeLabels: Record<LeaveType | 'rest', string> = {
+const leaveTypeLabels: Record<CalendarLeaveType, string> = {
   annual: '年假',
   medical: '病假',
   unpaid: '无薪假',
-  replacement: '换休假',
-  rest: '排休',
+  rest: '休假',
 };
 
+const cancellationReasons = ['员工取消申请', '录入错误', '重复申请', 'HR调整', '其他'] as const;
 const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+const leaveTypeOptions = Object.keys(leaveTypeLabels) as CalendarLeaveType[];
 
 export function SchedulePage() {
   const { profile } = useAuth();
@@ -20,31 +22,83 @@ export function SchedulePage() {
   const [regionId, setRegionId] = useState('');
   const [regions, setRegions] = useState<Region[]>([]);
   const [leaves, setLeaves] = useState<LeaveCalendarItem[]>([]);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<CalendarLeaveType[]>(leaveTypeOptions);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedLeave, setSelectedLeave] = useState<LeaveCalendarItem | null>(null);
+  const [cancellingLeave, setCancellingLeave] = useState<LeaveCalendarItem | null>(null);
+  const [cancelReason, setCancelReason] = useState<(typeof cancellationReasons)[number]>('员工取消申请');
+  const [customCancelReason, setCustomCancelReason] = useState('');
+  const [canCancelLeaves, setCanCancelLeaves] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const canViewAllRegions = profile?.role === 'super_admin' || Boolean(profile?.can_view_all_regions);
-  const canCancelLeaves = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'hr';
   const monthRange = useMemo(() => getMonthRange(month), [month]);
   const calendarCells = useMemo(
     () => getCalendarCells(monthRange.startDate, monthRange.endDate),
     [monthRange.startDate, monthRange.endDate],
   );
+  const employeeOptions = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; regionCode: string | null }>();
+
+    leaves.forEach((leave) => {
+      map.set(leave.employee_id, {
+        id: leave.employee_id,
+        name: leave.employee_name,
+        regionCode: leave.region_code,
+      });
+    });
+
+    return [...map.values()].sort((first, second) => first.name.localeCompare(second.name, 'zh-CN'));
+  }, [leaves]);
+  const visibleEmployeeOptions = useMemo(() => {
+    const keyword = employeeSearch.trim().toLowerCase();
+    if (!keyword) return employeeOptions;
+
+    return employeeOptions.filter((employee) =>
+      [employee.name, employee.regionCode].filter(Boolean).join(' ').toLowerCase().includes(keyword),
+    );
+  }, [employeeOptions, employeeSearch]);
+  const activeEmployeeIds = selectedEmployeeIds.length > 0 ? selectedEmployeeIds : employeeOptions.map((employee) => employee.id);
+  const filteredLeaves = useMemo(
+    () =>
+      leaves.filter(
+        (leave) => activeEmployeeIds.includes(leave.employee_id) && selectedLeaveTypes.includes(leave.leave_type),
+      ),
+    [activeEmployeeIds, leaves, selectedLeaveTypes],
+  );
   const leavesByDate = useMemo(() => {
     const map = new Map<string, LeaveCalendarItem[]>();
-    leaves.forEach((leave) => {
+
+    filteredLeaves.forEach((leave) => {
       const current = map.get(leave.leave_date) ?? [];
       current.push(leave);
       current.sort((a, b) => a.employee_name.localeCompare(b.employee_name, 'zh-CN'));
       map.set(leave.leave_date, current);
     });
+
     return map;
-  }, [leaves]);
+  }, [filteredLeaves]);
+  const selectedDayLeaves = selectedDay ? leavesByDate.get(selectedDay) ?? [] : [];
 
   useEffect(() => {
     void loadLeaveCalendar();
   }, [month, regionId]);
+
+  useEffect(() => {
+    void loadCancelPermission();
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (selectedEmployeeIds.length === 0) return;
+
+    const availableIds = new Set(employeeOptions.map((employee) => employee.id));
+    setSelectedEmployeeIds((current) => current.filter((employeeId) => availableIds.has(employeeId)));
+  }, [employeeOptions, selectedEmployeeIds.length]);
 
   async function loadLeaveCalendar() {
     setLoading(true);
@@ -61,26 +115,65 @@ export function SchedulePage() {
     }
   }
 
-  async function handleCancelLeave(leave: LeaveCalendarItem) {
-    if (!canCancelLeaves) {
+  async function loadCancelPermission() {
+    try {
+      const allowed = await scheduleService.canCancelCalendarLeave();
+      setCanCancelLeaves(allowed);
+    } catch {
+      setCanCancelLeaves(false);
+    }
+  }
+
+  function toggleEmployee(employeeId: string) {
+    const currentIds = selectedEmployeeIds.length > 0 ? selectedEmployeeIds : employeeOptions.map((employee) => employee.id);
+    const nextIds = currentIds.includes(employeeId)
+      ? currentIds.filter((id) => id !== employeeId)
+      : [...currentIds, employeeId];
+
+    setSelectedEmployeeIds(nextIds.length === employeeOptions.length ? [] : nextIds);
+  }
+
+  function toggleLeaveType(type: CalendarLeaveType) {
+    setSelectedLeaveTypes((current) => {
+      if (current.includes(type)) {
+        return current.length === 1 ? current : current.filter((item) => item !== type);
+      }
+
+      return [...current, type];
+    });
+  }
+
+  function openCancelModal(leave: LeaveCalendarItem) {
+    if (!canCancelLeaves) return;
+
+    setCancelReason('员工取消申请');
+    setCustomCancelReason('');
+    setCancellingLeave(leave);
+  }
+
+  async function handleConfirmCancel() {
+    if (!cancellingLeave) return;
+
+    const reason = cancelReason === '其他' ? customCancelReason.trim() : cancelReason;
+    if (!reason) {
+      setError('请填写取消原因。');
       return;
     }
 
-    const confirmed = window.confirm('确定取消该假期？');
-
-    if (!confirmed) {
-      return;
-    }
-
+    setSaving(true);
     setError('');
     setMessage('');
 
     try {
-      await scheduleService.cancelLeaveCalendarItem(leave);
+      await scheduleService.cancelLeaveCalendarItem(cancellingLeave, reason);
       setMessage('假期已取消。');
+      setCancellingLeave(null);
+      setSelectedLeave(null);
       await loadLeaveCalendar();
     } catch (cancelError) {
       setError(`取消假期失败：${getErrorMessage(cancelError)}`);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -90,7 +183,7 @@ export function SchedulePage() {
       {message ? <p className="form-success">{message}</p> : null}
 
       <div className="staff-list-panel schedule-filter-panel">
-        <div className="attendance-filters">
+        <div className="attendance-filters schedule-v2-filters">
           <label className="form-field">
             <span>月份</span>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
@@ -111,26 +204,72 @@ export function SchedulePage() {
               ))}
             </select>
           </label>
+
+          <div className="form-field schedule-filter-box">
+            <span>员工</span>
+            <details className="filter-dropdown">
+              <summary>
+                <span>{activeEmployeeIds.length === employeeOptions.length ? '全部员工' : `${activeEmployeeIds.length} 位员工`}</span>
+                <ChevronDown size={16} />
+              </summary>
+              <div className="filter-dropdown-panel">
+                <label className="filter-search">
+                  <Search size={16} />
+                  <input
+                    type="search"
+                    placeholder="搜索员工"
+                    value={employeeSearch}
+                    onChange={(event) => setEmployeeSearch(event.target.value)}
+                  />
+                </label>
+                <div className="filter-check-list">
+                  {visibleEmployeeOptions.length === 0 ? (
+                    <span className="filter-empty">暂无员工</span>
+                  ) : (
+                    visibleEmployeeOptions.map((employee) => (
+                      <label className="filter-check-row" key={employee.id}>
+                        <input
+                          type="checkbox"
+                          checked={activeEmployeeIds.includes(employee.id)}
+                          onChange={() => toggleEmployee(employee.id)}
+                        />
+                        <span>{employee.name}</span>
+                        {employee.regionCode ? <em>{employee.regionCode}</em> : null}
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <div className="form-field schedule-filter-box">
+            <span>假别</span>
+            <div className="leave-type-filter">
+              {leaveTypeOptions.map((type) => (
+                <label className="leave-type-filter-item" key={type}>
+                  <input
+                    type="checkbox"
+                    checked={selectedLeaveTypes.includes(type)}
+                    onChange={() => toggleLeaveType(type)}
+                  />
+                  <span className={`leave-chip leave-type-${type}`}>{leaveTypeLabels[type]}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="leave-calendar-legend" aria-label="假期类型颜色">
-          {Object.entries(leaveTypeLabels).map(([type, label]) => (
+          {leaveTypeOptions.map((type) => (
             <span className={`leave-chip leave-type-${type}`} key={type}>
-              {label}
+              {leaveTypeLabels[type]}
             </span>
           ))}
         </div>
       </div>
 
       <div className="staff-list-panel schedule-calendar-panel">
-        <div className="list-header">
-          <div>
-            <span>月历模式</span>
-            <h3>{leaves.length} 条休假 / 排休</h3>
-          </div>
-          <CalendarDays size={22} />
-        </div>
-
         {loading ? (
           <div className="table-state">正在读取休假日历...</div>
         ) : (
@@ -147,6 +286,8 @@ export function SchedulePage() {
               }
 
               const dayLeaves = leavesByDate.get(date) ?? [];
+              const visibleLeaves = dayLeaves.slice(0, 3);
+              const hiddenCount = Math.max(dayLeaves.length - visibleLeaves.length, 0);
 
               return (
                 <article className="leave-calendar-day" key={date}>
@@ -159,19 +300,21 @@ export function SchedulePage() {
                     <p>暂无休假</p>
                   ) : (
                     <div className="leave-calendar-list">
-                      {dayLeaves.map((leave) => (
+                      {visibleLeaves.map((leave) => (
                         <button
                           type="button"
                           className={`leave-chip leave-type-${leave.leave_type}`}
                           key={`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}`}
-                          onClick={() => handleCancelLeave(leave)}
-                          disabled={!canCancelLeaves}
-                          title={canCancelLeaves ? '点击取消假期' : undefined}
+                          onClick={() => setSelectedLeave(leave)}
                         >
-                          {leave.employee_name}：{leaveTypeLabels[leave.leave_type]}
-                          {leave.leave_type === 'rest' && leave.source === 'auto' ? '（自动）' : ''}
+                          {leave.employee_name}（{leaveTypeLabels[leave.leave_type]}）
                         </button>
                       ))}
+                      {hiddenCount > 0 ? (
+                        <button type="button" className="leave-more-button" onClick={() => setSelectedDay(date)}>
+                          +{hiddenCount}
+                        </button>
+                      ) : null}
                     </div>
                   )}
                 </article>
@@ -180,7 +323,123 @@ export function SchedulePage() {
           </div>
         )}
       </div>
+
+      {selectedDay ? (
+        <SystemModal
+          title={`${formatChineseDay(selectedDay)}休假名单`}
+          ariaLabel="休假名单"
+          onClose={() => setSelectedDay(null)}
+          footer={<button className="secondary-button compact-button" type="button" onClick={() => setSelectedDay(null)}>关闭</button>}
+        >
+          <div className="leave-day-list">
+            {selectedDayLeaves.map((leave) => (
+              <button
+                type="button"
+                className="leave-day-row"
+                key={`${leave.leave_request_id}:${leave.leave_date}:${leave.employee_id}`}
+                onClick={() => {
+                  setSelectedDay(null);
+                  setSelectedLeave(leave);
+                }}
+              >
+                <strong>{leave.employee_name}</strong>
+                <span className={`leave-chip leave-type-${leave.leave_type}`}>{leaveTypeLabels[leave.leave_type]}</span>
+              </button>
+            ))}
+          </div>
+        </SystemModal>
+      ) : null}
+
+      {selectedLeave ? (
+        <SystemModal
+          title="休假详情"
+          ariaLabel="休假详情"
+          onClose={() => setSelectedLeave(null)}
+          footer={
+            <>
+              <button className="secondary-button compact-button" type="button" onClick={() => setSelectedLeave(null)}>
+                关闭
+              </button>
+              {canCancelLeaves ? (
+                <button className="secondary-button compact-button danger-text-button" type="button" onClick={() => openCancelModal(selectedLeave)}>
+                  取消假期
+                </button>
+              ) : null}
+            </>
+          }
+        >
+          <DetailGrid
+            items={[
+              ['员工', selectedLeave.employee_name],
+              ['区域', selectedLeave.region_code],
+              ['假别', leaveTypeLabels[selectedLeave.leave_type]],
+              ['开始日期', selectedLeave.start_date],
+              ['结束日期', selectedLeave.end_date],
+              ['申请人', selectedLeave.applicant_name],
+              ['审核人', selectedLeave.reviewer_name],
+              ['审核时间', formatDateTime(selectedLeave.reviewed_at)],
+            ]}
+          />
+        </SystemModal>
+      ) : null}
+
+      {cancellingLeave ? (
+        <SystemModal
+          title="确认取消假期"
+          ariaLabel="确认取消假期"
+          onClose={() => setCancellingLeave(null)}
+          footer={
+            <>
+              <button className="secondary-button compact-button" type="button" onClick={() => setCancellingLeave(null)} disabled={saving}>
+                关闭
+              </button>
+              <button className="primary-button compact-button" type="button" onClick={handleConfirmCancel} disabled={saving}>
+                确认取消
+              </button>
+            </>
+          }
+        >
+          <div className="cancel-leave-confirm">
+            <p>
+              确定要取消{cancellingLeave.employee_name}
+              <br />
+              {cancellingLeave.leave_date} 的{leaveTypeLabels[cancellingLeave.leave_type]}吗？
+            </p>
+
+            <label className="form-field">
+              <span>取消原因</span>
+              <select value={cancelReason} onChange={(event) => setCancelReason(event.target.value as typeof cancelReason)}>
+                {cancellationReasons.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {cancelReason === '其他' ? (
+              <label className="form-field">
+                <span>其他原因</span>
+                <textarea value={customCancelReason} onChange={(event) => setCustomCancelReason(event.target.value)} rows={3} />
+              </label>
+            ) : null}
+          </div>
+        </SystemModal>
+      ) : null}
     </section>
+  );
+}
+
+function DetailGrid({ items }: { items: Array<[string, string | null | undefined]> }) {
+  return (
+    <div className="modal-detail-grid">
+      {items.map(([label, value]) => (
+        <div className="modal-detail-item" key={label}>
+          <span>{label}</span>
+          <strong>{value?.trim() || '未填写'}</strong>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -224,6 +483,23 @@ function weekdayLabel(date: string) {
 function formatDayMonth(date: string) {
   const value = new Date(`${date}T00:00:00`);
   return `${String(value.getDate()).padStart(2, '0')}/${value.getMonth() + 1}`;
+}
+
+function formatChineseDay(date: string) {
+  const value = new Date(`${date}T00:00:00`);
+  return `${value.getMonth() + 1}月${value.getDate()}日`;
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return '';
+
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function getErrorMessage(error: unknown) {
