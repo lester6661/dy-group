@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { CalendarDays, Edit3, MapPin, Plus, Trash2 } from 'lucide-react';
+import { Edit3, Plus, Trash2 } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import {
   type ScheduleEventFormValues,
   getMonthRange,
   scheduleEventService,
   scheduleEventStatusLabels,
-  scheduleEventTypeLabels,
 } from '../services/schedule-event.service';
-import type { ScheduleEvent, ScheduleEventType } from '../types/database';
+import type { ScheduleEvent } from '../types/database';
 
 const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 
@@ -27,6 +26,7 @@ export function ItineraryPage() {
   const [month, setMonth] = useState(getCurrentMonth());
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [formValues, setFormValues] = useState<ScheduleEventFormValues>(emptyForm);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
@@ -50,6 +50,7 @@ export function ItineraryPage() {
     });
     return map;
   }, [events]);
+  const selectedDateEvents = selectedDate ? eventsByDate.get(selectedDate) ?? [] : [];
 
   useEffect(() => {
     void loadScheduleEvents();
@@ -72,7 +73,8 @@ export function ItineraryPage() {
   function openCreate(date = '') {
     setSelectedEvent(null);
     setEditingEvent(null);
-    setFormValues({ ...emptyForm, event_date: date || monthRange.startDate });
+    setSelectedDate(null);
+    setFormValues({ ...emptyForm, event_date: date || getDefaultCreateDate(monthRange.startDate, monthRange.endDate) });
     setShowEventForm(true);
     setError('');
     setMessage('');
@@ -80,6 +82,7 @@ export function ItineraryPage() {
 
   function openEdit(event: ScheduleEvent) {
     setSelectedEvent(null);
+    setSelectedDate(null);
     setEditingEvent(event);
     setFormValues(toFormValues(event));
     setShowEventForm(true);
@@ -160,14 +163,6 @@ export function ItineraryPage() {
       {message ? <p className="form-success">{message}</p> : null}
 
       <div className="staff-list-panel schedule-calendar-panel">
-        <div className="list-header">
-          <div>
-            <span>行程表</span>
-            <h3>{formatMonthTitle(month)} · {events.length} 条行程</h3>
-          </div>
-          <CalendarDays size={22} />
-        </div>
-
         {loading ? (
           <div className="table-state">正在读取行程...</div>
         ) : (
@@ -185,8 +180,11 @@ export function ItineraryPage() {
 
               const dayEvents = eventsByDate.get(date) ?? [];
 
+              const visibleEvents = dayEvents.slice(0, 2);
+              const hiddenCount = Math.max(dayEvents.length - visibleEvents.length, 0);
+
               return (
-                <article className="leave-calendar-day itinerary-day" key={date} onClick={() => openCreate(date)}>
+                <article className="leave-calendar-day itinerary-day" key={date} onClick={() => setSelectedDate(date)}>
                   <header>
                     <strong>{formatDayMonth(date)}</strong>
                     <span>{weekdayLabel(date)}</span>
@@ -196,20 +194,13 @@ export function ItineraryPage() {
                     <p>点击新增行程</p>
                   ) : (
                     <div className="leave-calendar-list">
-                      {dayEvents.map((event) => (
-                        <button
-                          type="button"
-                          className={`schedule-event-chip event-type-${event.event_type}`}
-                          key={event.id}
-                          onClick={(clickEvent) => {
-                            clickEvent.stopPropagation();
-                            setSelectedEvent(event);
-                          }}
-                        >
-                          <strong>{event.title}</strong>
+                      {visibleEvents.map((event) => (
+                        <div className={`schedule-event-chip event-type-${event.event_type}`} key={event.id}>
                           <span>{formatEventTime(event)}</span>
-                        </button>
+                          <strong>{event.title}</strong>
+                        </div>
                       ))}
+                      {hiddenCount > 0 ? <span className="itinerary-more-count">+{hiddenCount}</span> : null}
                     </div>
                   )}
                 </article>
@@ -231,6 +222,46 @@ export function ItineraryPage() {
           }}
           onSubmit={handleSubmit}
         />
+      ) : null}
+
+      {selectedDate ? (
+        <SystemModal
+          title={`${formatChineseDate(selectedDate)} 行程`}
+          ariaLabel="当天行程"
+          onClose={() => setSelectedDate(null)}
+          footer={
+            <>
+              <button className="secondary-button compact-button" type="button" onClick={() => setSelectedDate(null)}>
+                关闭
+              </button>
+              <button className="primary-button compact-button" type="button" onClick={() => openCreate(selectedDate)}>
+                <Plus size={17} />
+                <span>添加行程</span>
+              </button>
+            </>
+          }
+        >
+          {selectedDateEvents.length === 0 ? (
+            <div className="table-state compact-state">暂无行程</div>
+          ) : (
+            <div className="itinerary-day-event-list">
+              {selectedDateEvents.map((event) => (
+                <button
+                  type="button"
+                  className="itinerary-day-event-row"
+                  key={event.id}
+                  onClick={() => {
+                    setSelectedDate(null);
+                    setSelectedEvent(event);
+                  }}
+                >
+                  <span>{formatEventTime(event)}</span>
+                  <strong>{event.title}</strong>
+                </button>
+              ))}
+            </div>
+          )}
+        </SystemModal>
       ) : null}
 
       {selectedEvent ? (
@@ -286,17 +317,6 @@ function ScheduleEventFormModal({
           <TextField label="开始时间" type="time" value={values.start_time} onChange={(value) => onChange({ ...values, start_time: value })} />
           <TextField label="结束时间" type="time" value={values.end_time} onChange={(value) => onChange({ ...values, end_time: value })} />
 
-          <label className="form-field">
-            <span>类型</span>
-            <select value={values.event_type} onChange={(event) => onChange({ ...values, event_type: event.target.value as ScheduleEventType })}>
-              {Object.entries(scheduleEventTypeLabels).map(([type, label]) => (
-                <option key={type} value={type}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-
           <TextField label="地点" value={values.location} onChange={(value) => onChange({ ...values, location: value })} />
           <label className="form-field">
             <span>备注</span>
@@ -349,7 +369,6 @@ function ScheduleEventDetailModal({
           <div className="detail-list">
             <Info label="标题" value={event.title} />
             <Info label="日期" value={event.event_date} />
-            <Info label="类型" value={scheduleEventTypeLabels[event.event_type]} />
             <Info label="状态" value={scheduleEventStatusLabels[event.status]} />
           </div>
         </section>
@@ -460,11 +479,6 @@ function formatDayMonth(date: string) {
   return `${String(value.getDate()).padStart(2, '0')}/${value.getMonth() + 1}`;
 }
 
-function formatMonthTitle(month: string) {
-  const [year, monthValue] = month.split('-');
-  return `${year} 年 ${Number(monthValue)} 月`;
-}
-
 function formatEventTime(event: ScheduleEvent) {
   if (!event.start_time && !event.end_time) {
     return '全天';
@@ -479,6 +493,16 @@ function formatEventTime(event: ScheduleEvent) {
 
 function formatTime(value: string | null | undefined, fallback = '-') {
   return value ? value.slice(0, 5) : fallback;
+}
+
+function formatChineseDate(date: string) {
+  const value = new Date(`${date}T00:00:00`);
+  return `${value.getFullYear()}年${value.getMonth() + 1}月${value.getDate()}日`;
+}
+
+function getDefaultCreateDate(startDate: string, endDate: string) {
+  const today = toDateKey(new Date());
+  return today >= startDate && today <= endDate ? today : startDate;
 }
 
 function getErrorMessage(error: unknown) {

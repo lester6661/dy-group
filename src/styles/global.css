@@ -2071,6 +2071,62 @@ a {
   box-shadow: 0 8px 18px rgba(16, 25, 40, 0.08);
 }
 
+.itinerary-more-count {
+  justify-self: start;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.itinerary-day-event-list {
+  display: grid;
+  gap: 8px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.itinerary-day-event-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itinerary-day-event-row:hover {
+  background: var(--panel-soft);
+}
+
+.itinerary-day-event-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.itinerary-day-event-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-state {
+  min-height: 90px;
+}
+
 .event-type-meeting {
   border-color: rgba(31, 122, 140, 0.24);
   background: #e9f5f7;
