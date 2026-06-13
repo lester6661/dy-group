@@ -2007,11 +2007,17 @@ a {
 }
 
 .schedule-filter-panel {
+  position: relative;
+  z-index: 40;
   margin-bottom: 18px;
+  overflow: visible;
 }
 
 .schedule-calendar-panel {
+  position: relative;
+  z-index: 1;
   margin-top: 18px;
+  overflow: visible;
 }
 
 .itinerary-page {
@@ -2114,6 +2120,11 @@ a {
 
 .filter-dropdown {
   position: relative;
+  z-index: 45;
+}
+
+.filter-dropdown[open] {
+  z-index: 80;
 }
 
 .filter-dropdown summary {
@@ -2138,7 +2149,7 @@ a {
 
 .filter-dropdown-panel {
   position: absolute;
-  z-index: 20;
+  z-index: 90;
   top: calc(100% + 8px);
   left: 0;
   width: min(320px, 80vw);
