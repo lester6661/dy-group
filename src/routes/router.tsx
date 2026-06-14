@@ -15,6 +15,7 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { RegisterReviewPage } from '../pages/RegisterReviewPage';
 import { RegistrationReviewPage } from '../pages/RegistrationReviewPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -111,6 +112,10 @@ export const router = createBrowserRouter([
       {
         path: '/register',
         element: <RegisterPage />,
+      },
+      {
+        path: '/reset-password',
+        element: <ResetPasswordPage />,
       },
       {
         path: '/register-review',

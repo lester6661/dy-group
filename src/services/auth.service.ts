@@ -19,6 +19,13 @@ export const authService = {
   signIn(email: string, password: string) {
     return supabase.auth.signInWithPassword({ email, password });
   },
+  resetPasswordForEmail(email: string) {
+    const redirectTo = `${window.location.origin}/reset-password`;
+    return supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  },
+  updatePassword(password: string) {
+    return supabase.auth.updateUser({ password });
+  },
   signUp(payload: RegisterPayload) {
     return supabase.auth.signUp({
       email: payload.email,

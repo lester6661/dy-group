@@ -1068,15 +1068,33 @@ a {
   margin-top: 18px;
 }
 
+.auth-helper-text {
+  margin: -4px 0 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .auth-switch {
   margin: 18px 0 0;
   color: var(--muted);
   text-align: center;
 }
 
-.auth-switch a {
+.auth-switch a,
+.auth-switch .text-button {
   color: var(--primary-dark);
   font-weight: 800;
+}
+
+.auth-switch .text-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.auth-divider {
+  margin: 0 8px;
 }
 
 .review-card {
