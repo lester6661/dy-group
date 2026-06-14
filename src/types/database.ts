@@ -8,6 +8,7 @@ export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected';
 export type AttendancePunchType = 'clock_in' | 'break_start' | 'break_end' | 'clock_out';
 export type ScheduleEventType = 'meeting' | 'training' | 'shooting' | 'live' | 'visit' | 'other';
 export type ScheduleEventStatus = 'active' | 'cancelled';
+export type RecurringTodoFrequency = 'daily' | 'weekly' | 'monthly' | 'month_end' | 'custom';
 
 export type Profile = {
   id: string;
@@ -190,9 +191,23 @@ export type ScheduleEvent = {
 export type TodoItem = {
   id: string;
   profile_id: string;
+  recurring_todo_id: string | null;
   title: string;
   is_completed: boolean;
   completed_at: string | null;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecurringTodoItem = {
+  id: string;
+  profile_id: string;
+  title: string;
+  frequency: RecurringTodoFrequency;
+  weekly_days: number[];
+  monthly_day: number | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -390,11 +405,26 @@ export type Database = {
       todo_items: {
         Row: TodoItem;
         Insert: Pick<TodoItem, 'profile_id' | 'title'> &
-          Partial<Pick<TodoItem, 'id' | 'is_completed' | 'completed_at' | 'created_at' | 'updated_at'>>;
+          Partial<Pick<TodoItem, 'id' | 'recurring_todo_id' | 'is_completed' | 'completed_at' | 'due_date' | 'created_at' | 'updated_at'>>;
         Update: Partial<Omit<TodoItem, 'id' | 'profile_id' | 'created_at' | 'updated_at'>>;
         Relationships: [
           {
             foreignKeyName: 'todo_items_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      recurring_todo_items: {
+        Row: RecurringTodoItem;
+        Insert: Pick<RecurringTodoItem, 'profile_id' | 'title' | 'frequency'> &
+          Partial<Pick<RecurringTodoItem, 'id' | 'weekly_days' | 'monthly_day' | 'is_active' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<RecurringTodoItem, 'id' | 'profile_id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'recurring_todo_items_profile_id_fkey';
             columns: ['profile_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';

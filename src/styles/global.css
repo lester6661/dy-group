@@ -3313,6 +3313,11 @@ button.leave-chip:disabled {
   background: var(--panel-soft);
 }
 
+.dashboard-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .todo-list,
 .upcoming-event-list {
   display: grid;
@@ -3381,6 +3386,122 @@ button.leave-chip:disabled {
 .dashboard-empty {
   padding: 28px 20px;
   color: var(--muted);
+}
+
+.recurring-todo-modal-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.recurring-todo-modal-header h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.recurring-todo-list {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.recurring-todo-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(130px, auto);
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.recurring-todo-row:last-child {
+  border-bottom: 0;
+}
+
+.recurring-todo-row strong,
+.recurring-todo-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recurring-todo-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.danger-icon-button {
+  color: #a63825;
+}
+
+.recurring-todo-form,
+.recurring-rule-fieldset,
+.recurring-extra-options {
+  display: grid;
+  gap: 12px;
+}
+
+.recurring-rule-fieldset {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.recurring-rule-fieldset legend {
+  padding: 0 6px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.recurring-rule-option,
+.recurring-check-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.recurring-rule-option input,
+.recurring-check-option input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary);
+}
+
+.delete-recurring-confirm {
+  display: grid;
+  gap: 8px;
+}
+
+.delete-recurring-confirm p,
+.delete-recurring-confirm em {
+  margin: 0;
+  color: var(--muted);
+}
+
+.delete-recurring-confirm strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.delete-recurring-confirm span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.danger-confirm-button {
+  border-color: #b42318;
+  background: linear-gradient(135deg, #b42318, #d92d20);
 }
 
 @media (max-width: 960px) {
