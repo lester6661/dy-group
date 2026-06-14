@@ -65,6 +65,7 @@ export function StaffPage() {
   const [editingEmployee, setEditingEmployee] = useState<EmployeeListItem | null>(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -72,13 +73,16 @@ export function StaffPage() {
 
   const filteredEmployees = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    const visibleEmployees = keyword
-      ? employees.filter((employee) =>
-          [employee.full_name, employee.nickname, employee.employee_code, employee.job_title?.name, employee.employment_type?.name]
-            .filter(Boolean)
-            .some((value) => value!.toLowerCase().includes(keyword)),
-        )
-      : employees;
+    const visibleEmployees = employees.filter((employee) => {
+      const matchesKeyword =
+        !keyword ||
+        [employee.full_name, employee.nickname, employee.employee_code, employee.job_title?.name]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(keyword));
+      const matchesRegion = !regionFilter || employee.region_id === regionFilter;
+
+      return matchesKeyword && matchesRegion;
+    });
 
     return [...visibleEmployees].sort((first, second) => {
       const firstStatus = statusSortOrder[getEmployeeStatus(first.status)] ?? statusSortOrder.active;
@@ -86,7 +90,7 @@ export function StaffPage() {
       if (firstStatus !== secondStatus) return firstStatus - secondStatus;
       return first.full_name.localeCompare(second.full_name, 'zh-Hans');
     });
-  }, [employees, searchTerm]);
+  }, [employees, regionFilter, searchTerm]);
 
   useEffect(() => {
     void loadStaffData();
@@ -181,15 +185,23 @@ export function StaffPage() {
       {message ? <p className="form-success">{message}</p> : null}
 
       <div className="staff-list-panel">
-        <div className="list-header">
-          <div>
-            <span>员工列表</span>
-            <h3>{filteredEmployees.length} 位员工</h3>
-          </div>
-          <label className="table-search">
+        <div className="list-header staff-filter-header">
+          <label className="table-search staff-filter-search">
             <Search size={16} />
-            <input placeholder="搜索名字、昵称、职称" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            <input
+              placeholder="搜索姓名 / 昵称 / 员工编号"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
           </label>
+          <select className="staff-region-filter" value={regionFilter} onChange={(event) => setRegionFilter(event.target.value)}>
+            <option value="">全部区域</option>
+            {options.regions.map((region) => (
+              <option key={region.id} value={region.id}>
+                {region.code}
+              </option>
+            ))}
+          </select>
         </div>
 
         {loading ? (
@@ -201,12 +213,12 @@ export function StaffPage() {
             <table className="staff-table staff-simple-table">
               <thead>
                 <tr>
-                  <th>状态</th>
                   <th>头像</th>
-                  <th>名字</th>
+                  <th>姓名</th>
                   <th>昵称</th>
+                  <th>区域</th>
                   <th>职称</th>
-                  <th>雇佣类型</th>
+                  <th>状态</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,9 +284,6 @@ function StaffListRow({
   return (
     <tr>
       <td>
-        <span className={`status-pill status-${status}`}>{statusLabels[status] ?? statusLabels.active}</span>
-      </td>
-      <td>
         <button className="employee-avatar-list-button" type="button" onClick={onOpenAvatar} aria-label={`查看 ${employee.full_name} 头像`}>
           <EmployeeAvatar employee={employee} />
         </button>
@@ -285,8 +294,11 @@ function StaffListRow({
         </button>
       </td>
       <td>{employee.nickname || '-'}</td>
+      <td>{employee.region?.code ?? employee.region?.name ?? '-'}</td>
       <td>{employee.job_title?.name || '-'}</td>
-      <td>{employee.employment_type?.name || '-'}</td>
+      <td>
+        <span className={`status-pill status-${status}`}>{statusLabels[status] ?? statusLabels.active}</span>
+      </td>
     </tr>
   );
 }

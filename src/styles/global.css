@@ -1273,6 +1273,28 @@ a {
   background: transparent;
 }
 
+.staff-filter-header {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(160px, 220px);
+  gap: 12px;
+  align-items: center;
+  justify-content: start;
+}
+
+.staff-filter-search {
+  width: 100%;
+}
+
+.staff-region-filter {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--panel-soft);
+}
+
 .staff-table-wrap {
   overflow-x: auto;
 }
@@ -4085,6 +4107,11 @@ button.leave-chip:disabled {
   }
 
   .employee-permission-filter-header {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .staff-filter-header {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px;
   }
