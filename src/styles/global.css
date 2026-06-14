@@ -3030,17 +3030,22 @@ button.leave-chip:disabled {
   min-width: 0;
 }
 
-.business-card-contact-row:nth-child(2) {
+.business-card-contact-row.whatsapp {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 1;
 }
 
-.business-card-contact-row:nth-child(3) {
+.business-card-contact-row.instagram {
   grid-column: 2;
   grid-row: 1;
 }
 
-.business-card-contact-row:nth-child(4) {
+.business-card-contact-row.wechat {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.business-card-contact-row.facebook {
   grid-column: 2;
   grid-row: 2;
 }
@@ -3794,11 +3799,6 @@ button.leave-chip:disabled {
     display: block;
     top: 4px;
     bottom: 4px;
-  }
-
-  .business-card-contact-row:nth-child(n) {
-    grid-column: auto;
-    grid-row: auto;
   }
 
   .business-card-contact-row {

@@ -79,7 +79,7 @@ export function ProfilePage() {
     { kind: 'instagram' as const, label: '公司 Instagram', value: companyInstagram },
     { kind: 'wechat' as const, label: '微信', value: cardWechat },
     { kind: 'facebook' as const, label: '公司 Facebook', value: companyFacebook },
-  ].filter((contact) => contact.value.trim());
+  ];
   const cropBaseScale =
     cropImageSize.width && cropImageSize.height ? Math.max(avatarCropSize / cropImageSize.width, avatarCropSize / cropImageSize.height) : 1;
   const cropDisplayWidth = cropImageSize.width * cropBaseScale * cropZoom;
@@ -756,11 +756,11 @@ function CardContact({
   };
 
   return (
-    <div className="business-card-contact-row">
+    <div className={`business-card-contact-row ${kind}`}>
       <span className={`business-card-app-icon ${kind}`} aria-label={label}>
         <img src={icons[kind]} alt="" />
       </span>
-      <strong>{value}</strong>
+      <strong>{value.trim() || '-'}</strong>
     </div>
   );
 }
