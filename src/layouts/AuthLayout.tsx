@@ -1,24 +1,15 @@
 import { Outlet } from 'react-router-dom';
+import logoUrl from '../assets/logo.png';
+import authBackgroundUrl from '../assets/auth-space-bg.jpg';
 
 export function AuthLayout() {
   return (
-    <main className="auth-shell">
-      <section className="auth-brand-panel">
-        <div className="brand auth-brand">
-          <div className="brand-mark">DY</div>
-          <div>
-            <strong>DY Group</strong>
-            <span>Production</span>
-          </div>
-        </div>
-        <div>
-          <span className="auth-kicker">正式版系统</span>
-          <h1>统一登录与注册审核</h1>
-          <p>账号注册后将进入审核流程，审核通过后才能进入系统菜单。</p>
-        </div>
-      </section>
-
+    <main className="auth-shell" style={{ backgroundImage: `linear-gradient(180deg, rgba(4, 7, 24, 0.18), rgba(4, 7, 24, 0.52)), url(${authBackgroundUrl})` }}>
       <section className="auth-panel">
+        <div className="auth-product-mark">
+          <img src={logoUrl} alt="DY Group" />
+          <strong>DY GROUP</strong>
+        </div>
         <Outlet />
       </section>
     </main>

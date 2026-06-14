@@ -17,6 +17,11 @@ export function ResetPasswordPage() {
     setMessage('');
     setSuccessMessage('');
 
+    if (password.length < 6) {
+      setMessage('新密码至少需要 6 位。');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setMessage('两次输入的密码不一致。');
       return;
@@ -27,7 +32,7 @@ export function ResetPasswordPage() {
     setSubmitting(false);
 
     if (error) {
-      setMessage(`更新密码失败：${error.message}`);
+      setMessage(`密码更新失败：${error.message}`);
       return;
     }
 
@@ -38,8 +43,7 @@ export function ResetPasswordPage() {
   return (
     <form className="auth-card" onSubmit={handleSubmit}>
       <div className="auth-card-heading">
-        <span>账号安全</span>
-        <h2>设置新密码</h2>
+        <h2>重置密码</h2>
       </div>
 
       {!isSupabaseConfigured ? <p className="form-alert">请先在 .env 填写 Supabase 连接信息。</p> : null}
@@ -56,7 +60,7 @@ export function ResetPasswordPage() {
       </label>
 
       <label className="form-field">
-        <span>确认新密码</span>
+        <span>确认密码</span>
         <input
           type="password"
           value={confirmPassword}
@@ -71,7 +75,7 @@ export function ResetPasswordPage() {
 
       <button className="primary-button" type="submit" disabled={submitting || !isSupabaseConfigured}>
         <KeyRound size={18} />
-        <span>{submitting ? '更新中' : '更新密码'}</span>
+        <span>{submitting ? '修改中' : '确认修改'}</span>
       </button>
 
       <p className="auth-switch">

@@ -1,41 +1,36 @@
 import { FormEvent, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
 import { isSupabaseConfigured } from '../lib/supabase';
 
-export function LoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/dashboard';
+export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setMessage('');
+    setSuccessMessage('');
 
-    const { data, error } = await authService.signIn(email, password);
-
+    const { error } = await authService.resetPasswordForEmail(email);
     setSubmitting(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(`发送重置邮件失败：${error.message}`);
       return;
     }
 
-    if (data.user) {
-      navigate(from, { replace: true });
-    }
+    setSuccessMessage('密码重置邮件已发送，请到邮箱查看重置链接。');
   }
 
   return (
     <form className="auth-card" onSubmit={handleSubmit}>
       <div className="auth-card-heading">
-        <h2>登录</h2>
+        <h2>忘记密码</h2>
+        <p>请输入注册邮箱，系统将发送密码重置邮件。</p>
       </div>
 
       {!isSupabaseConfigured ? <p className="form-alert">请先在 .env 填写 Supabase 连接信息。</p> : null}
@@ -45,27 +40,15 @@ export function LoginPage() {
         <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
       </label>
 
-      <label className="form-field">
-        <span>密码</span>
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          minLength={6}
-          required
-        />
-      </label>
-
       {message ? <p className="form-alert">{message}</p> : null}
+      {successMessage ? <p className="form-success">{successMessage}</p> : null}
 
       <button className="primary-button" type="submit" disabled={submitting || !isSupabaseConfigured}>
-        <LogIn size={18} />
-        <span>{submitting ? '登录中' : '登录'}</span>
+        <span>{submitting ? '发送中' : '发送重置邮件'}</span>
       </button>
 
-      <p className="auth-switch auth-switch-stack">
-        <Link to="/forgot-password">忘记密码？</Link>
-        <Link to="/register">注册账号</Link>
+      <p className="auth-switch">
+        <Link to="/login">返回登录</Link>
       </p>
     </form>
   );

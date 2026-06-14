@@ -60,8 +60,7 @@ export function RegisterPage() {
   return (
     <form className="auth-card" onSubmit={handleSubmit}>
       <div className="auth-card-heading">
-        <span>新账号申请</span>
-        <h2>注册</h2>
+        <h2>注册账号</h2>
       </div>
 
       {!isSupabaseConfigured ? <p className="form-alert">请先在 .env 填写 Supabase 连接信息。</p> : null}
@@ -143,7 +142,7 @@ export function RegisterPage() {
       </button>
 
       <p className="auth-switch">
-        已有账号？ <Link to="/login">返回登录</Link>
+        已有账号？ <Link to="/login">立即登录</Link>
       </p>
     </form>
   );
