@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type LeaveRequestItem, leaveService } from '../services/leave.service';
 import { leaveStatusLabels, leaveTypeLabels } from './LeavePage';
 
@@ -16,6 +17,8 @@ export function LeaveReviewPage() {
   useEffect(() => {
     void loadPendingRequests();
   }, []);
+
+  usePullToRefresh(loadPendingRequests);
 
   async function loadPendingRequests() {
     setLoading(true);

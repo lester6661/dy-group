@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { CalendarCheck2, FileClock, Plus, Wand2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { MonthSelect } from '../components/MonthSelect';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -86,6 +87,14 @@ export function LeavePage() {
 
   useEffect(() => {
     void loadRestDays();
+  }, [profile?.id, restCycle]);
+
+  usePullToRefresh(async () => {
+    if (profile?.id) {
+      await loadLeaveRequests(profile.id);
+    }
+
+    await loadRestDays();
   }, [profile?.id, restCycle]);
 
   useEffect(() => {

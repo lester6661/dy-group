@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Camera, Coffee, Clock, FileClock, LogIn, LogOut } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type AttendanceRecordItem, attendanceService, getPublicIpAddress } from '../services/attendance.service';
 import type { AttendancePunchType } from '../types/database';
 
@@ -50,6 +51,8 @@ export function AttendancePage() {
       void loadRecords(profile.id);
     }
   }, [profile?.id]);
+
+  usePullToRefresh(() => loadRecords(), [profile?.id]);
 
   async function startCamera() {
     setError('');

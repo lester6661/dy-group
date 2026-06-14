@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Edit3, Plus, RefreshCw, Search } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type EmployeeFormValues, type EmployeeListItem, type StaffOptions, staffService } from '../services/staff.service';
 import type { EmployeeStatus } from '../types/database';
 
@@ -95,6 +96,8 @@ export function StaffPage() {
   useEffect(() => {
     void loadStaffData();
   }, []);
+
+  usePullToRefresh(loadStaffData);
 
   async function loadStaffData() {
     setLoading(true);

@@ -3,6 +3,7 @@ import { ChevronDown, Search } from 'lucide-react';
 import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type CalendarLeaveType, type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
 import type { Region } from '../types/database';
 
@@ -110,6 +111,10 @@ export function SchedulePage() {
   useEffect(() => {
     void loadLeaveCalendar();
   }, [month, regionId]);
+
+  usePullToRefresh(async () => {
+    await Promise.all([loadLeaveCalendar(), loadCancelPermission()]);
+  }, [month, regionId, profile?.id]);
 
   useEffect(() => {
     void loadCancelPermission();

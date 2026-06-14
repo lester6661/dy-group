@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
 import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import {
   AttendanceEmployee,
   AttendanceRestDay,
@@ -72,6 +73,8 @@ export function AttendanceManagementPage() {
   useEffect(() => {
     loadAttendanceData();
   }, [month, regionId]);
+
+  usePullToRefresh(loadAttendanceData, [month, regionId]);
 
   async function loadAttendanceData() {
     setLoading(true);

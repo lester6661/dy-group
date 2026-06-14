@@ -634,6 +634,7 @@ a {
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
 }
 
 .topbar {
@@ -816,6 +817,16 @@ a {
 
 .content-area {
   padding: 28px;
+}
+
+.pull-refresh-indicator {
+  display: none;
+}
+
+@keyframes pull-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .page-panel {
@@ -3665,6 +3676,39 @@ button.leave-chip:disabled {
     min-width: 0;
   }
 
+  .pull-refresh-indicator {
+    position: fixed;
+    top: 76px;
+    left: 50%;
+    z-index: 44;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 10px 24px rgba(16, 25, 40, 0.16);
+    transition:
+      opacity 140ms ease,
+      transform 180ms ease;
+  }
+
+  .pull-refresh-indicator.visible {
+    opacity: 1;
+  }
+
+  .pull-refresh-indicator span {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(99, 102, 241, 0.18);
+    border-top-color: #7c3aed;
+    border-radius: 999px;
+    animation: pull-refresh-spin 800ms linear infinite;
+  }
+
   .sidebar {
     position: fixed;
     top: 0;
@@ -4035,6 +4079,10 @@ button.leave-chip:disabled {
   .topbar {
     min-height: 64px;
     padding: 12px;
+  }
+
+  .pull-refresh-indicator {
+    top: 64px;
   }
 
   .topbar-title {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { CheckCircle2, Search, UserCheck, XCircle } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import {
   type PendingRegistration,
   type RegistrationApprovalValues,
@@ -52,6 +53,8 @@ export function RegistrationReviewPage() {
   useEffect(() => {
     void loadRegistrations();
   }, []);
+
+  usePullToRefresh(loadRegistrations);
 
   async function loadRegistrations() {
     setLoading(true);

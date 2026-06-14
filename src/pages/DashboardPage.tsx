@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { CalendarDays, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SystemModal } from '../components/SystemModal';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { scheduleEventService } from '../services/schedule-event.service';
 import { getRecurringTodoRuleLabel, recurringTodoFrequencyLabels, todoService, type RecurringTodoPayload } from '../services/todo.service';
 import type { RecurringTodoFrequency, RecurringTodoItem, ScheduleEvent, TodoItem } from '../types/database';
@@ -48,6 +49,8 @@ export function DashboardPage() {
       hideTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     };
   }, []);
+
+  usePullToRefresh(loadDashboard);
 
   async function loadDashboard() {
     setLoading(true);

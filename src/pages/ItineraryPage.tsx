@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Edit3, Plus, Trash2 } from 'lucide-react';
 import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import {
   type ScheduleEventFormValues,
   getMonthRange,
@@ -54,6 +55,8 @@ export function ItineraryPage() {
   useEffect(() => {
     void loadScheduleEvents();
   }, [month]);
+
+  usePullToRefresh(loadScheduleEvents, [month]);
 
   async function loadScheduleEvents() {
     setLoading(true);

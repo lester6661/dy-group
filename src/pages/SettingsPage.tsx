@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Edit3, Plus, RefreshCw, Search, Settings2, ShieldCheck, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { SystemModal } from '../components/SystemModal';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type SettingsFormValues, type SettingsModuleKey, type SettingsRecord, settingsService } from '../services/settings.service';
 import { type EmployeeListItem, type StaffOptions, staffService } from '../services/staff.service';
 import { type SpecialPermissionTemplate, permissionManagementService } from '../services/permission-management.service';
@@ -155,6 +156,8 @@ export function SettingsPage() {
       closeForm();
     }
   }, [searchParams]);
+
+  usePullToRefresh(() => loadSettings(activeModuleKey), [activeModuleKey]);
 
   async function loadSettings(moduleKey = activeModuleKey) {
     if (moduleKey === 'permissions') {
@@ -562,6 +565,8 @@ function PermissionManagementPanel() {
       closePermissionModal();
     }
   }, [searchParams]);
+
+  usePullToRefresh(() => loadPermissionContext(), [activeTab]);
 
   async function loadPermissionContext(keepMessage = false) {
     setLoading(true);

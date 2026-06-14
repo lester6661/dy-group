@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type PointerEvent } from 'react';
 import { Camera, Download, Lock, Pencil, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
+import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
 import { authService } from '../services/auth.service';
 import logoUrl from '../assets/logo.png';
@@ -88,6 +89,8 @@ export function ProfilePage() {
   useEffect(() => {
     void loadProfile();
   }, []);
+
+  usePullToRefresh(loadProfile);
 
   useEffect(() => {
     setWechat(window.localStorage.getItem(wechatStorageKey) ?? '');
