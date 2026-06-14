@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent,
 import { Camera, Download, Lock, Pencil, ShieldCheck, UserRound } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { profileService, type MyProfileData, type MyProfileUpdateValues } from '../services/profile.service';
+import { authService } from '../services/auth.service';
 import logoUrl from '../assets/logo.png';
 import whatsappIconUrl from '../assets/icons/whatsapp.svg';
 import wechatIconUrl from '../assets/icons/wechat.svg';
@@ -37,6 +38,12 @@ export function ProfilePage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [downloadChoiceOpen, setDownloadChoiceOpen] = useState(false);
   const [contactEditOpen, setContactEditOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordResetSending, setPasswordResetSending] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
   const [wechat, setWechat] = useState('');
   const [avatarOriginalUrl, setAvatarOriginalUrl] = useState<string | null>(null);
   const [contactForm, setContactForm] = useState({ whatsapp: '', wechat: '' });
@@ -66,6 +73,7 @@ export function ProfilePage() {
   const companyRegistrationNo = employee?.region?.company_registration_no ?? '';
   const companyInstagram = employee?.region?.company_instagram ?? '';
   const companyFacebook = employee?.region?.company_facebook ?? '';
+  const accountEmail = profile?.email || employee?.email || '';
   const businessCardContacts = [
     { kind: 'whatsapp' as const, label: 'Whatsapp', value: whatsapp },
     { kind: 'instagram' as const, label: '公司 Instagram', value: companyInstagram },
@@ -134,6 +142,90 @@ export function ProfilePage() {
       wechat,
     });
     setContactEditOpen(true);
+  }
+
+  function openPasswordModal() {
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordMessage('');
+    setPasswordSuccess('');
+    setPasswordModalOpen(true);
+  }
+
+  function closePasswordModal() {
+    if (passwordSaving || passwordResetSending) return;
+    setPasswordModalOpen(false);
+  }
+
+  async function handleChangePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPasswordMessage('');
+    setPasswordSuccess('');
+
+    const currentPassword = passwordForm.currentPassword;
+    const newPassword = passwordForm.newPassword;
+    const confirmPassword = passwordForm.confirmPassword;
+
+    if (!currentPassword) {
+      setPasswordMessage('请输入当前密码。');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordMessage('新密码至少需要 6 位。');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('新密码与确认密码不一致。');
+      return;
+    }
+
+    if (!accountEmail) {
+      setPasswordMessage('找不到当前账号邮箱，无法修改密码。');
+      return;
+    }
+
+    setPasswordSaving(true);
+
+    try {
+      const { error: verifyError } = await authService.signIn(accountEmail, currentPassword);
+      if (verifyError) {
+        throw new Error(`当前密码验证失败：${verifyError.message}`);
+      }
+
+      const { error: updateError } = await authService.updatePassword(newPassword);
+      if (updateError) {
+        throw updateError;
+      }
+
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordSuccess('密码修改成功');
+    } catch (err) {
+      setPasswordMessage(err instanceof Error ? err.message : '密码修改失败。');
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
+  async function handleForgotCurrentPassword() {
+    setPasswordMessage('');
+    setPasswordSuccess('');
+
+    if (!accountEmail) {
+      setPasswordMessage('找不到当前账号邮箱，无法发送重置邮件。');
+      return;
+    }
+
+    setPasswordResetSending(true);
+    const { error: resetError } = await authService.resetPasswordForEmail(accountEmail);
+    setPasswordResetSending(false);
+
+    if (resetError) {
+      setPasswordMessage(`发送重置邮件失败：${resetError.message}`);
+      return;
+    }
+
+    setPasswordSuccess('密码重置邮件已发送，请到邮箱查看重置链接。');
   }
 
   async function handleSaveBusinessCardContact(event: FormEvent<HTMLFormElement>) {
@@ -463,7 +555,7 @@ export function ProfilePage() {
           <Lock size={20} />
         </div>
         <div className="profile-security-list">
-          <button className="secondary-action" type="button" disabled>
+          <button className="secondary-action" type="button" onClick={openPasswordModal}>
             修改密码
           </button>
           <button className="secondary-action" type="button" disabled>
@@ -491,6 +583,67 @@ export function ProfilePage() {
           }
         >
           <img src={avatarPreviewUrl} alt="头像原图" />
+        </SystemModal>
+      ) : null}
+
+      {passwordModalOpen ? (
+        <SystemModal
+          title="修改密码"
+          subtitle="账号安全"
+          ariaLabel="修改密码"
+          wide={false}
+          onClose={closePasswordModal}
+          footer={
+            <>
+              <button className="secondary-button compact-button" type="button" onClick={closePasswordModal} disabled={passwordSaving || passwordResetSending}>
+                取消
+              </button>
+              <button className="primary-button compact-button" type="submit" form="profile-change-password-form" disabled={passwordSaving || passwordResetSending}>
+                {passwordSaving ? '保存中' : '保存'}
+              </button>
+            </>
+          }
+        >
+          <form id="profile-change-password-form" className="profile-password-form" onSubmit={handleChangePassword}>
+            <label className="form-field">
+              <span>当前密码</span>
+              <input
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
+                required
+              />
+            </label>
+
+            <label className="form-field">
+              <span>新密码</span>
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+                minLength={6}
+                required
+              />
+            </label>
+
+            <label className="form-field">
+              <span>确认新密码</span>
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                minLength={6}
+                required
+              />
+            </label>
+
+            <button className="text-button profile-forgot-password" type="button" onClick={handleForgotCurrentPassword} disabled={passwordSaving || passwordResetSending}>
+              {passwordResetSending ? '发送中' : '忘记当前密码？'}
+            </button>
+
+            {passwordMessage ? <p className="form-alert">{passwordMessage}</p> : null}
+            {passwordSuccess ? <p className="form-success">{passwordSuccess}</p> : null}
+          </form>
         </SystemModal>
       ) : null}
 

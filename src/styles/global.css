@@ -3251,6 +3251,26 @@ button.leave-chip:disabled {
   width: 100%;
 }
 
+.profile-password-form {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-forgot-password {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  color: var(--primary-dark);
+  font-weight: 800;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-forgot-password:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .home-page {
   position: relative;
   isolation: isolate;
