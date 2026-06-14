@@ -168,6 +168,8 @@ export const staffService = {
   },
 
   async createEmployee(values: EmployeeFormValues) {
+    await ensureEmployeeCodeAvailable(values.employee_code);
+
     const { error } = await supabase.from('employees').insert(normalizeEmployeePayload(values));
 
     if (error) {
@@ -176,6 +178,8 @@ export const staffService = {
   },
 
   async updateEmployee(employeeId: string, values: EmployeeFormValues) {
+    await ensureEmployeeCodeAvailable(values.employee_code, employeeId);
+
     const { error } = await supabase.from('employees').update(normalizeEmployeePayload(values)).eq('id', employeeId);
 
     if (error) {
@@ -191,6 +195,27 @@ export const staffService = {
     }
   },
 };
+
+async function ensureEmployeeCodeAvailable(value: string, currentEmployeeId?: string) {
+  const employeeCode = normalizeEmployeeCode(value);
+  if (!employeeCode) return;
+
+  let query = supabase.from('employees').select('id').eq('employee_code', employeeCode);
+
+  if (currentEmployeeId) {
+    query = query.neq('id', currentEmployeeId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (data) {
+    throw new Error('员工编号已存在');
+  }
+}
 
 async function getReviewerMap(rows: EmployeeRowWithRelations[]) {
   const reviewerIds = Array.from(new Set(rows.map((row) => row.reviewed_by).filter(Boolean))) as string[];
@@ -252,7 +277,7 @@ function normalizeEmployeePayload(values: EmployeeFormValues) {
     avatar_url: values.avatar_url.trim() || null,
     phone: values.phone.trim() || null,
     email: values.email.trim() || null,
-    employee_code: values.employee_code.trim() || null,
+    employee_code: normalizeEmployeeCode(values.employee_code) || null,
     gender: values.gender || null,
     birthday: values.birthday || null,
     identity_number: values.identity_number.trim() || null,
@@ -273,4 +298,8 @@ function normalizeEmployeePayload(values: EmployeeFormValues) {
     end_work_time: values.end_work_time || null,
     require_attendance: values.require_attendance,
   };
+}
+
+function normalizeEmployeeCode(value: string) {
+  return value.trim().toUpperCase();
 }

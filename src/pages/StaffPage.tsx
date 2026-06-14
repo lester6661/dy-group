@@ -56,6 +56,7 @@ function getEmployeeStatus(status: EmployeeStatus | string | null | undefined) {
 export function StaffPage() {
   const { profile } = useAuth();
   const canManageStaff = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'hr';
+  const canEditEmployeeCode = profile?.role === 'super_admin';
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [options, setOptions] = useState<StaffOptions>({ regions: [], employmentTypes: [], jobTitles: [] });
   const [formValues, setFormValues] = useState<EmployeeFormValues>(emptyForm);
@@ -113,11 +114,20 @@ export function StaffPage() {
     setMessage('');
 
     try {
+      const nextValues = {
+        ...formValues,
+        employee_code: formValues.employee_code.trim().toUpperCase(),
+      };
+
+      if (editingEmployee && canEditEmployeeCode && !nextValues.employee_code) {
+        throw new Error('员工编号不可为空');
+      }
+
       if (editingEmployee) {
-        await staffService.updateEmployee(editingEmployee.id, formValues);
+        await staffService.updateEmployee(editingEmployee.id, nextValues);
         setMessage('工作人员资料已更新。');
       } else {
-        await staffService.createEmployee(formValues);
+        await staffService.createEmployee(nextValues);
         setMessage('工作人员已新增。');
       }
 
@@ -238,6 +248,7 @@ export function StaffPage() {
           saving={saving}
           error={error}
           message={message}
+          canEditEmployeeCode={canEditEmployeeCode}
           onChange={setFormValues}
           onClose={resetForm}
           onSubmit={handleSubmit}
@@ -413,6 +424,7 @@ type StaffFormModalProps = {
   saving: boolean;
   error: string;
   message: string;
+  canEditEmployeeCode: boolean;
   onChange: (values: EmployeeFormValues) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -425,6 +437,7 @@ function StaffFormModal({
   saving,
   error,
   message,
+  canEditEmployeeCode,
   onChange,
   onClose,
   onSubmit,
@@ -466,7 +479,16 @@ function StaffFormModal({
             <TextField label="地址" value={values.address} onChange={(value) => onChange({ ...values, address: value })} />
 
             <FormSectionTitle title="工作资料" />
-            <ReadOnlyField label="员工编号" value={values.employee_code || '系统自动生成'} />
+            {canEditEmployeeCode ? (
+              <TextField
+                label="员工编号"
+                value={values.employee_code}
+                onChange={(value) => onChange({ ...values, employee_code: value.toUpperCase() })}
+                required={Boolean(editingEmployee)}
+              />
+            ) : (
+              <ReadOnlyField label="员工编号" value={values.employee_code || '系统自动生成'} />
+            )}
 
             <label className="form-field">
               <span>职称</span>

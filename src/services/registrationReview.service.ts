@@ -65,7 +65,7 @@ export const registrationReviewService = {
     });
 
     if (error) {
-      throw error;
+      throw new Error(`审核通过失败：${getSupabaseErrorMessage(error)}`);
     }
   },
 
@@ -80,6 +80,17 @@ export const registrationReviewService = {
     }
   },
 };
+
+function getSupabaseErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+
+  if (typeof error === 'object' && error !== null) {
+    const record = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    return [record.message, record.details, record.hint, record.code].filter(Boolean).join(' | ') || '未知错误';
+  }
+
+  return String(error || '未知错误');
+}
 
 async function getRegionMap(rows: Array<{ region_id: string | null }>) {
   const regionIds = Array.from(new Set(rows.map((row) => row.region_id).filter(Boolean))) as string[];
