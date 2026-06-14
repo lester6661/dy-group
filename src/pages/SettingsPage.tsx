@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Edit3, Plus, RefreshCw, Settings2, ShieldCheck, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Edit3, Plus, RefreshCw, Search, Settings2, ShieldCheck, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { SystemModal } from '../components/SystemModal';
 import { type SettingsFormValues, type SettingsModuleKey, type SettingsRecord, settingsService } from '../services/settings.service';
@@ -506,6 +506,8 @@ function PermissionManagementPanel() {
   const [ownedSpecialPermissionAccess, setOwnedSpecialPermissionAccess] = useState<PermissionState>({});
   const [specialTemplatePermissionMap, setSpecialTemplatePermissionMap] = useState<Record<string, PermissionState>>({});
   const [newSpecialName, setNewSpecialName] = useState('');
+  const [employeePermissionSearch, setEmployeePermissionSearch] = useState('');
+  const [employeePermissionRegionId, setEmployeePermissionRegionId] = useState('');
   const [initialPermissionSnapshot, setInitialPermissionSnapshot] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingPermissions, setSavingPermissions] = useState(false);
@@ -513,15 +515,28 @@ function PermissionManagementPanel() {
   const [error, setError] = useState('');
 
   const permissionItems = useMemo(() => buildPermissionItems(), []);
-  const sortedEmployees = useMemo(
-    () =>
-      [...employees].sort((first, second) => {
+  const filteredPermissionEmployees = useMemo(
+    () => {
+      const keyword = employeePermissionSearch.trim().toLowerCase();
+      const filteredEmployees = employees.filter((employee) => {
+        const matchesKeyword =
+          !keyword ||
+          [employee.full_name, employee.nickname]
+            .filter(Boolean)
+            .some((value) => value!.toLowerCase().includes(keyword));
+        const matchesRegion = !employeePermissionRegionId || employee.region_id === employeePermissionRegionId;
+
+        return matchesKeyword && matchesRegion;
+      });
+
+      return [...filteredEmployees].sort((first, second) => {
         const firstStatus = employeeStatusOrder[getStaffStatus(first.status)] ?? employeeStatusOrder.active;
         const secondStatus = employeeStatusOrder[getStaffStatus(second.status)] ?? employeeStatusOrder.active;
         if (firstStatus !== secondStatus) return firstStatus - secondStatus;
         return first.full_name.localeCompare(second.full_name, 'zh-Hans');
-      }),
-    [employees],
+      });
+    },
+    [employeePermissionRegionId, employeePermissionSearch, employees],
   );
   const currentPermissionSnapshot = useMemo(
     () =>
@@ -825,11 +840,27 @@ function PermissionManagementPanel() {
 
       {activeTab === 'employees' ? (
         <section className="permission-section-panel">
-          <div className="list-header">
-            <div>
-              <span>工作人员权限</span>
-              <h3>{sortedEmployees.length} 位员工</h3>
-            </div>
+          <div className="list-header employee-permission-filter-header">
+            <label className="table-search employee-permission-search">
+              <Search size={16} />
+              <input
+                placeholder="搜索姓名 / 昵称"
+                value={employeePermissionSearch}
+                onChange={(event) => setEmployeePermissionSearch(event.target.value)}
+              />
+            </label>
+            <select
+              className="employee-permission-region-filter"
+              value={employeePermissionRegionId}
+              onChange={(event) => setEmployeePermissionRegionId(event.target.value)}
+            >
+              <option value="">全部区域</option>
+              {staffOptions.regions.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {region.code}
+                </option>
+              ))}
+            </select>
             <button className="secondary-action" type="button" onClick={() => void loadPermissionContext()} disabled={loading}>
               <RefreshCw size={17} />
               <span>刷新</span>
@@ -837,29 +868,26 @@ function PermissionManagementPanel() {
           </div>
           {loading ? (
             <div className="table-state">正在读取工作人员...</div>
-          ) : sortedEmployees.length === 0 ? (
+          ) : filteredPermissionEmployees.length === 0 ? (
             <div className="table-state">暂无工作人员资料。</div>
           ) : (
             <div className="staff-table-wrap">
               <table className="staff-table staff-simple-table">
                 <thead>
                   <tr>
-                    <th>状态</th>
                     <th>头像</th>
-                    <th>名字</th>
+                    <th>姓名</th>
                     <th>昵称</th>
+                    <th>区域</th>
                     <th>职称</th>
-                    <th>雇佣类型</th>
+                    <th>状态</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedEmployees.map((employee) => {
+                  {filteredPermissionEmployees.map((employee) => {
                     const status = getStaffStatus(employee.status);
                     return (
                       <tr key={employee.id}>
-                        <td>
-                          <span className={'status-pill status-' + status}>{employeeStatusLabels[status] ?? employeeStatusLabels.active}</span>
-                        </td>
                         <td>
                           <PermissionEmployeeAvatar employee={employee} />
                         </td>
@@ -869,8 +897,11 @@ function PermissionManagementPanel() {
                           </button>
                         </td>
                         <td>{employee.nickname || '-'}</td>
+                        <td>{employee.region?.code ?? employee.region?.name ?? '-'}</td>
                         <td>{employee.job_title?.name || '-'}</td>
-                        <td>{employee.employment_type?.name || '-'}</td>
+                        <td>
+                          <span className={'status-pill status-' + status}>{employeeStatusLabels[status] ?? employeeStatusLabels.active}</span>
+                        </td>
                       </tr>
                     );
                   })}
