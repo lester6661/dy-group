@@ -50,6 +50,31 @@ export const scheduleEventService = {
     return (data ?? []) as ScheduleEvent[];
   },
 
+  async getMyUpcomingScheduleEvents(days = 7, limit = 5) {
+    const userId = await getCurrentUserId();
+    const startDate = toDateKey(new Date());
+    const end = new Date();
+    end.setDate(end.getDate() + days);
+    const endDate = toDateKey(end);
+
+    const { data, error } = await supabase
+      .from('schedule_events')
+      .select('*')
+      .eq('profile_id', userId)
+      .eq('status', 'active')
+      .gte('event_date', startDate)
+      .lte('event_date', endDate)
+      .order('event_date', { ascending: true })
+      .order('start_time', { ascending: true, nullsFirst: false })
+      .limit(limit);
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []) as ScheduleEvent[];
+  },
+
   async createScheduleEvent(values: ScheduleEventPayload) {
     const userId = await getCurrentUserId();
     const { error } = await supabase.from('schedule_events').insert({

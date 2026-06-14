@@ -187,6 +187,16 @@ export type ScheduleEvent = {
   updated_at: string;
 };
 
+export type TodoItem = {
+  id: string;
+  profile_id: string;
+  title: string;
+  is_completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -370,6 +380,21 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'schedule_events_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      todo_items: {
+        Row: TodoItem;
+        Insert: Pick<TodoItem, 'profile_id' | 'title'> &
+          Partial<Pick<TodoItem, 'id' | 'is_completed' | 'completed_at' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<TodoItem, 'id' | 'profile_id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'todo_items_profile_id_fkey';
             columns: ['profile_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
