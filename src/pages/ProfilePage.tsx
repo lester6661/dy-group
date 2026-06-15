@@ -60,6 +60,7 @@ export function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const cropDragRef = useRef<{ pointerId: number; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
+  const avatarUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const employee = profileData?.employee;
   const profile = profileData?.profile;
@@ -286,6 +287,15 @@ export function ProfilePage() {
     image.src = objectUrl;
   }
 
+  function handleAvatarPhotoClick() {
+    if (avatarUrl) {
+      setPreviewOpen(true);
+      return;
+    }
+
+    avatarUploadInputRef.current?.click();
+  }
+
   async function handleSaveCroppedAvatar() {
     if (!cropImageUrl || !cropImageSize.width || !cropImageSize.height) return;
 
@@ -486,9 +496,17 @@ export function ProfilePage() {
             </div>
           </div>
 
-          <button className="business-card-photo" type="button" onClick={() => avatarUrl && setPreviewOpen(true)} disabled={!avatarUrl}>
+          <button className="business-card-photo" type="button" onClick={handleAvatarPhotoClick}>
             {avatarUrl ? <img src={avatarUrl} alt="个人头像" /> : <span>{initials}</span>}
           </button>
+          <input
+            ref={avatarUploadInputRef}
+            className="sr-only"
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            disabled={uploading || saving}
+          />
         </div>
         <div className="business-card-actions">
           <button className="primary-button business-card-download" type="button" onClick={() => setDownloadChoiceOpen(true)} disabled={downloadingCard}>
