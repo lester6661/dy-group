@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { menuItems, toolGroupOrder } from '../routes/menu';
 import logoUrl from '../assets/logo.png';
+import { usePermissions } from '../hooks/usePermissions';
 
 type SidebarProps = {
   collapsed: boolean;
@@ -11,6 +12,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: SidebarProps) {
+  const permissions = usePermissions();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     工作工具: true,
   });
@@ -19,10 +21,19 @@ export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: SidebarPro
     管理: true,
   });
 
-  const standaloneItems = menuItems.filter((item) => !item.section);
+  const visibleMenuItems = useMemo(
+    () =>
+      menuItems.filter((item) => {
+        if (!item.section) return true;
+        if (item.key === 'settings') return permissions.isSuperAdmin;
+        return permissions.canView(item.key);
+      }),
+    [permissions],
+  );
+  const standaloneItems = visibleMenuItems.filter((item) => !item.section);
   const groupedSections = useMemo(
     () =>
-      menuItems.reduce<Record<string, Record<string, typeof menuItems>>>((sections, item) => {
+      visibleMenuItems.reduce<Record<string, Record<string, typeof menuItems>>>((sections, item) => {
         if (!item.section) {
           return sections;
         }
@@ -34,7 +45,7 @@ export function Sidebar({ collapsed, onToggleCollapsed, onNavigate }: SidebarPro
 
         return sections;
       }, {}),
-    [],
+    [visibleMenuItems],
   );
 
   function toggleSection(sectionName: string) {

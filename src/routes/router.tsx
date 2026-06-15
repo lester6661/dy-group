@@ -22,6 +22,7 @@ import { RegistrationReviewPage } from '../pages/RegistrationReviewPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { getMenuPath } from './menu';
 import { RequireRole } from '../components/RequireRole';
+import { RequirePermission } from '../components/RequirePermission';
 
 export const router = createBrowserRouter([
   {
@@ -45,30 +46,34 @@ export const router = createBrowserRouter([
           },
           {
             path: getMenuPath('staff'),
-            element: <StaffPage />,
+            element: (
+              <RequirePermission permissionKey="staff">
+                <StaffPage />
+              </RequirePermission>
+            ),
           },
           {
             path: getMenuPath('registration-review'),
             element: (
-              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+              <RequirePermission permissionKey="registration-review">
                 <RegistrationReviewPage />
-              </RequireRole>
+              </RequirePermission>
             ),
           },
           {
             path: getMenuPath('leave-review'),
             element: (
-              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+              <RequirePermission permissionKey="leave-review">
                 <LeaveReviewPage />
-              </RequireRole>
+              </RequirePermission>
             ),
           },
           {
             path: getMenuPath('attendance-management'),
             element: (
-              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+              <RequirePermission permissionKey="attendance-management">
                 <AttendanceManagementPage />
-              </RequireRole>
+              </RequirePermission>
             ),
           },
           {

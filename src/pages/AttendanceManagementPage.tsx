@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, Eye, RefreshCw } from 'lucide-react';
 import { MonthSelect } from '../components/MonthSelect';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import {
   AttendanceEmployee,
@@ -55,6 +56,8 @@ const leaveTypeLabels: Record<LeaveType, string> = {
 
 export function AttendanceManagementPage() {
   const { profile } = useAuth();
+  const permissions = usePermissions();
+  const canUseAttendance = permissions.canUse('attendance-management');
   const [month, setMonth] = useState(getCurrentMonth());
   const [regionId, setRegionId] = useState('');
   const [regions, setRegions] = useState<Region[]>([]);
@@ -117,11 +120,13 @@ export function AttendanceManagementPage() {
         </button>
       </div>
 
-      <button className="abnormal-banner" type="button" onClick={() => setShowAbnormalCenter(true)}>
-        <AlertTriangle size={20} />
-        <span>异常打卡提醒</span>
-        <strong>{abnormalEmployeeCount} 位员工</strong>
-      </button>
+      {canUseAttendance ? (
+        <button className="abnormal-banner" type="button" onClick={() => setShowAbnormalCenter(true)}>
+          <AlertTriangle size={20} />
+          <span>异常打卡提醒</span>
+          <strong>{abnormalEmployeeCount} 位员工</strong>
+        </button>
+      ) : null}
 
       <p className="abnormal-cycle-count">本周期异常次数：{abnormalRecords.length}</p>
 
@@ -173,42 +178,48 @@ export function AttendanceManagementPage() {
                   <th>旷工</th>
                   <th>超时</th>
                   <th>异常</th>
-                  <th className="attendance-detail-col">查看详情</th>
+                  {canUseAttendance ? <th className="attendance-detail-col">查看详情</th> : null}
                 </tr>
               </thead>
               <tbody>
                 {summaries.map((summary) => (
                   <tr key={summary.employee.id}>
                     <td>
-                      <button
-                        className="text-link-button"
-                        type="button"
-                        onClick={() => {
-                          setSelectedEmployeeId(summary.employee.id);
-                          setShowAbnormalCenter(false);
-                        }}
-                      >
-                        {getEmployeeDisplayName(summary.employee)}
-                      </button>
+                      {canUseAttendance ? (
+                        <button
+                          className="text-link-button"
+                          type="button"
+                          onClick={() => {
+                            setSelectedEmployeeId(summary.employee.id);
+                            setShowAbnormalCenter(false);
+                          }}
+                        >
+                          {getEmployeeDisplayName(summary.employee)}
+                        </button>
+                      ) : (
+                        getEmployeeDisplayName(summary.employee)
+                      )}
                     </td>
                     <td>{summary.lateCount}</td>
                     <td>{summary.earlyLeaveCount}</td>
                     <td>{summary.absentCount}</td>
                     <td>{summary.overtimeBreakCount}</td>
                     <td>{summary.abnormalPunchCount}</td>
-                    <td className="attendance-detail-col">
-                      <button
-                        className="secondary-button compact-button"
-                        type="button"
-                        onClick={() => {
-                          setSelectedEmployeeId(summary.employee.id);
-                          setShowAbnormalCenter(false);
-                        }}
-                      >
-                        <Eye size={16} />
-                        <span>查看详情</span>
-                      </button>
-                    </td>
+                    {canUseAttendance ? (
+                      <td className="attendance-detail-col">
+                        <button
+                          className="secondary-button compact-button"
+                          type="button"
+                          onClick={() => {
+                            setSelectedEmployeeId(summary.employee.id);
+                            setShowAbnormalCenter(false);
+                          }}
+                        >
+                          <Eye size={16} />
+                          <span>查看详情</span>
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -217,8 +228,8 @@ export function AttendanceManagementPage() {
         )}
       </div>
 
-      {showAbnormalCenter ? <AbnormalEmployeeCenter records={abnormalRecords} onClose={() => setShowAbnormalCenter(false)} /> : null}
-      {selectedSummary ? <EmployeeDetail summary={selectedSummary} onClose={() => setSelectedEmployeeId('')} /> : null}
+      {showAbnormalCenter && canUseAttendance ? <AbnormalEmployeeCenter records={abnormalRecords} onClose={() => setShowAbnormalCenter(false)} /> : null}
+      {selectedSummary && canUseAttendance ? <EmployeeDetail summary={selectedSummary} onClose={() => setSelectedEmployeeId('')} /> : null}
     </section>
   );
 }

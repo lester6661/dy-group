@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Edit3, Plus, RefreshCw, Search } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type EmployeeFormValues, type EmployeeListItem, type StaffOptions, staffService } from '../services/staff.service';
 import type { EmployeeStatus } from '../types/database';
@@ -56,7 +57,8 @@ function getEmployeeStatus(status: EmployeeStatus | string | null | undefined) {
 
 export function StaffPage() {
   const { profile } = useAuth();
-  const canManageStaff = profile?.role === 'super_admin' || profile?.role === 'admin' || profile?.role === 'hr';
+  const permissions = usePermissions();
+  const canManageStaff = permissions.canUse('staff');
   const canEditEmployeeCode = profile?.role === 'super_admin';
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [options, setOptions] = useState<StaffOptions>({ regions: [], employmentTypes: [], jobTitles: [] });

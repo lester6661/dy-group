@@ -1,11 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
+import { usePermissions } from '../hooks/usePermissions';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type LeaveRequestItem, leaveService } from '../services/leave.service';
 import { leaveStatusLabels, leaveTypeLabels } from './LeavePage';
 
 export function LeaveReviewPage() {
+  const permissions = usePermissions();
+  const canUseLeaveReview = permissions.canUse('leave-review');
   const [requests, setRequests] = useState<LeaveRequestItem[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequestItem | null>(null);
   const [reviewNote, setReviewNote] = useState('');
@@ -48,6 +51,10 @@ export function LeaveReviewPage() {
     if (!selectedRequest) {
       return;
     }
+    if (!canUseLeaveReview) {
+      setError('没有审核操作权限。');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -70,6 +77,10 @@ export function LeaveReviewPage() {
     event.preventDefault();
 
     if (!selectedRequest) {
+      return;
+    }
+    if (!canUseLeaveReview) {
+      setError('没有审核操作权限。');
       return;
     }
 
@@ -135,14 +146,18 @@ export function LeaveReviewPage() {
               <button className="secondary-button compact-button" type="button" onClick={() => setSelectedRequest(null)}>
                 关闭
               </button>
-              <button className="primary-button compact-button" type="button" onClick={handleApprove} disabled={submitting}>
-                <CheckCircle2 size={18} />
-                <span>{submitting ? '处理中...' : '审核通过'}</span>
-              </button>
-              <button className="secondary-button compact-button danger-text-button" type="submit" form="leave-reject-form" disabled={submitting}>
-                <XCircle size={18} />
-                <span>{submitting ? '处理中...' : '审核拒绝'}</span>
-              </button>
+              {canUseLeaveReview ? (
+                <>
+                  <button className="primary-button compact-button" type="button" onClick={handleApprove} disabled={submitting}>
+                    <CheckCircle2 size={18} />
+                    <span>{submitting ? '处理中...' : '审核通过'}</span>
+                  </button>
+                  <button className="secondary-button compact-button danger-text-button" type="submit" form="leave-reject-form" disabled={submitting}>
+                    <XCircle size={18} />
+                    <span>{submitting ? '处理中...' : '审核拒绝'}</span>
+                  </button>
+                </>
+              ) : null}
             </>
           }
         >

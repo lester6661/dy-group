@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { CheckCircle2, Search, UserCheck, XCircle } from 'lucide-react';
 import { SystemModal } from '../components/SystemModal';
+import { usePermissions } from '../hooks/usePermissions';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import {
   type PendingRegistration,
@@ -21,6 +22,8 @@ const defaultApprovalValues: RegistrationApprovalValues = {
 };
 
 export function RegistrationReviewPage() {
+  const permissions = usePermissions();
+  const canUseRegistrationReview = permissions.canUse('registration-review');
   const [registrations, setRegistrations] = useState<PendingRegistration[]>([]);
   const [selectedRegistration, setSelectedRegistration] = useState<PendingRegistration | null>(null);
   const [options, setOptions] = useState<StaffOptions>({
@@ -89,6 +92,10 @@ export function RegistrationReviewPage() {
     if (!selectedRegistration) {
       return;
     }
+    if (!canUseRegistrationReview) {
+      setError('没有审核操作权限。');
+      return;
+    }
 
     setSubmitting(true);
     setMessage('');
@@ -123,6 +130,10 @@ export function RegistrationReviewPage() {
     event.preventDefault();
 
     if (!selectedRegistration) {
+      return;
+    }
+    if (!canUseRegistrationReview) {
+      setError('没有审核操作权限。');
       return;
     }
 
@@ -195,14 +206,18 @@ export function RegistrationReviewPage() {
               <button className="secondary-button compact-button" type="button" onClick={() => setSelectedRegistration(null)}>
                 关闭
               </button>
-              <button className="primary-button compact-button" type="button" onClick={handleApprove} disabled={submitting}>
-                <CheckCircle2 size={18} />
-                <span>{submitting ? '处理中...' : '审核通过'}</span>
-              </button>
-              <button className="secondary-button compact-button danger-text-button" type="submit" form="registration-reject-form" disabled={submitting}>
-                <XCircle size={18} />
-                <span>{submitting ? '处理中...' : '审核拒绝'}</span>
-              </button>
+              {canUseRegistrationReview ? (
+                <>
+                  <button className="primary-button compact-button" type="button" onClick={handleApprove} disabled={submitting}>
+                    <CheckCircle2 size={18} />
+                    <span>{submitting ? '处理中...' : '审核通过'}</span>
+                  </button>
+                  <button className="secondary-button compact-button danger-text-button" type="submit" form="registration-reject-form" disabled={submitting}>
+                    <XCircle size={18} />
+                    <span>{submitting ? '处理中...' : '审核拒绝'}</span>
+                  </button>
+                </>
+              ) : null}
             </>
           }
         >
