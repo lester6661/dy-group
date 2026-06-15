@@ -5,6 +5,7 @@ import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { type CalendarLeaveType, type LeaveCalendarItem, getMonthRange, scheduleService } from '../services/schedule.service';
+import { type EmployeeListItem, staffService } from '../services/staff.service';
 import type { Region } from '../types/database';
 
 const leaveTypeLabels: Record<CalendarLeaveType, string> = {
@@ -23,6 +24,7 @@ export function SchedulePage() {
   const [regionId, setRegionId] = useState('');
   const [regions, setRegions] = useState<Region[]>([]);
   const [leaves, setLeaves] = useState<LeaveCalendarItem[]>([]);
+  const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [selectedLeaveTypes, setSelectedLeaveTypes] = useState<CalendarLeaveType[]>(leaveTypeOptions);
@@ -45,18 +47,18 @@ export function SchedulePage() {
     [monthRange.startDate, monthRange.endDate],
   );
   const employeeOptions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; regionCode: string | null }>();
     const currentDisplayName = getDisplayName(profile?.nickname, profile?.full_name);
+    const options = employees
+      .filter((employee) => !regionId || employee.region_id === regionId)
+      .map((employee) => ({
+        id: employee.id,
+        name: getDisplayName(employee.nickname, employee.full_name),
+        fullName: employee.full_name,
+        employeeCode: employee.employee_code,
+        regionCode: employee.region?.code ?? null,
+      }));
 
-    leaves.forEach((leave) => {
-      map.set(leave.employee_id, {
-        id: leave.employee_id,
-        name: leave.employee_name,
-        regionCode: leave.region_code,
-      });
-    });
-
-    return [...map.values()].sort((first, second) => {
+    return options.sort((first, second) => {
       const firstIsCurrent = currentDisplayName && first.name === currentDisplayName;
       const secondIsCurrent = currentDisplayName && second.name === currentDisplayName;
 
@@ -65,13 +67,13 @@ export function SchedulePage() {
 
       return first.name.localeCompare(second.name, 'zh-CN');
     });
-  }, [leaves, profile?.full_name, profile?.nickname]);
+  }, [employees, profile?.full_name, profile?.nickname, regionId]);
   const visibleEmployeeOptions = useMemo(() => {
     const keyword = employeeSearch.trim().toLowerCase();
     if (!keyword) return employeeOptions;
 
     return employeeOptions.filter((employee) =>
-      [employee.name, employee.regionCode].filter(Boolean).join(' ').toLowerCase().includes(keyword),
+      [employee.name, employee.fullName, employee.employeeCode, employee.regionCode].filter(Boolean).join(' ').toLowerCase().includes(keyword),
     );
   }, [employeeOptions, employeeSearch]);
   const activeEmployeeIds = selectedEmployeeIds.length > 0 ? selectedEmployeeIds : employeeOptions.map((employee) => employee.id);
@@ -113,12 +115,16 @@ export function SchedulePage() {
   }, [month, regionId]);
 
   usePullToRefresh(async () => {
-    await Promise.all([loadLeaveCalendar(), loadCancelPermission()]);
+    await Promise.all([loadLeaveCalendar(), loadEmployees(), loadCancelPermission()]);
   }, [month, regionId, profile?.id]);
 
   useEffect(() => {
     void loadCancelPermission();
   }, [profile?.id]);
+
+  useEffect(() => {
+    void loadEmployees();
+  }, []);
 
   useEffect(() => {
     if (selectedEmployeeIds.length === 0) return;
@@ -139,6 +145,15 @@ export function SchedulePage() {
       setError(`读取休假日历失败：${getErrorMessage(loadError)}`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadEmployees() {
+    try {
+      const staffList = await staffService.listEmployees();
+      setEmployees(staffList);
+    } catch (loadError) {
+      setError(`读取工作人员失败：${getErrorMessage(loadError)}`);
     }
   }
 
