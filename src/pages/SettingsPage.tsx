@@ -678,7 +678,7 @@ function PermissionManagementPanel() {
   }
 
   async function handleSavePermissions() {
-    if (!modalTarget || !isDirty) return;
+    if (!modalTarget || savingPermissions) return;
 
     setSavingPermissions(true);
     setError('');
@@ -730,6 +730,7 @@ function PermissionManagementPanel() {
         }),
       );
     } catch (saveError) {
+      console.error('保存权限设置失败', saveError);
       setError(saveError instanceof Error ? saveError.message : '保存权限设置失败。');
     } finally {
       setSavingPermissions(false);
@@ -929,7 +930,13 @@ function PermissionManagementPanel() {
               <button className="secondary-button compact-button" type="button" onClick={closePermissionModal}>
                 关闭
               </button>
-              <button className="primary-button compact-button" type="button" onClick={() => void handleSavePermissions()} disabled={savingPermissions || !isDirty}>
+              <button
+                className="primary-button compact-button"
+                type="button"
+                onClick={() => void handleSavePermissions()}
+                disabled={savingPermissions}
+                title={isDirty ? '保存权限模板' : '重新保存权限模板'}
+              >
                 {savingPermissions ? '保存中...' : '保存模板'}
               </button>
             </>
@@ -1146,7 +1153,13 @@ function buildPermissionItems(): PermissionItem[] {
 }
 
 function getPermissionGroupKey(item: (typeof menuItems)[number]) {
-  if (item.key === 'staff' || item.key === 'registration-review' || item.key === 'leave-review' || item.key === 'attendance-management') return 'hr';
+  if (
+    item.key === 'staff' ||
+    item.key === 'registration-review' ||
+    item.key === 'leave-review' ||
+    item.key === 'attendance-management' ||
+    item.key === 'public-holidays'
+  ) return 'hr';
   return item.key;
 }
 
