@@ -2614,6 +2614,12 @@ a {
   background: #ffffff;
 }
 
+.leave-calendar-day.weekend-day,
+.leave-calendar-day.weekend-day:has(.leave-calendar-list) {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
 .leave-calendar-day header {
   display: flex;
   align-items: center;
@@ -2681,6 +2687,11 @@ button.leave-chip:disabled {
 .leave-type-unpaid {
   color: #7a4d0b;
   background: #fff4dc;
+}
+
+.leave-type-public-holiday {
+  color: #b42318;
+  background: #fee4e2;
 }
 
 .leave-type-replacement {
