@@ -23,7 +23,16 @@ export type LeaveCalendarItem = {
 
 export type LeaveCalendarMonthData = {
   leaves: LeaveCalendarItem[];
+  publicHolidays: PublicHolidayCalendarItem[];
   regions: Region[];
+};
+
+export type PublicHolidayCalendarItem = {
+  id: string;
+  holiday_name: string;
+  holiday_date: string;
+  region_id: string | null;
+  note: string | null;
 };
 
 type LeaveCalendarRpcRow = Omit<LeaveCalendarItem, 'leave_type' | 'source_type' | 'source'> & {
@@ -34,13 +43,26 @@ export const scheduleService = {
   async getLeaveCalendar(month: string, regionId: string): Promise<LeaveCalendarMonthData> {
     const range = getMonthRange(month);
 
-    const [leavesResult, regionsResult] = await Promise.all([
+    let publicHolidaysQuery = supabase
+      .from('public_holidays')
+      .select('id, holiday_name, holiday_date, region_id, note')
+      .eq('is_active', true)
+      .gte('holiday_date', range.startDate)
+      .lte('holiday_date', range.endDate)
+      .order('holiday_date', { ascending: true });
+
+    if (regionId) {
+      publicHolidaysQuery = publicHolidaysQuery.or(`region_id.is.null,region_id.eq.${regionId}`);
+    }
+
+    const [leavesResult, regionsResult, publicHolidaysResult] = await Promise.all([
       supabase.rpc('get_leave_calendar', {
         month_start: range.startDate,
         month_end: range.endDate,
         region_filter: regionId || null,
       }),
       supabase.from('regions').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+      publicHolidaysQuery,
     ]);
 
     if (leavesResult.error) {
@@ -49,6 +71,10 @@ export const scheduleService = {
 
     if (regionsResult.error) {
       throw regionsResult.error;
+    }
+
+    if (publicHolidaysResult.error) {
+      throw publicHolidaysResult.error;
     }
 
     const approvedLeaves = ((leavesResult.data ?? []) as LeaveCalendarRpcRow[])
@@ -61,6 +87,7 @@ export const scheduleService = {
 
     return {
       leaves: dedupeLeaves(approvedLeaves),
+      publicHolidays: (publicHolidaysResult.data ?? []) as PublicHolidayCalendarItem[],
       regions: regionsResult.data ?? [],
     };
   },

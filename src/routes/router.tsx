@@ -10,6 +10,7 @@ import { AttendanceManagementPage } from '../pages/AttendanceManagementPage';
 import { LeavePage } from '../pages/LeavePage';
 import { LeaveReviewPage } from '../pages/LeaveReviewPage';
 import { RestPlanningPage } from '../pages/RestPlanningPage';
+import { PublicHolidayPage } from '../pages/PublicHolidayPage';
 import { ItineraryPage } from '../pages/ItineraryPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { SettingsPage } from '../pages/SettingsPage';
@@ -74,6 +75,14 @@ export const router = createBrowserRouter([
               <RequirePermission permissionKey="attendance-management">
                 <AttendanceManagementPage />
               </RequirePermission>
+            ),
+          },
+          {
+            path: getMenuPath('public-holidays'),
+            element: (
+              <RequireRole allowedRoles={['super_admin', 'admin', 'hr']}>
+                <PublicHolidayPage />
+              </RequireRole>
             ),
           },
           {

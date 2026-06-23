@@ -188,6 +188,19 @@ export type ScheduleEvent = {
   updated_at: string;
 };
 
+export type PublicHoliday = {
+  id: string;
+  holiday_name: string;
+  holiday_date: string;
+  region_id: string | null;
+  note: string | null;
+  is_active: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type TodoItem = {
   id: string;
   profile_id: string;
@@ -396,6 +409,35 @@ export type Database = {
           {
             foreignKeyName: 'schedule_events_profile_id_fkey';
             columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      public_holidays: {
+        Row: PublicHoliday;
+        Insert: Pick<PublicHoliday, 'holiday_name' | 'holiday_date'> &
+          Partial<Pick<PublicHoliday, 'id' | 'region_id' | 'note' | 'is_active' | 'created_by' | 'updated_by' | 'created_at' | 'updated_at'>>;
+        Update: Partial<Omit<PublicHoliday, 'id' | 'created_at' | 'updated_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'public_holidays_region_id_fkey';
+            columns: ['region_id'];
+            isOneToOne: false;
+            referencedRelation: 'regions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'public_holidays_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'public_holidays_updated_by_fkey';
+            columns: ['updated_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];

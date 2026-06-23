@@ -1520,6 +1520,17 @@ a {
   font-size: 12px;
 }
 
+.public-holiday-filters {
+  grid-template-columns: minmax(120px, 180px) minmax(160px, 220px) minmax(240px, 1fr);
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.public-holiday-search {
+  width: 100%;
+  align-self: end;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -1567,6 +1578,16 @@ a {
 
 .danger-text-button {
   color: #a63825;
+}
+
+.danger-action-button {
+  border-color: #dc2626;
+  background: #dc2626;
+}
+
+.muted-text {
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .table-state {
@@ -2687,6 +2708,11 @@ button.leave-chip:disabled {
 .leave-type-unpaid {
   color: #7a4d0b;
   background: #fff4dc;
+}
+
+.leave-type-public-holiday {
+  color: #b42318;
+  background: #fee4e2;
 }
 
 .leave-type-replacement {

@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  CalendarCheck2,
   CalendarDays,
   ClipboardCheck,
   Clock3,
@@ -110,6 +111,14 @@ export const menuItems: MenuItem[] = [
     label: '考勤',
     path: '/hr/attendance',
     icon: ClipboardCheck,
+    section: '工作工具',
+    group: '人事部',
+  },
+  {
+    key: 'public-holidays',
+    label: '公共假期',
+    path: '/hr/public-holidays',
+    icon: CalendarCheck2,
     section: '工作工具',
     group: '人事部',
   },

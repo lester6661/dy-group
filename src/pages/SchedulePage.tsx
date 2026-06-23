@@ -7,6 +7,7 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import {
   type CalendarLeaveType,
   type LeaveCalendarItem,
+  type PublicHolidayCalendarItem,
   getMonthRange,
   scheduleService,
 } from '../services/schedule.service';
@@ -23,6 +24,7 @@ const cancellationReasons = ['人员取消申请', '录入错误', '重复申请
 const leaveTypeOptions = Object.keys(leaveTypeLabels) as CalendarLeaveType[];
 
 type CalendarDayItem =
+  { type: 'public-holiday'; holiday: PublicHolidayCalendarItem } |
   { type: 'leave'; leave: LeaveCalendarItem };
 
 export function SchedulePage() {
@@ -31,6 +33,7 @@ export function SchedulePage() {
   const [regionId, setRegionId] = useState('');
   const [regions, setRegions] = useState<Region[]>([]);
   const [leaves, setLeaves] = useState<LeaveCalendarItem[]>([]);
+  const [publicHolidays, setPublicHolidays] = useState<PublicHolidayCalendarItem[]>([]);
   const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [employeeSearch, setEmployeeSearch] = useState('');
@@ -115,7 +118,19 @@ export function SchedulePage() {
 
     return map;
   }, [filteredLeaves]);
-  const selectedDayItems = selectedDay ? getCalendarDayItems(leavesByDate, selectedDay) : [];
+  const publicHolidaysByDate = useMemo(() => {
+    const map = new Map<string, PublicHolidayCalendarItem[]>();
+
+    publicHolidays.forEach((holiday) => {
+      const current = map.get(holiday.holiday_date) ?? [];
+      current.push(holiday);
+      current.sort((a, b) => a.holiday_name.localeCompare(b.holiday_name, 'zh-CN'));
+      map.set(holiday.holiday_date, current);
+    });
+
+    return map;
+  }, [publicHolidays]);
+  const selectedDayItems = selectedDay ? getCalendarDayItems(publicHolidaysByDate, leavesByDate, selectedDay) : [];
 
   useEffect(() => {
     void loadLeaveCalendar();
@@ -147,6 +162,7 @@ export function SchedulePage() {
     try {
       const data = await scheduleService.getLeaveCalendar(month, regionId);
       setLeaves(data.leaves);
+      setPublicHolidays(data.publicHolidays);
       setRegions(data.regions);
     } catch (loadError) {
       setError(`读取休假日历失败：${getErrorMessage(loadError)}`);
@@ -272,6 +288,7 @@ export function SchedulePage() {
         </div>
 
         <div className="leave-calendar-legend" aria-label="假期类型颜色">
+          <span className="leave-chip leave-type-public-holiday">公共假期（PH）</span>
           {leaveTypeOptions.map((type) => (
             <span className={`leave-chip leave-type-${type}`} key={type}>
               {leaveTypeLabels[type]}
@@ -290,7 +307,7 @@ export function SchedulePage() {
                 return <div className="leave-calendar-empty" key={`empty-${index}`} />;
               }
 
-              const dayItems = getCalendarDayItems(leavesByDate, date);
+              const dayItems = getCalendarDayItems(publicHolidaysByDate, leavesByDate, date);
               const visibleItems = dayItems.slice(0, 3);
               const hiddenCount = Math.max(dayItems.length - visibleItems.length, 0);
               const weekend = isWeekend(date);
@@ -307,14 +324,20 @@ export function SchedulePage() {
                   ) : (
                     <div className="leave-calendar-list">
                       {visibleItems.map((item) =>
-                        <button
-                          type="button"
-                          className={`leave-chip leave-type-${item.leave.leave_type}`}
-                          key={`${item.leave.leave_request_id}:${item.leave.leave_date}:${item.leave.employee_id}`}
-                          onClick={() => setSelectedLeave(item.leave)}
-                        >
-                          {item.leave.employee_name}（{leaveTypeLabels[item.leave.leave_type]}）
-                        </button>,
+                        item.type === 'public-holiday' ? (
+                          <span className="leave-chip leave-type-public-holiday" key={`holiday:${item.holiday.id}`}>
+                            {item.holiday.holiday_name}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className={`leave-chip leave-type-${item.leave.leave_type}`}
+                            key={`${item.leave.leave_request_id}:${item.leave.leave_date}:${item.leave.employee_id}`}
+                            onClick={() => setSelectedLeave(item.leave)}
+                          >
+                            {item.leave.employee_name}（{leaveTypeLabels[item.leave.leave_type]}）
+                          </button>
+                        ),
                       )}
                       {hiddenCount > 0 ? (
                         <button type="button" className="leave-more-button" onClick={() => setSelectedDay(date)}>
@@ -383,18 +406,25 @@ export function SchedulePage() {
         >
           <div className="leave-day-list">
             {selectedDayItems.map((item) =>
-              <button
-                type="button"
-                className="leave-day-row"
-                key={`${item.leave.leave_request_id}:${item.leave.leave_date}:${item.leave.employee_id}`}
-                onClick={() => {
-                  setSelectedDay(null);
-                  setSelectedLeave(item.leave);
-                }}
-              >
-                <strong>{item.leave.employee_name}</strong>
-                <span className={`leave-chip leave-type-${item.leave.leave_type}`}>{leaveTypeLabels[item.leave.leave_type]}</span>
-              </button>,
+              item.type === 'public-holiday' ? (
+                <div className="leave-day-row" key={`holiday:${item.holiday.id}`}>
+                  <strong>{item.holiday.holiday_name}</strong>
+                  <span className="leave-chip leave-type-public-holiday">PH</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="leave-day-row"
+                  key={`${item.leave.leave_request_id}:${item.leave.leave_date}:${item.leave.employee_id}`}
+                  onClick={() => {
+                    setSelectedDay(null);
+                    setSelectedLeave(item.leave);
+                  }}
+                >
+                  <strong>{item.leave.employee_name}</strong>
+                  <span className={`leave-chip leave-type-${item.leave.leave_type}`}>{leaveTypeLabels[item.leave.leave_type]}</span>
+                </button>
+              ),
             )}
           </div>
         </SystemModal>
@@ -541,11 +571,21 @@ function formatDateLabel(date: string) {
   }).format(value);
 }
 
-function getCalendarDayItems(leavesByDate: Map<string, LeaveCalendarItem[]>, date: string): CalendarDayItem[] {
-  return (leavesByDate.get(date) ?? []).map((leave) => ({
+function getCalendarDayItems(
+  publicHolidaysByDate: Map<string, PublicHolidayCalendarItem[]>,
+  leavesByDate: Map<string, LeaveCalendarItem[]>,
+  date: string,
+): CalendarDayItem[] {
+  const holidays = (publicHolidaysByDate.get(date) ?? []).map((holiday) => ({
+    type: 'public-holiday' as const,
+    holiday,
+  }));
+  const leaveItems = (leavesByDate.get(date) ?? []).map((leave) => ({
     type: 'leave' as const,
     leave,
   }));
+
+  return [...holidays, ...leaveItems];
 }
 
 function isWeekend(date: string) {
