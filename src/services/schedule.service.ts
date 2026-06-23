@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { LeaveType, Region } from '../types/database';
 
-export type CalendarLeaveType = 'annual' | 'medical' | 'unpaid' | 'rest';
+export type CalendarLeaveType = LeaveType;
 
 export type LeaveCalendarItem = {
   leave_request_id: string;
@@ -11,7 +11,7 @@ export type LeaveCalendarItem = {
   region_id: string | null;
   region_code: string | null;
   leave_type: CalendarLeaveType;
-  source_type: LeaveType | 'rest';
+  source_type: LeaveType;
   start_date: string;
   end_date: string;
   leave_date: string;
@@ -30,46 +30,14 @@ type LeaveCalendarRpcRow = Omit<LeaveCalendarItem, 'leave_type' | 'source_type' 
   leave_type: LeaveType;
 };
 
-type RestDayRpcRow = {
-  rest_day_id: string;
-  employee_id: string;
-  profile_id: string;
-  employee_name: string;
-  employee_code: string | null;
-  region_id: string | null;
-  region_code: string | null;
-  rest_date: string;
-  source: 'manual' | 'auto';
-  status: 'confirmed' | 'cancelled';
-};
-
 export const scheduleService = {
   async getLeaveCalendar(month: string, regionId: string): Promise<LeaveCalendarMonthData> {
     const range = getMonthRange(month);
 
-    const previousCycle = getPreviousCycle(parseCycle(month));
-    const currentCycle = parseCycle(month);
-    const nextCycle = getNextCycle(currentCycle);
-
-    const [leavesResult, previousRestResult, restResult, nextRestResult, regionsResult] = await Promise.all([
+    const [leavesResult, regionsResult] = await Promise.all([
       supabase.rpc('get_leave_calendar', {
         month_start: range.startDate,
         month_end: range.endDate,
-        region_filter: regionId || null,
-      }),
-      supabase.rpc('get_rest_day_calendar', {
-        cycle_year: previousCycle.year,
-        cycle_month: previousCycle.month,
-        region_filter: regionId || null,
-      }),
-      supabase.rpc('get_rest_day_calendar', {
-        cycle_year: currentCycle.year,
-        cycle_month: currentCycle.month,
-        region_filter: regionId || null,
-      }),
-      supabase.rpc('get_rest_day_calendar', {
-        cycle_year: nextCycle.year,
-        cycle_month: nextCycle.month,
         region_filter: regionId || null,
       }),
       supabase.from('regions').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
@@ -79,53 +47,18 @@ export const scheduleService = {
       throw leavesResult.error;
     }
 
-    if (previousRestResult.error) {
-      throw previousRestResult.error;
-    }
-
-    if (restResult.error) {
-      throw restResult.error;
-    }
-
-    if (nextRestResult.error) {
-      throw nextRestResult.error;
-    }
-
     if (regionsResult.error) {
       throw regionsResult.error;
     }
 
     const approvedLeaves = ((leavesResult.data ?? []) as LeaveCalendarRpcRow[]).map((leave) => ({
       ...leave,
-      leave_type: mapCalendarLeaveType(leave.leave_type),
+      leave_type: leave.leave_type,
       source_type: leave.leave_type,
     }));
-    const restLeaves = [
-      ...((previousRestResult.data ?? []) as RestDayRpcRow[]),
-      ...((restResult.data ?? []) as RestDayRpcRow[]),
-      ...((nextRestResult.data ?? []) as RestDayRpcRow[]),
-    ]
-      .filter((restDay) => restDay.rest_date >= range.startDate && restDay.rest_date <= range.endDate)
-      .map((restDay) => ({
-        leave_request_id: restDay.rest_day_id,
-        employee_id: restDay.employee_id,
-        employee_name: restDay.employee_name,
-        employee_code: restDay.employee_code,
-        region_id: restDay.region_id,
-        region_code: restDay.region_code,
-        leave_type: 'rest' as const,
-        source_type: 'rest' as const,
-        start_date: restDay.rest_date,
-        end_date: restDay.rest_date,
-        leave_date: restDay.rest_date,
-        applicant_name: restDay.employee_name,
-        reviewer_name: null,
-        reviewed_at: null,
-        source: restDay.source,
-      }));
 
     return {
-      leaves: dedupeLeaves([...approvedLeaves, ...restLeaves]),
+      leaves: dedupeLeaves(approvedLeaves),
       regions: regionsResult.data ?? [],
     };
   },
@@ -157,45 +90,13 @@ export function getMonthRange(month: string) {
   const [yearText, monthText] = month.split('-');
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
-  const start = new Date(year, monthIndex - 1, 26);
-  const end = new Date(year, monthIndex, 25);
+  const start = new Date(year, monthIndex, 1);
+  const end = new Date(year, monthIndex + 1, 0);
 
   return {
     startDate: toDateKey(start),
     endDate: toDateKey(end),
   };
-}
-
-function parseCycle(month: string) {
-  const [yearText, monthText] = month.split('-');
-  return {
-    year: Number(yearText),
-    month: Number(monthText),
-  };
-}
-
-function getNextCycle(cycle: { year: number; month: number }) {
-  if (cycle.month === 12) {
-    return { year: cycle.year + 1, month: 1 };
-  }
-
-  return { year: cycle.year, month: cycle.month + 1 };
-}
-
-function getPreviousCycle(cycle: { year: number; month: number }) {
-  if (cycle.month === 1) {
-    return { year: cycle.year - 1, month: 12 };
-  }
-
-  return { year: cycle.year, month: cycle.month - 1 };
-}
-
-function mapCalendarLeaveType(type: LeaveType): CalendarLeaveType {
-  if (type === 'replacement') {
-    return 'rest';
-  }
-
-  return type;
 }
 
 function dedupeLeaves(leaves: LeaveCalendarItem[]) {

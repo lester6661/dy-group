@@ -32,7 +32,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: 'schedule',
-    label: '班表',
+    label: '休假日历',
     path: '/schedule',
     icon: CalendarDays,
   },
@@ -44,7 +44,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: 'leave',
-    label: '请假&休假',
+    label: '请假',
     path: '/leave',
     icon: FileClock,
   },

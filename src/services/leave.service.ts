@@ -17,6 +17,11 @@ export type LeaveRequestItem = LeaveRequest & {
 
 export type LeaveStats = Record<LeaveRequestStatus | 'total', number>;
 
+export type LeaveBalance = {
+  annualRemaining: number;
+  medicalRemaining: number;
+};
+
 export type RestDayCalendarItem = {
   rest_day_id: string;
   employee_id: string;
@@ -74,6 +79,10 @@ export const leaveService = {
   },
 
   async createLeaveRequest(profileId: string, values: LeaveFormValues) {
+    if (values.leave_type === 'replacement') {
+      throw new Error('换休假已停用，不能提交新的换休申请。');
+    }
+
     const employee = await findEmployeeByProfileId(profileId);
     const { error } = await supabase.from('leave_requests').insert({
       profile_id: profileId,
@@ -145,6 +154,32 @@ export const leaveService = {
     return (data ?? []) as RestDayCalendarItem[];
   },
 
+  async getMyLeaveBalances(profileId: string, requests?: LeaveRequestItem[]): Promise<LeaveBalance> {
+    const employee = await findEmployeeByProfileId(profileId);
+    const entitlement = calculateLeaveEntitlement(employee);
+    const approvedRequests = requests ?? (await this.listMyLeaveRequests(profileId));
+    const currentYear = new Date().getFullYear();
+
+    const used = approvedRequests.reduce(
+      (total, request) => {
+        if (request.status !== 'approved') return total;
+        if (request.leave_type !== 'annual' && request.leave_type !== 'medical') return total;
+
+        const days = countLeaveDaysInYear(request.start_date, request.end_date, currentYear);
+        return {
+          ...total,
+          [request.leave_type]: total[request.leave_type] + days,
+        };
+      },
+      { annual: 0, medical: 0 },
+    );
+
+    return {
+      annualRemaining: Math.max(0, entitlement.annual - used.annual),
+      medicalRemaining: Math.max(0, entitlement.medical - used.medical),
+    };
+  },
+
   async saveMyRestDays(cycleYear: number, cycleMonth: number, restDates: string[]) {
     const normalizedRestDates = [...new Set(restDates.map(toDateKey))].sort();
 
@@ -206,7 +241,7 @@ export function getLeaveStats(requests: LeaveRequestItem[]): LeaveStats {
 async function findEmployeeByProfileId(profileId: string) {
   const { data, error } = await supabase
     .from('employees')
-    .select('id')
+    .select('id, status, hire_date, probation_confirm_date')
     .eq('profile_id', profileId)
     .is('deleted_at', null)
     .maybeSingle();
@@ -216,6 +251,65 @@ async function findEmployeeByProfileId(profileId: string) {
   }
 
   return data;
+}
+
+function calculateLeaveEntitlement(employee: Pick<Employee, 'status' | 'probation_confirm_date'> | null): {
+  annual: number;
+  medical: number;
+} {
+  if (!employee || employee.status !== 'active' || !employee.probation_confirm_date) {
+    return { annual: 0, medical: 0 };
+  }
+
+  const today = new Date();
+  const confirmDate = new Date(`${employee.probation_confirm_date}T00:00:00`);
+
+  if (Number.isNaN(confirmDate.getTime()) || confirmDate > today) {
+    return { annual: 0, medical: 0 };
+  }
+
+  const years = getCompletedYears(confirmDate, today);
+
+  if (years < 2) {
+    return { annual: 8, medical: 14 };
+  }
+
+  if (years < 5) {
+    return { annual: 12, medical: 14 };
+  }
+
+  return {
+    annual: Math.min(20, 16 + Math.max(0, years - 5)),
+    medical: 14,
+  };
+}
+
+function getCompletedYears(startDate: Date, endDate: Date) {
+  let years = endDate.getFullYear() - startDate.getFullYear();
+  const anniversary = new Date(endDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+
+  if (endDate < anniversary) {
+    years -= 1;
+  }
+
+  return Math.max(0, years);
+}
+
+function countLeaveDaysInYear(startDate: string, endDate: string, year: number) {
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < yearStart || start > yearEnd) {
+    return 0;
+  }
+
+  const effectiveStart = start < yearStart ? yearStart : start;
+  const effectiveEnd = end > yearEnd ? yearEnd : end;
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+  return Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / millisecondsPerDay) + 1;
 }
 
 function mapLeaveRequestRow(row: LeaveRequestRowWithEmployee): LeaveRequestItem {

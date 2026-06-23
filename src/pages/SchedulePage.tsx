@@ -12,7 +12,7 @@ const leaveTypeLabels: Record<CalendarLeaveType, string> = {
   annual: '年假',
   medical: '病假',
   unpaid: '无薪假',
-  rest: '休假',
+  replacement: '换休假',
 };
 
 const cancellationReasons = ['人员取消申请', '录入错误', '重复申请', 'HR调整', '其他'] as const;
@@ -487,10 +487,7 @@ function DetailGrid({ items }: { items: Array<[string, string | null | undefined
 
 function getCurrentRestCycle() {
   const now = new Date();
-  const target =
-    now.getDate() < 26 ? new Date(now.getFullYear(), now.getMonth(), 1) : new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-  return `${target.getFullYear()}-${`${target.getMonth() + 1}`.padStart(2, '0')}`;
+  return `${now.getFullYear()}-${`${now.getMonth() + 1}`.padStart(2, '0')}`;
 }
 
 function getCalendarCells(startDate: string, endDate: string) {

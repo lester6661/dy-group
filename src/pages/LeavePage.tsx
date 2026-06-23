@@ -7,9 +7,9 @@ import { SystemModal } from '../components/SystemModal';
 import { useAuth } from '../hooks/useAuth';
 import {
   type LeaveFormValues,
+  type LeaveBalance,
   type LeaveRequestItem,
   type RestDayCalendarItem,
-  getLeaveStats,
   leaveService,
 } from '../services/leave.service';
 import type { LeaveRequestStatus, LeaveType } from '../types/database';
@@ -38,11 +38,9 @@ const emptyForm: LeaveFormValues = {
 export function LeavePage() {
   const { profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeView, setActiveView] = useState<'leave' | 'rest'>(() => {
-    const tab = searchParams.get('tab') ?? localStorage.getItem('leaveActiveTab');
-    return tab === 'rest' ? 'rest' : 'leave';
-  });
+  const [activeView] = useState<'leave' | 'rest'>('leave');
   const [requests, setRequests] = useState<LeaveRequestItem[]>([]);
+  const [balances, setBalances] = useState<LeaveBalance>({ annualRemaining: 0, medicalRemaining: 0 });
   const [restDays, setRestDays] = useState<RestDayCalendarItem[]>([]);
   const [restCycle, setRestCycle] = useState(getCurrentRestCycle());
   const [selectedRestDates, setSelectedRestDates] = useState<string[]>([]);
@@ -54,7 +52,6 @@ export function LeavePage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const stats = useMemo(() => getLeaveStats(requests), [requests]);
   const restCycleRange = useMemo(() => getRestCycleRange(restCycle), [restCycle]);
   const restCalendarCells = useMemo(
     () => getCalendarCells(restCycleRange.startDate, restCycleRange.endDate),
@@ -85,25 +82,17 @@ export function LeavePage() {
     }
   }, [profile?.id]);
 
-  useEffect(() => {
-    void loadRestDays();
-  }, [profile?.id, restCycle]);
-
   usePullToRefresh(async () => {
     if (profile?.id) {
       await loadLeaveRequests(profile.id);
     }
-
-    await loadRestDays();
   }, [profile?.id, restCycle]);
 
   useEffect(() => {
-    localStorage.setItem('leaveActiveTab', activeView);
-
-    if ((searchParams.get('tab') ?? 'leave') !== activeView) {
-      setSearchParams(activeView === 'rest' ? { tab: 'rest' } : {}, { replace: true });
+    if (searchParams.get('tab')) {
+      setSearchParams({}, { replace: true });
     }
-  }, [activeView, searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams]);
 
   async function loadLeaveRequests(profileId = profile?.id) {
     if (!profileId) {
@@ -116,6 +105,7 @@ export function LeavePage() {
     try {
       const leaveRequests = await leaveService.listMyLeaveRequests(profileId);
       setRequests(leaveRequests);
+      setBalances(await leaveService.getMyLeaveBalances(profileId, leaveRequests));
     } catch (loadError) {
       setError(`读取请假记录失败：${getErrorMessage(loadError)}`);
     } finally {
@@ -283,21 +273,15 @@ export function LeavePage() {
   return (
     <section className="leave-page">
       <div className="view-tabs-row">
-        <div className="view-tabs">
-          <button className={activeView === 'leave' ? 'active' : ''} type="button" onClick={() => setActiveView('leave')}>
-            请假申请
-          </button>
-          <button className={activeView === 'rest' ? 'active' : ''} type="button" onClick={() => setActiveView('rest')}>
-            排休
-          </button>
+        <div className="page-heading">
+          <span>Leave</span>
+          <h2>请假</h2>
         </div>
 
-        {activeView === 'leave' ? (
-          <button className="secondary-action" type="button" onClick={() => setShowLeaveModal(true)}>
-            <Plus size={17} />
-            <span>提交申请</span>
-          </button>
-        ) : null}
+        <button className="secondary-action" type="button" onClick={() => setShowLeaveModal(true)}>
+          <Plus size={17} />
+          <span>提交申请</span>
+        </button>
       </div>
 
       {activeView === 'rest' ? (
@@ -324,10 +308,8 @@ export function LeavePage() {
           {message ? <p className="form-success">{message}</p> : null}
 
           <div className="leave-stats-grid">
-            <StatCard label="申请" value={stats.total} />
-            <StatCard label="审核" value={stats.pending} />
-            <StatCard label="通过" value={stats.approved} />
-            <StatCard label="拒绝" value={stats.rejected} />
+            <BalanceCard label="年假" days={balances.annualRemaining} />
+            <BalanceCard label="病假" days={balances.medicalRemaining} />
           </div>
 
           <div className="staff-list-panel">
@@ -376,6 +358,16 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function BalanceCard({ label, days }: { label: string; days: number }) {
+  return (
+    <div className="leave-stat-card">
+      <CalendarCheck2 size={20} />
+      <span>{label}</span>
+      <strong>剩余 {days} 天</strong>
+    </div>
+  );
+}
+
 type LeaveRequestModalProps = {
   values: LeaveFormValues;
   saving: boolean;
@@ -400,7 +392,6 @@ function LeaveRequestModal({
   uploadingAttachment,
 }: LeaveRequestModalProps) {
   const isMedical = values.leave_type === 'medical';
-  const isReplacement = values.leave_type === 'replacement';
 
   return (
     <SystemModal
@@ -438,12 +429,11 @@ function LeaveRequestModal({
                 <option value="annual">年假</option>
                 <option value="medical">病假</option>
                 <option value="unpaid">无薪假</option>
-                <option value="replacement">换休假</option>
               </select>
             </label>
 
             <label className="form-field">
-              <span>{isReplacement ? '原本休假日' : '开始日期'}</span>
+              <span>开始日期</span>
               <input
                 type="date"
                 value={values.start_date}
@@ -453,7 +443,7 @@ function LeaveRequestModal({
             </label>
 
             <label className="form-field">
-              <span>{isReplacement ? '换去日期' : '结束日期'}</span>
+              <span>结束日期</span>
               <input
                 type="date"
                 value={values.end_date}
