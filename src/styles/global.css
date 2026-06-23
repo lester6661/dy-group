@@ -2689,11 +2689,6 @@ button.leave-chip:disabled {
   background: #fff4dc;
 }
 
-.leave-type-public-holiday {
-  color: #b42318;
-  background: #fee4e2;
-}
-
 .leave-type-replacement {
   color: #6d28d9;
   background: #f1e8ff;
