@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Employee, LeaveRequest, LeaveRequestStatus, LeaveType } from '../types/database';
+import type { Employee, LeaveRequest, LeaveRequestStatus, LeaveType, PublicHoliday } from '../types/database';
 
 export type LeaveFormValues = {
   leave_type: LeaveType;
@@ -12,7 +12,7 @@ export type LeaveFormValues = {
 const MEDICAL_BUCKET = 'leave-medical-attachments';
 
 export type LeaveRequestItem = LeaveRequest & {
-  employee: Pick<Employee, 'id' | 'full_name' | 'phone' | 'employee_code'> | null;
+  employee: Pick<Employee, 'id' | 'full_name' | 'phone' | 'employee_code' | 'region_id'> | null;
 };
 
 export type LeaveStats = Record<LeaveRequestStatus | 'total', number>;
@@ -36,7 +36,7 @@ export type RestDayCalendarItem = {
 };
 
 type LeaveRequestRowWithEmployee = LeaveRequest & {
-  employees: Pick<Employee, 'id' | 'full_name' | 'phone' | 'employee_code'> | null;
+  employees: Pick<Employee, 'id' | 'full_name' | 'phone' | 'employee_code' | 'region_id'> | null;
 };
 
 export const leaveService = {
@@ -46,7 +46,7 @@ export const leaveService = {
       .select(
         `
         *,
-        employees:employee_id(id, full_name, phone, employee_code)
+        employees:employee_id(id, full_name, phone, employee_code, region_id)
       `,
       )
       .eq('profile_id', profileId)
@@ -65,7 +65,7 @@ export const leaveService = {
       .select(
         `
         *,
-        employees:employee_id(id, full_name, phone, employee_code)
+        employees:employee_id(id, full_name, phone, employee_code, region_id)
       `,
       )
       .eq('status', 'pending')
@@ -84,6 +84,13 @@ export const leaveService = {
     }
 
     const employee = await findEmployeeByProfileId(profileId);
+    const publicHolidays = await listPublicHolidaysForRange(values.start_date, values.end_date, employee?.region_id ?? null);
+    const workingDays = countWorkingLeaveDays(values.start_date, values.end_date, employee?.region_id ?? null, publicHolidays);
+
+    if (workingDays <= 0) {
+      throw new Error('请假日期范围内没有需要扣假的工作日。');
+    }
+
     const { error } = await supabase.from('leave_requests').insert({
       profile_id: profileId,
       employee_id: employee?.id ?? null,
@@ -159,13 +166,20 @@ export const leaveService = {
     const entitlement = calculateLeaveEntitlement(employee);
     const approvedRequests = requests ?? (await this.listMyLeaveRequests(profileId));
     const currentYear = new Date().getFullYear();
+    const publicHolidaysByYear = await listPublicHolidaysForYear(currentYear, employee?.region_id ?? null);
 
     const used = approvedRequests.reduce(
       (total, request) => {
         if (request.status !== 'approved') return total;
         if (request.leave_type !== 'annual' && request.leave_type !== 'medical') return total;
 
-        const days = countLeaveDaysInYear(request.start_date, request.end_date, currentYear);
+        const days = countLeaveWorkingDaysInYear(
+          request.start_date,
+          request.end_date,
+          currentYear,
+          request.employee?.region_id ?? employee?.region_id ?? null,
+          publicHolidaysByYear,
+        );
         return {
           ...total,
           [request.leave_type]: total[request.leave_type] + days,
@@ -241,7 +255,7 @@ export function getLeaveStats(requests: LeaveRequestItem[]): LeaveStats {
 async function findEmployeeByProfileId(profileId: string) {
   const { data, error } = await supabase
     .from('employees')
-    .select('id, status, hire_date, probation_confirm_date')
+    .select('id, status, hire_date, probation_confirm_date, region_id')
     .eq('profile_id', profileId)
     .is('deleted_at', null)
     .maybeSingle();
@@ -295,7 +309,36 @@ function getCompletedYears(startDate: Date, endDate: Date) {
   return Math.max(0, years);
 }
 
-function countLeaveDaysInYear(startDate: string, endDate: string, year: number) {
+async function listPublicHolidaysForYear(year: number, regionId: string | null) {
+  return listPublicHolidaysForRange(`${year}-01-01`, `${year}-12-31`, regionId);
+}
+
+async function listPublicHolidaysForRange(startDate: string, endDate: string, regionId: string | null) {
+  let query = supabase
+    .from('public_holidays')
+    .select('id, holiday_name, holiday_date, region_id, note, is_active, created_by, updated_by, created_at, updated_at')
+    .eq('is_active', true)
+    .gte('holiday_date', startDate)
+    .lte('holiday_date', endDate);
+
+  query = regionId ? query.or(`region_id.is.null,region_id.eq.${regionId}`) : query.is('region_id', null);
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as PublicHoliday[];
+}
+
+function countLeaveWorkingDaysInYear(
+  startDate: string,
+  endDate: string,
+  year: number,
+  regionId: string | null,
+  publicHolidays: PublicHoliday[],
+) {
   const start = new Date(`${startDate}T00:00:00`);
   const end = new Date(`${endDate}T00:00:00`);
   const yearStart = new Date(year, 0, 1);
@@ -307,9 +350,41 @@ function countLeaveDaysInYear(startDate: string, endDate: string, year: number) 
 
   const effectiveStart = start < yearStart ? yearStart : start;
   const effectiveEnd = end > yearEnd ? yearEnd : end;
-  const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
-  return Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / millisecondsPerDay) + 1;
+  return countWorkingLeaveDays(toDateKeyFromDate(effectiveStart), toDateKeyFromDate(effectiveEnd), regionId, publicHolidays);
+}
+
+function countWorkingLeaveDays(startDate: string, endDate: string, regionId: string | null, publicHolidays: PublicHoliday[]) {
+  const holidayDates = new Set(
+    publicHolidays
+      .filter((holiday) => !holiday.region_id || holiday.region_id === regionId)
+      .map((holiday) => holiday.holiday_date),
+  );
+  let count = 0;
+  const current = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+
+  while (current <= end) {
+    const dateKey = toDateKeyFromDate(current);
+    if (!isWeekend(dateKey) && !holidayDates.has(dateKey)) {
+      count += 1;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  return count;
+}
+
+function isWeekend(date: string) {
+  const day = new Date(`${date}T00:00:00`).getDay();
+  return day === 0 || day === 6;
+}
+
+function toDateKeyFromDate(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function mapLeaveRequestRow(row: LeaveRequestRowWithEmployee): LeaveRequestItem {

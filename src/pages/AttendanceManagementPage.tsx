@@ -11,7 +11,7 @@ import {
   attendanceManagementService,
   getAttendancePeriodRange,
 } from '../services/attendanceManagement.service';
-import type { AttendanceRecord, LeaveRequest, LeaveType, Region } from '../types/database';
+import type { AttendanceRecord, LeaveRequest, LeaveType, PublicHoliday, Region } from '../types/database';
 
 type DailyRecord = {
   date: string;
@@ -92,6 +92,7 @@ export function AttendanceManagementPage() {
           data.attendanceRecords,
           data.leaveRequests,
           data.restDays,
+          data.publicHolidays,
           data.range.startDate,
           data.range.endDate,
         ),
@@ -465,6 +466,7 @@ function buildSummaries(
   attendanceRecords: AttendanceRecord[],
   leaveRequests: LeaveRequest[],
   restDays: AttendanceRestDay[],
+  publicHolidays: PublicHoliday[],
   startDate: string,
   endDate: string,
 ) {
@@ -473,6 +475,7 @@ function buildSummaries(
   const recordsByEmployeeDate = groupAttendanceRecords(attendanceRecords);
   const leavesByEmployeeDate = groupLeaveRequests(leaveRequests, dates);
   const restDaysByEmployeeDate = groupRestDays(restDays);
+  const publicHolidaysByRegionDate = groupPublicHolidays(publicHolidays);
 
   return employees.map((employee) => {
     const leaveCounts: Record<LeaveType, number> = {
@@ -501,12 +504,20 @@ function buildSummaries(
       const clockOut = [...records].reverse().find((record) => record.punch_type === 'clock_out') ?? null;
       const leave = leavesByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
       const restDay = restDaysByEmployeeDate.get(`${employee.id}:${date}`) ?? null;
+      const publicHoliday = getPublicHolidayForDate(publicHolidaysByRegionDate, employee.region_id, date);
       const breakMinutes = breakStart && breakEnd ? minutesBetween(breakStart.punched_at, breakEnd.punched_at) : 0;
       const workHours = clockIn && clockOut ? minutesBetween(clockIn.punched_at, clockOut.punched_at) / 60 : null;
       const statuses: string[] = [];
       const isPastOrToday = date <= today;
+      const nonWorkingDay = isWeekend(date) || Boolean(publicHoliday);
 
-      if (leave?.status === 'approved') {
+      if (publicHoliday) {
+        statuses.push('公共假期');
+      } else if (isWeekend(date)) {
+        statuses.push('周末');
+      }
+
+      if (!nonWorkingDay && leave?.status === 'approved') {
         statuses.push(`${leaveTypeLabels[leave.leave_type]}已通过`);
         leaveCounts[leave.leave_type] += 1;
       }
@@ -515,40 +526,42 @@ function buildSummaries(
         statuses.push('排休');
       }
 
-      if (employee.require_attendance && !leave && !restDay && isPastOrToday && !clockIn) {
+      if (employee.require_attendance && !nonWorkingDay && !leave && !restDay && isPastOrToday && !clockIn) {
         statuses.push('旷工');
         absentCount += 1;
       }
 
-      if (employee.require_attendance && !restDay && clockIn && employee.start_work_time && isAfterWorkTime(clockIn.punched_at, employee.start_work_time)) {
+      if (employee.require_attendance && !nonWorkingDay && !restDay && clockIn && employee.start_work_time && isAfterWorkTime(clockIn.punched_at, employee.start_work_time)) {
         statuses.push('迟到');
         lateCount += 1;
         abnormalPunchCount += 1;
         abnormalRecords.push(toAbnormal(clockIn, employee, '异常时间打卡'));
       }
 
-      if (employee.require_attendance && !restDay && clockOut && employee.end_work_time && isBeforeWorkTime(clockOut.punched_at, employee.end_work_time)) {
+      if (employee.require_attendance && !nonWorkingDay && !restDay && clockOut && employee.end_work_time && isBeforeWorkTime(clockOut.punched_at, employee.end_work_time)) {
         statuses.push('早退');
         earlyLeaveCount += 1;
         abnormalPunchCount += 1;
         abnormalRecords.push(toAbnormal(clockOut, employee, '异常时间打卡'));
       }
 
-      if (employee.require_attendance && breakMinutes > 60 && breakEnd) {
+      if (employee.require_attendance && !nonWorkingDay && breakMinutes > 60 && breakEnd) {
         statuses.push('超时休息');
         overtimeBreakCount += 1;
         abnormalPunchCount += 1;
         abnormalRecords.push(toAbnormal(breakEnd, employee, '超时休息'));
       }
 
-      records.forEach((record) => {
-        const abnormalTypes = getDeviceAbnormalTypes(record, expectedIp, expectedGps, expectedDevice);
+      if (!nonWorkingDay) {
+        records.forEach((record) => {
+          const abnormalTypes = getDeviceAbnormalTypes(record, expectedIp, expectedGps, expectedDevice);
 
-        abnormalTypes.forEach((type) => {
-          abnormalPunchCount += 1;
-          abnormalRecords.push(toAbnormal(record, employee, type));
+          abnormalTypes.forEach((type) => {
+            abnormalPunchCount += 1;
+            abnormalRecords.push(toAbnormal(record, employee, type));
+          });
         });
-      });
+      }
 
       if (!statuses.length && (clockIn || clockOut)) {
         statuses.push('正常');
@@ -627,6 +640,24 @@ function groupLeaveRequests(requests: LeaveRequest[], dates: string[]) {
   return map;
 }
 
+function groupPublicHolidays(publicHolidays: PublicHoliday[]) {
+  const map = new Map<string, PublicHoliday>();
+
+  publicHolidays.forEach((holiday) => {
+    map.set(`${holiday.region_id ?? 'all'}:${holiday.holiday_date}`, holiday);
+  });
+
+  return map;
+}
+
+function getPublicHolidayForDate(
+  publicHolidaysByRegionDate: Map<string, PublicHoliday>,
+  regionId: string | null,
+  date: string,
+) {
+  return publicHolidaysByRegionDate.get(`all:${date}`) ?? (regionId ? publicHolidaysByRegionDate.get(`${regionId}:${date}`) : null);
+}
+
 function getDateRange(startDate: string, endDate: string) {
   const date = new Date(`${startDate}T00:00:00`);
   const end = new Date(`${endDate}T00:00:00`);
@@ -638,6 +669,11 @@ function getDateRange(startDate: string, endDate: string) {
   }
 
   return dates;
+}
+
+function isWeekend(date: string) {
+  const day = new Date(`${date}T00:00:00`).getDay();
+  return day === 0 || day === 6;
 }
 
 function getCurrentMonth() {

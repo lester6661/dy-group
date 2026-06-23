@@ -5,6 +5,7 @@ import type {
   EmploymentType,
   JobTitle,
   LeaveRequest,
+  PublicHoliday,
   Region,
 } from '../types/database';
 
@@ -30,6 +31,7 @@ export type AttendancePeriodData = {
   attendanceRecords: AttendanceRecord[];
   leaveRequests: LeaveRequest[];
   restDays: AttendanceRestDay[];
+  publicHolidays: PublicHoliday[];
   regions: Region[];
   range: AttendancePeriodRange;
 };
@@ -98,7 +100,18 @@ export const attendanceManagementService = {
     const scopedEmployeesQuery = regionId ? employeesQuery.eq('region_id', regionId) : employeesQuery;
 
     const [yearText, monthText] = month.split('-');
-    const [employeesResult, attendanceResult, leaveResult, restResult, regionsResult] = await Promise.all([
+    let publicHolidaysQuery = supabase
+      .from('public_holidays')
+      .select('*')
+      .eq('is_active', true)
+      .gte('holiday_date', range.startDate)
+      .lte('holiday_date', range.endDate);
+
+    if (regionId) {
+      publicHolidaysQuery = publicHolidaysQuery.or(`region_id.is.null,region_id.eq.${regionId}`);
+    }
+
+    const [employeesResult, attendanceResult, leaveResult, restResult, publicHolidaysResult, regionsResult] = await Promise.all([
       scopedEmployeesQuery,
       supabase
         .from('attendance_records')
@@ -117,6 +130,7 @@ export const attendanceManagementService = {
         cycle_month: Number(monthText),
         region_filter: regionId || null,
       }),
+      publicHolidaysQuery,
       supabase.from('regions').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
     ]);
 
@@ -136,6 +150,10 @@ export const attendanceManagementService = {
       throw restResult.error;
     }
 
+    if (publicHolidaysResult.error) {
+      throw publicHolidaysResult.error;
+    }
+
     if (regionsResult.error) {
       throw regionsResult.error;
     }
@@ -145,6 +163,7 @@ export const attendanceManagementService = {
       attendanceRecords: attendanceResult.data ?? [],
       leaveRequests: leaveResult.data ?? [],
       restDays: (restResult.data ?? []) as AttendanceRestDay[],
+      publicHolidays: publicHolidaysResult.data ?? [],
       regions: regionsResult.data ?? [],
       range,
     };
